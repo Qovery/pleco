@@ -6,16 +6,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func StartDaemon() {
+func StartDaemon(dryRun bool) {
+	fmt.Println("\n ____  _     _____ ____ ___  \n|  _ \\| |   | ____/ ___/ _ \\ \n| |_) | |   |  _|| |  | | | |\n|  __/| |___| |__| |__| |_| |\n|_|   |_____|_____\\____\\___/\nBy Qovery\n")
 	log.Info("Starting Pleco")
 	region := "us-east-2"
+
+	// AWS session
 	currentSession, err := aws.CreateSession(region)
 	if err != nil {
 		log.Errorf("AWS session error: %s", err)
 	}
-	databasesTagged, err := aws.ListTaggedDatabases(*currentSession, region, "ttl")
-	if err != nil {
-		log.Errorf("wasn't able to retrieve database info: %s", err)
-	}
-	fmt.Println(databasesTagged)
+
+	// check RDS
+	currentRdsSession := aws.RdsSession(*currentSession, region)
+	aws.DeleteExpiredDatabases(*currentRdsSession, "ttl", dryRun)
 }

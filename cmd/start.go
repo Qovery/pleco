@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/Qovery/pleco/pleco"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -11,7 +12,12 @@ var startCmd = &cobra.Command{
 	Short: "Start Pleco as a daemon",
 	Run: func(cmd *cobra.Command, args []string) {
 		_ = setLogLevel()
-		pleco.StartDaemon()
+
+		dryRun, _ := cmd.Flags().GetBool("dry-run")
+		if dryRun {
+			log.Info("")
+		}
+		pleco.StartDaemon(dryRun)
 	},
 }
 
