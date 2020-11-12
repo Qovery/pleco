@@ -1,0 +1,34 @@
+on: push
+name: Push
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      -
+        name: Fetch tags
+        run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+      -
+        name: Set up Go
+        uses: actions/setup-go@main
+        with:
+          go-version: 1.15.x
+      -
+        name: Run golangci-lint
+        uses: actions-contrib/golangci-lint@v1
+        env:
+          GOROOT: ""
+        with:
+          args: "run"
+      -
+        name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v1
+        with:
+          version: latest
+          args: release --rm-dist --skip-publish --skip-validate
+        env:
+          GITHUB_TOKEN: ${{ secrets.GORELEASER_GITHUB_TOKEN }}

@@ -1,0 +1,44 @@
+name: goreleaser
+
+on:
+  create:
+    tags:
+
+jobs:
+  qovery:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      -
+        name: Fetch tags
+        run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+      - name: Ensure tag match the current version
+        run: |
+            if [ "v$(grep '// ci-version-check' cmd/version.go | sed -r 's/.+return\s"(.+)".+/\1/')" != "$(git tag | sort --version-sort | tail -1)" ] ; then
+                echo "Tag version do not match application version"
+                exit 1
+            fi
+      -
+        name: Set up Go
+        uses: actions/setup-go@main
+        with:
+          go-version: 1.15.x
+      -
+        name: Run golangci-lint
+        uses: actions-contrib/golangci-lint@v1
+        env:
+          GOROOT: ""
+        with:
+          args: "run"
+      -
+        name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v1
+        with:
+          version: latest
+          args: release --rm-dist
+        env:
+          GITHUB_TOKEN: ${{ secrets.GORELEASER_GITHUB_TOKEN }}
