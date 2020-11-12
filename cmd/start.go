@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"github.com/Qovery/pleco/pleco"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -14,9 +13,6 @@ var startCmd = &cobra.Command{
 		_ = setLogLevel()
 
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
-		if dryRun {
-			log.Info("")
-		}
 		pleco.StartDaemon(dryRun)
 	},
 }

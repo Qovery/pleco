@@ -37,7 +37,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.pleco.yaml)")
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "level", "debug", "set log level")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "level", "info", "set log level")
 
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
