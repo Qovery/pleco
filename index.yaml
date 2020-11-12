@@ -1,0 +1,16 @@
+apiVersion: v1
+entries:
+  pleco:
+  - apiVersion: v2
+    appVersion: 0.1.4
+    created: "2020-11-12T11:32:05.714737229Z"
+    description: A Helm chart for Pleco
+    digest: c49f5dba7d92ec176f63f00e833a33344d32dfbdbd86a57d04e91937727b9339
+    home: https://github.com/Qovery/pleco
+    icon: https://upload.wikimedia.org/wikipedia/commons/3/3a/Pleco_vetro.jpg
+    name: pleco
+    type: application
+    urls:
+    - https://Qovery.github.io/pleco/pleco-0.1.0.tgz
+    version: 0.1.0
+generated: "2020-11-12T11:32:05.714125027Z"
