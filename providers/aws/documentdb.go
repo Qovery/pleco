@@ -35,7 +35,6 @@ func listTaggedClusters(svc rds.RDS, tagName string) ([]documentDBCluster, error
 		return nil, nil
 	}
 
-	log.Debugf("Found %d DocumentDB instance(s), filtering on tag \"%s\"\n", len(result.DBClusters), tagName)
 	for _, cluster := range result.DBClusters {
 		for _, tag := range cluster.TagList {
 			if *tag.Key == tagName {
@@ -65,7 +64,7 @@ func listTaggedClusters(svc rds.RDS, tagName string) ([]documentDBCluster, error
 			}
 		}
 	}
-	log.Debugf("Found %d DocumentDB cluster(s) with ttl tag", len(taggedClusters))
+	log.Debugf("Found %d DocumentDB cluster(s) in ready status with ttl tag", len(taggedClusters))
 
 	return taggedClusters, nil
 }

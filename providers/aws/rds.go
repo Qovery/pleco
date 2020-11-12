@@ -36,7 +36,6 @@ func listTaggedDatabases(svc rds.RDS, tagName string) ([]rdsDatabase, error) {
 		return nil, nil
 	}
 
-	log.Debugf("Found %d RDS instance(s), filtering on tag \"%s\"\n", len(result.DBInstances), tagName)
 	for _, instance := range result.DBInstances {
 		for _, tag := range instance.TagList {
 			if *tag.Key == tagName {
@@ -52,6 +51,11 @@ func listTaggedDatabases(svc rds.RDS, tagName string) ([]rdsDatabase, error) {
 					continue
 				}
 
+				// ignore if creation is in progress to avoid nil fields
+				if *instance.DBInstanceStatus == "creating" {
+					continue
+				}
+
 				taggedDatabases = append(taggedDatabases, rdsDatabase{
 					DBInstanceIdentifier: *instance.DBInstanceIdentifier,
 					InstanceCreateTime:   *instance.InstanceCreateTime,
@@ -61,7 +65,7 @@ func listTaggedDatabases(svc rds.RDS, tagName string) ([]rdsDatabase, error) {
 			}
 		}
 	}
-	log.Debugf("Found %d RDS instance(s) with ttl tag", len(taggedDatabases))
+	log.Debugf("Found %d RDS instance(s) in ready status with ttl tag", len(taggedDatabases))
 
 	return taggedDatabases, nil
 }
@@ -98,8 +102,14 @@ func getRDSInstanceInfos(svc rds.RDS, databaseIdentifier string) (rdsDatabase, e
 	}
 
 	result, err := svc.DescribeDBInstances(&input)
-	if err != nil {
-		return rdsDatabase{}, err
+	// ignore if creation is in progress to avoid nil fields
+	if err != nil || *result.DBInstances[0].DBInstanceStatus == "creating" {
+		return rdsDatabase{
+			DBInstanceIdentifier: *result.DBInstances[0].DBInstanceIdentifier,
+			InstanceCreateTime:   time.Time{},
+			DBInstanceStatus:     *result.DBInstances[0].DBInstanceStatus,
+			TTL:                  0,
+		}, err
 	}
 
 	return rdsDatabase{

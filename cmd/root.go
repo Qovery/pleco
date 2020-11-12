@@ -69,11 +69,20 @@ func initConfig() {
 }
 
 func setLogLevel() error {
+	// set log level
 	logLevel, _ := rootCmd.Flags().GetString("level")
+
 	lvl, err := logrus.ParseLevel(logLevel)
 	if err != nil {
 		return err
 	}
+
 	logrus.SetLevel(lvl)
+
+	// use timestamp
+	formatter := &logrus.TextFormatter{
+		FullTimestamp: true,
+	}
+	logrus.SetFormatter(formatter)
 	return nil
 }
