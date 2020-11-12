@@ -1,0 +1,16 @@
+builds:
+  - main: main.go
+    binary: pleco
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+checksum:
+  name_template: 'checksums.txt'
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
