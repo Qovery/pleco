@@ -19,8 +19,12 @@ jobs:
       - name: Ensure tag match the current version
         run: |
             if [ "v$(grep '// ci-version-check' cmd/version.go | sed -r 's/.+return\s"(.+)".+/\1/')" != "$(git tag | sort --version-sort | tail -1)" ] ; then
-                echo "Tag version do not match application version"
+                echo "Tag version do not match application version in cmd/version.go"
                 exit 1
+            fi
+            if [ "v$(grep '// ci-version-check' charts/Chart.yaml | sed -r 's/^appVersion:\s(.+)\s\/.+/\1/')" != "$(git tag | sort --version-sort | tail -1)" ] ; then
+             echo "Tag version do not match application version in charts/Chart.yaml"
+             exit 1
             fi
       -
         name: Set up Go
