@@ -1,5 +1,0 @@
-package kubernetes
-
-func validate()  {
-
-}

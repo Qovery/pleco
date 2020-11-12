@@ -10,7 +10,6 @@ import (
 )
 
 var cfgFile string
-var logLevel string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{

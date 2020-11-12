@@ -40,7 +40,7 @@ func listTaggedDatabases(svc rds.RDS, tagName string) ([]rdsDatabase, error) {
 		for _, tag := range instance.TagList {
 			if *tag.Key == tagName {
 				if *tag.Key == "" {
-					log.Warn("Tag %s was empty and it wasn't expected, skipping", tag)
+					log.Warn("Tag %s was empty and it wasn't expected, skipping", tag.Key)
 					continue
 				}
 

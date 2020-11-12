@@ -39,7 +39,7 @@ func listTaggedClusters(svc rds.RDS, tagName string) ([]documentDBCluster, error
 		for _, tag := range cluster.TagList {
 			if *tag.Key == tagName {
 				if *tag.Key == "" {
-					log.Warn("Tag %s was empty and it wasn't expected, skipping", tag)
+					log.Warn("Tag %s was empty and it wasn't expected, skipping", tag.Key)
 					continue
 				}
 
