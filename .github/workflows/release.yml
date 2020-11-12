@@ -27,6 +27,10 @@ jobs:
 
             file="charts/pleco/Chart.yaml"
             if [ "v$(grep 'appVersion' $file | awk '{ print $2 }')" != "$version" ] ; then
+             echo "Tag appVersion do not match application version in $file"
+             exit 1
+            fi
+            if [ "v$(grep 'version' $file | awk '{ print $2 }')" != "$version" ] ; then
              echo "Tag version do not match application version in $file"
              exit 1
             fi

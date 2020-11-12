@@ -3,6 +3,6 @@ name: pleco
 description: A Helm chart for Pleco
 type: application
 home: https://github.com/Qovery/pleco
-version: 0.1.0
+version: 0.1.4
 appVersion: 0.1.4
 icon: https://upload.wikimedia.org/wikipedia/commons/3/3a/Pleco_vetro.jpg
