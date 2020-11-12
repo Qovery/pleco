@@ -1,0 +1,7 @@
+apiVersion: v2
+name: pleco
+description: A Helm chart for Pleco
+type: application
+home: https://github.com/Qovery/pleco
+version: 0.1.0
+appVersion: 0.1
