@@ -5,7 +5,7 @@ metadata:
   labels:
     {{- include "kubernetes.labels" . | nindent 4 }}
 spec:
-  replicas: {{ .Values.replicaCount {{ .Values.replicaCount }}
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
       {{- include "kubernetes.selectorLabels" . | nindent 6 }}
