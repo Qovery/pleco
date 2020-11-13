@@ -1,6 +1,8 @@
 package aws
 
 import (
+	"errors"
+	"fmt"
 	"github.com/Qovery/pleco/utils"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -120,8 +122,12 @@ func getRDSInstanceInfos(svc rds.RDS, databaseIdentifier string) (rdsDatabase, e
 	}, nil
 }
 
-func DeleteExpiredDatabases(svc rds.RDS, tagName string, dryRun bool) {
-	databases, _ := listTaggedDatabases(svc, tagName)
+func DeleteExpiredDatabases(svc rds.RDS, tagName string, dryRun bool) error {
+	databases, err := listTaggedDatabases(svc, tagName)
+	if err != nil {
+		return errors.New(fmt.Sprintf("can't list RDS databases: %s\n", err))
+	}
+
 	for _, database := range databases {
 		if utils.CheckIfExpired(database.InstanceCreateTime, database.TTL) {
 			err := deleteDatabase(svc, database, dryRun)
@@ -135,4 +141,6 @@ func DeleteExpiredDatabases(svc rds.RDS, tagName string, dryRun bool) {
 				database.DBInstanceIdentifier, *svc.Config.Region)
 		}
 	}
+
+	return nil
 }

@@ -1,13 +1,15 @@
 replicaCount: 1
 
 image:
-  repository: qovery/pleco
+  repository: qoveryrd/pleco
   pullPolicy: IfNotPresent
-  plecoImageTag: "v0.1.4"
+  plecoImageTag: "v0.1.5"
 
-pleco:
-  environmentVariables: {}
-  commandArgs: {}
+environmentVariables:
+  LOGLEVEL: info
+  # AWS_ACCESS_KEY_ID: ""
+  # AWS_SECRET_ACCESS_KEY: ""
+  # AWS_DEFAULT_REGION: ""
 
 imagePullSecrets: []
 nameOverride: ""
@@ -25,7 +27,7 @@ serviceAccount:
 podAnnotations: {}
 
 podSecurityContext: {}
-  # fsGroup: 2000
+# fsGroup: 2000
 
 securityContext: {}
   # capabilities:
@@ -33,7 +35,7 @@ securityContext: {}
   #   - ALL
   # readOnlyRootFilesystem: true
   # runAsNonRoot: true
-  # runAsUser: 1000
+# runAsUser: 1000
 
 resources:
   limits:

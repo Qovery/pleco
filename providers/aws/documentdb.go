@@ -121,8 +121,12 @@ func deleteCluster(svc rds.RDS, cluster documentDBCluster, dryRun bool) error {
 	return nil
 }
 
-func DeleteExpiredClusters(svc rds.RDS, tagName string, dryRun bool) {
-	clusters, _ := listTaggedClusters(svc, tagName)
+func DeleteExpiredClusters(svc rds.RDS, tagName string, dryRun bool) error {
+	clusters, err := listTaggedClusters(svc, tagName)
+	if err != nil {
+		return errors.New(fmt.Sprintf("can't list DocumentDB databases: %s\n", err))
+	}
+
 	for _, cluster := range clusters {
 		if utils.CheckIfExpired(cluster.ClusterCreateTime, cluster.TTL) {
 			err := deleteCluster(svc, cluster, dryRun)
@@ -136,4 +140,6 @@ func DeleteExpiredClusters(svc rds.RDS, tagName string, dryRun bool) {
 				cluster.DBClusterIdentifier, *svc.Config.Region)
 		}
 	}
+
+	return nil
 }

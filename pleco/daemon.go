@@ -26,9 +26,16 @@ func StartDaemon(dryRun bool) {
 	currentRdsSession := aws.RdsSession(*currentSession, region)
 
 	for {
-		aws.DeleteExpiredDatabases(*currentRdsSession, "ttl", dryRun)
+		err = aws.DeleteExpiredDatabases(*currentRdsSession, "ttl", dryRun)
+		if err != nil {
+			log.Error(err)
+		}
 		// check DocumentDB
-		aws.DeleteExpiredClusters(*currentRdsSession, "ttl", dryRun)
+		err = aws.DeleteExpiredClusters(*currentRdsSession, "ttl", dryRun)
+		if err != nil {
+			log.Error(err)
+		}
+
 		time.Sleep(10 * time.Second)
 	}
 }
