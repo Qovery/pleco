@@ -1,31 +1,31 @@
-package pleco
+package core
 
 import (
-	"fmt"
 	"github.com/Qovery/pleco/providers/aws"
 	log "github.com/sirupsen/logrus"
+	"os"
 	"time"
 )
 
-func StartDaemon(dryRun bool) {
-	fmt.Println("\n ____  _     _____ ____ ___  \n|  _ \\| |   | ____/ ___/ _ \\ \n| |_) | |   |  _|| |  | | | |\n|  __/| |___| |__| |__| |_| |\n|_|   |_____|_____\\____\\___/\nBy Qovery\n")
+func StartDaemon(dryRun bool, interval int64) {
+	log.Info("\n\n ____  _     _____ ____ ___  \n|  _ \\| |   | ____/ ___/ _ \\ \n| |_) | |   |  _|| |  | | | |\n|  __/| |___| |__| |__| |_| |\n|_|   |_____|_____\\____\\___/\nBy Qovery\n\n")
 	log.Info("Starting Pleco")
+
 	if dryRun {
 		log.Info("Dry run mode enabled")
 	}
-
-	region := "us-east-2"
+	checkEnvVars()
 
 	// AWS session
-	currentSession, err := aws.CreateSession(region)
+	currentSession, err := aws.CreateSession(os.Getenv("AWS_DEFAULT_REGION"))
 	if err != nil {
 		log.Errorf("AWS session error: %s", err)
 	}
 
-	// check RDS
-	currentRdsSession := aws.RdsSession(*currentSession, region)
+	currentRdsSession := aws.RdsSession(*currentSession, os.Getenv("AWS_DEFAULT_REGION"))
 
 	for {
+		// check RDS
 		err = aws.DeleteExpiredDatabases(*currentRdsSession, "ttl", dryRun)
 		if err != nil {
 			log.Error(err)
@@ -36,6 +36,6 @@ func StartDaemon(dryRun bool) {
 			log.Error(err)
 		}
 
-		time.Sleep(10 * time.Second)
+		time.Sleep(time.Duration(interval) * time.Second)
 	}
 }

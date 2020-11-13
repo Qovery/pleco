@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/Qovery/pleco/pleco"
+	"github.com/Qovery/pleco/core"
 	"github.com/spf13/cobra"
 )
 
@@ -13,7 +13,8 @@ var startCmd = &cobra.Command{
 		_ = setLogLevel()
 
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
-		pleco.StartDaemon(dryRun)
+		interval, _ := cmd.Flags().GetInt64("check-interval")
+		core.StartDaemon(dryRun, interval)
 	},
 }
 
@@ -21,4 +22,5 @@ func init() {
 	rootCmd.AddCommand(startCmd)
 
 	startCmd.Flags().BoolP("dry-run", "t", false, "Dry run mode")
+	startCmd.Flags().Int64P("check-interval", "i", 120, "Check interval in seconds")
 }
