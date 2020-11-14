@@ -37,7 +37,7 @@ spec:
             - --level
             - {{ .Values.environmentVariables.LOG_LEVEL | default "info" }}
             - --check-interval
-            - {{ .Values.environmentVariables.CHECK_INTERVAL | default 120 }}
+            - "{{ .Values.environmentVariables.CHECK_INTERVAL | default 120 }}"
             {{ if .Values.environmentVariables.DRY_RUN }}
             - --dry-run
             {{ end }}
