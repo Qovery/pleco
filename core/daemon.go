@@ -23,15 +23,21 @@ func StartDaemon(dryRun bool, interval int64) {
 	}
 
 	currentRdsSession := aws.RdsSession(*currentSession, os.Getenv("AWS_DEFAULT_REGION"))
+	currentElasticacheSession := aws.ElasticacheSession(*currentSession, os.Getenv("AWS_DEFAULT_REGION"))
 
 	for {
 		// check RDS
-		err = aws.DeleteExpiredDatabases(*currentRdsSession, "ttl", dryRun)
+		err = aws.DeleteExpiredRDSDatabases(*currentRdsSession, "ttl", dryRun)
 		if err != nil {
 			log.Error(err)
 		}
 		// check DocumentDB
-		err = aws.DeleteExpiredClusters(*currentRdsSession, "ttl", dryRun)
+		err = aws.DeleteExpiredDocumentDBClusters(*currentRdsSession, "ttl", dryRun)
+		if err != nil {
+			log.Error(err)
+		}
+		// check Elasticache
+		err = aws.DeleteExpiredElasticacheDatabases(*currentElasticacheSession, "ttl", dryRun)
 		if err != nil {
 			log.Error(err)
 		}

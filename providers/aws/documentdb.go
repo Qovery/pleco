@@ -19,7 +19,7 @@ type documentDBCluster struct {
 	TTL int64
 }
 
-func listTaggedClusters(svc rds.RDS, tagName string) ([]documentDBCluster, error) {
+func listTaggedDocumentDBClusters(svc rds.RDS, tagName string) ([]documentDBCluster, error) {
 	var taggedClusters []documentDBCluster
 	var instances []string
 
@@ -69,7 +69,7 @@ func listTaggedClusters(svc rds.RDS, tagName string) ([]documentDBCluster, error
 	return taggedClusters, nil
 }
 
-func deleteCluster(svc rds.RDS, cluster documentDBCluster, dryRun bool) error {
+func deleteDocumentDBCluster(svc rds.RDS, cluster documentDBCluster, dryRun bool) error {
 	deleteInstancesErrors := 0
 
 	if cluster.Status == "deleting" {
@@ -90,7 +90,7 @@ func deleteCluster(svc rds.RDS, cluster documentDBCluster, dryRun bool) error {
 			continue
 		}
 
-		err = deleteDatabase(svc, rdsInstanceInfo, dryRun)
+		err = deleteRDSDatabase(svc, rdsInstanceInfo, dryRun)
 		if err != nil {
 			log.Errorf("Deletion error on DocumentDB instance %s/%s/%s: %s",
 				instance, cluster.DBClusterIdentifier, *svc.Config.Region, err)
@@ -121,15 +121,15 @@ func deleteCluster(svc rds.RDS, cluster documentDBCluster, dryRun bool) error {
 	return nil
 }
 
-func DeleteExpiredClusters(svc rds.RDS, tagName string, dryRun bool) error {
-	clusters, err := listTaggedClusters(svc, tagName)
+func DeleteExpiredDocumentDBClusters(svc rds.RDS, tagName string, dryRun bool) error {
+	clusters, err := listTaggedDocumentDBClusters(svc, tagName)
 	if err != nil {
 		return errors.New(fmt.Sprintf("can't list DocumentDB databases: %s\n", err))
 	}
 
 	for _, cluster := range clusters {
 		if utils.CheckIfExpired(cluster.ClusterCreateTime, cluster.TTL) {
-			err := deleteCluster(svc, cluster, dryRun)
+			err := deleteDocumentDBCluster(svc, cluster, dryRun)
 			if err != nil {
 				log.Errorf("Deletion DocumentDB cluster error %s/%s: %s",
 					cluster.DBClusterIdentifier, *svc.Config.Region, err)
