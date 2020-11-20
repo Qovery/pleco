@@ -23,7 +23,7 @@ func RdsSession(sess session.Session, region string) *rds.RDS {
 	return rds.New(&sess, &aws.Config{Region: aws.String(region)})
 }
 
-func listTaggedDatabases(svc rds.RDS, tagName string) ([]rdsDatabase, error) {
+func listTaggedRDSDatabases(svc rds.RDS, tagName string) ([]rdsDatabase, error) {
 	var taggedDatabases []rdsDatabase
 
 	log.Debugf("Listing all RDS databases")
@@ -72,7 +72,7 @@ func listTaggedDatabases(svc rds.RDS, tagName string) ([]rdsDatabase, error) {
 	return taggedDatabases, nil
 }
 
-func deleteDatabase(svc rds.RDS, database rdsDatabase, dryRun bool) error {
+func deleteRDSDatabase(svc rds.RDS, database rdsDatabase, dryRun bool) error {
 	if database.DBInstanceStatus == "deleting" {
 		log.Infof("RDS instance %s is already in deletion process, skipping...", database.DBInstanceIdentifier)
 		return nil
@@ -122,15 +122,15 @@ func getRDSInstanceInfos(svc rds.RDS, databaseIdentifier string) (rdsDatabase, e
 	}, nil
 }
 
-func DeleteExpiredDatabases(svc rds.RDS, tagName string, dryRun bool) error {
-	databases, err := listTaggedDatabases(svc, tagName)
+func DeleteExpiredRDSDatabases(svc rds.RDS, tagName string, dryRun bool) error {
+	databases, err := listTaggedRDSDatabases(svc, tagName)
 	if err != nil {
 		return errors.New(fmt.Sprintf("can't list RDS databases: %s\n", err))
 	}
 
 	for _, database := range databases {
 		if utils.CheckIfExpired(database.InstanceCreateTime, database.TTL) {
-			err := deleteDatabase(svc, database, dryRun)
+			err := deleteRDSDatabase(svc, database, dryRun)
 			if err != nil {
 				log.Errorf("Deletion RDS database error %s/%s: %s",
 					database.DBInstanceIdentifier, *svc.Config.Region, err)

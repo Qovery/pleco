@@ -3,6 +3,6 @@ name: pleco
 description: Automatically removes Cloud managed services and Kubernetes resources based on tags with TTL
 type: application
 home: https://github.com/Qovery/pleco
-version: 0.1.8
-appVersion: 0.1.8
+version: 0.2.0
+appVersion: 0.2.0
 icon: https://github.com/Qovery/pleco/raw/main/assets/pleco_logo.png
