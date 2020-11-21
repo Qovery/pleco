@@ -86,9 +86,10 @@ func deleteRDSDatabase(svc rds.RDS, database rdsDatabase, dryRun bool) error {
 	}
 
 	_, err := svc.DeleteDBInstance(
-		&rds.DeleteDBInstanceInput {
-			DBInstanceIdentifier: aws.String(database.DBInstanceIdentifier),
-			SkipFinalSnapshot: aws.Bool(true),
+		&rds.DeleteDBInstanceInput{
+			DBInstanceIdentifier:      aws.String(database.DBInstanceIdentifier),
+			DeleteAutomatedBackups:    aws.Bool(true),
+			SkipFinalSnapshot:         aws.Bool(true),
 		},
 	)
 	if err != nil {
