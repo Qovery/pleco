@@ -26,7 +26,7 @@ func listTaggedNamespaces(clientSet *kubernetes.Clientset, tagName string) ([]ku
 		LabelSelector:       tagName,
 	}
 
-	log.Debugf("Listing all Kubernetes namespaces with %s tag", tagName)
+	log.Debugf("Listing all Kubernetes namespaces with %s label", tagName)
 	namespaces, err := clientSet.CoreV1().Namespaces().List(context.TODO(), listOptions)
 	if err != nil {
 		return taggedNamespaces, err
