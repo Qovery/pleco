@@ -6,16 +6,33 @@ import (
 	"os"
 )
 
+func isAwsUsed(cmd *cobra.Command, serviceName string) bool {
+	service, err := cmd.Flags().GetBool("enable-" + serviceName)
+	if err == nil && service {
+		return true
+	}
+	return false
+}
+
 func checkEnvVars(cmd *cobra.Command) {
-	requiredEnvVars := []string{
+	var requiredEnvVars []string
+	awsEnvVars := []string{
 		"AWS_ACCESS_KEY_ID",
 		"AWS_SECRET_ACCESS_KEY",
 		"AWS_DEFAULT_REGION",
 	}
 
+	// if kubernetes is required
 	kubeConn, err := cmd.Flags().GetString("kube-conn")
 	if err == nil && kubeConn == "out" {
 		requiredEnvVars = append(requiredEnvVars, "KUBECONFIG")
+	}
+
+	// if an AWS servie is required
+	if isAwsUsed(cmd, "rds") ||
+		isAwsUsed(cmd, "documentdb") ||
+		isAwsUsed(cmd, "elasticache") {
+		requiredEnvVars = append(requiredEnvVars, awsEnvVars...)
 	}
 
 	for _, envVar := range requiredEnvVars {

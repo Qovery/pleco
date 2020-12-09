@@ -3,7 +3,7 @@ replicaCount: 1
 image:
   repository: qoveryrd/pleco
   pullPolicy: IfNotPresent
-  plecoImageTag: "v0.3.1"
+  plecoImageTag: "v0.3.2"
 
 environmentVariables:
   CHECK_INTERVAL: "120"
@@ -17,9 +17,9 @@ environmentVariables:
 enabledFeatures:
   # Choose between in/out/off
   kubernetes: "in"
-  rds: true
-  documentdb: true
-  elasticache: true
+  rds: false
+  documentdb: false
+  elasticache: false
 
 imagePullSecrets: []
 nameOverride: ""

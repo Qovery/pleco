@@ -31,9 +31,9 @@ func init() {
 	startCmd.Flags().Int64P("check-interval", "i", 120, "Check interval in seconds")
 
 	// AWS - Databases
-	startCmd.Flags().BoolP("enable-rds", "r", true, "Enable RDS watch")
-	startCmd.Flags().BoolP("enable-documentdb", "m", true, "Enable DocumentDB watch")
-	startCmd.Flags().BoolP("enable-elasticache", "c", true, "Enable Elasticache watch")
+	startCmd.Flags().BoolP("enable-rds", "r", false, "Enable RDS watch")
+	startCmd.Flags().BoolP("enable-documentdb", "m", false, "Enable DocumentDB watch")
+	startCmd.Flags().BoolP("enable-elasticache", "c", false, "Enable Elasticache watch")
 
 	// K8s
 	startCmd.Flags().StringP("kube-conn", "k", "off","Kubernetes connection method, choose between : off/in/out")
