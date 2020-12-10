@@ -18,7 +18,7 @@ var startCmd = &cobra.Command{
 		interval, _ := cmd.Flags().GetInt64("check-interval")
 
 		fmt.Println("\n\n ____  _     _____ ____ ___  \n|  _ \\| |   | ____/ ___/ _ \\ \n| |_) | |   |  _|| |  | | | |\n|  __/| |___| |__| |__| |_| |\n|_|   |_____|_____\\____\\___/\nBy Qovery\n\n")
-		log.Info("Starting Pleco")
+		log.Infof("Starting Pleco %s", GetCurrentVersion())
 
 		core.StartDaemon(disableDryRun, interval, cmd)
 	},
