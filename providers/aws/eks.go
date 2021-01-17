@@ -53,8 +53,9 @@ func AuthenticateToEks(clusterName string, clusterUrl string, roleArn string, se
 
 func listTaggedEKSClusters(svc eks.EKS, tagName string) ([]eksCluster, error) {
 	var taggedClusters []eksCluster
+	region := *svc.Config.Region
 
-	log.Debugf("Listing all EKS clusters")
+	log.Debugf("Listing all EKS clusters in region %s", region)
 	input := &eks.ListClustersInput{}
 	result, err := svc.ListClusters(input)
 	if err != nil {
@@ -62,7 +63,7 @@ func listTaggedEKSClusters(svc eks.EKS, tagName string) ([]eksCluster, error) {
 	}
 
 	if len(result.Clusters) == 0 {
-		log.Debug("No EKS clusters were found")
+		log.Debugf("No EKS clusters were found in region %s", region)
 		return nil, nil
 	}
 
@@ -74,20 +75,20 @@ func listTaggedEKSClusters(svc eks.EKS, tagName string) ([]eksCluster, error) {
 
 		clusterInfo, err := svc.DescribeCluster(&currentCluster)
 		if err != nil {
-			log.Errorf("Error while trying to get info from cluster %v", clusterName)
+			log.Errorf("Error while trying to get info from cluster %v (%s)", clusterName, region)
 			continue
 		}
 
 		if ttlValue, ok := clusterInfo.Cluster.Tags[tagName]; ok {
 			ttl, err := strconv.Atoi(*ttlValue)
 			if err != nil {
-				log.Errorf("Can't convert TTL tag for cluster %v, may be the value is not correct", clusterName)
+				log.Errorf("Can't convert TTL tag for cluster %v (%s), may be the value is not correct", clusterName, region)
 				continue
 			}
 
 			// ignore if creation is in progress to avoid nil fields
 			if *clusterInfo.Cluster.Status == "CREATING" {
-				log.Debugf("Can't perform action on cluster %v yet, current status is: %s", clusterName ,*clusterInfo.Cluster.Status)
+				log.Debugf("Can't perform action on cluster %v (%s), current status is: %s", clusterName, region ,*clusterInfo.Cluster.Status)
 				continue
 			}
 
@@ -96,7 +97,7 @@ func listTaggedEKSClusters(svc eks.EKS, tagName string) ([]eksCluster, error) {
 				ClusterName: &clusterName,
 			})
 			if err != nil {
-				log.Errorf("Error while trying to get node groups from cluster %s: %s", clusterName, err)
+				log.Errorf("Error while trying to get node groups from cluster %s (%s): %s", clusterName, region, err)
 				continue
 			}
 
@@ -110,20 +111,20 @@ func listTaggedEKSClusters(svc eks.EKS, tagName string) ([]eksCluster, error) {
 		}
 	}
 
-	log.Debugf("Found %d EKS cluster(s) in ready status with ttl tag", len(taggedClusters))
+	log.Debugf("Found %d EKS cluster(s) (%s) in ready status with ttl tag", len(taggedClusters), region)
 
 	return taggedClusters, nil
 }
 
 func deleteEKSCluster(svc eks.EKS, cluster eksCluster, dryRun bool) error {
 	if cluster.Status == "DELETING" {
-		log.Infof("EKS cluster %s is already in deletion process, skipping...", cluster.ClusterName)
+		log.Infof("EKS cluster %s (%s) is already in deletion process, skipping...", cluster.ClusterName, *svc.Config.Region)
 		return nil
 	} else if cluster.Status == "CREATING" {
-		log.Infof("EKS cluster %s is in creating process, skipping...", cluster.ClusterName)
+		log.Infof("EKS cluster %s (%s) is in creating process, skipping...", cluster.ClusterName, *svc.Config.Region)
 		return nil
 	} else {
-		log.Infof("Deleting EKS cluster %s in %s, expired after %d seconds",
+		log.Infof("Deleting EKS cluster %s (%s), expired after %d seconds",
 			cluster.ClusterName, *svc.Config.Region, cluster.TTL)
 	}
 

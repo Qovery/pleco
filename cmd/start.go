@@ -29,8 +29,10 @@ func init() {
 
 	startCmd.Flags().BoolP("disable-dry-run", "y", false, "Disable dry run mode")
 	startCmd.Flags().Int64P("check-interval", "i", 120, "Check interval in seconds")
+	startCmd.Flags().StringP("tag-name", "t", "ttl", "Set the tag name to check for deletion")
 
 	// AWS
+	startCmd.Flags().StringSliceP("aws-regions", "a", nil, "Set AWS regions")
 	startCmd.Flags().BoolP("enable-eks", "s", false, "Enable EKS watch")
 	startCmd.Flags().BoolP("enable-rds", "r", false, "Enable RDS watch")
 	startCmd.Flags().BoolP("enable-documentdb", "m", false, "Enable DocumentDB watch")

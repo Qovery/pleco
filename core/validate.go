@@ -19,7 +19,6 @@ func checkEnvVars(cmd *cobra.Command) {
 	awsEnvVars := []string{
 		"AWS_ACCESS_KEY_ID",
 		"AWS_SECRET_ACCESS_KEY",
-		"AWS_DEFAULT_REGION",
 	}
 
 	// if kubernetes is required
@@ -33,6 +32,7 @@ func checkEnvVars(cmd *cobra.Command) {
 		isAwsUsed(cmd, "documentdb") ||
 		isAwsUsed(cmd, "elasticache") {
 		requiredEnvVars = append(requiredEnvVars, awsEnvVars...)
+		requiredEnvVars = append(requiredEnvVars, "aws-regions")
 	}
 
 	for _, envVar := range requiredEnvVars {
