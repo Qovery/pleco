@@ -1,13 +1,28 @@
 package aws
 
 import (
+	"errors"
 	"fmt"
+	"github.com/Qovery/pleco/utils"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/eks"
+	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
 	"sigs.k8s.io/aws-iam-authenticator/pkg/token"
+	"strconv"
+	"time"
 )
+
+type eksCluster struct {
+	ClusterCreateTime time.Time
+	ClusterName string
+	ClusterNodeGroupsName []*string
+	Status string
+	TTL int64
+}
 
 func AuthenticateToEks(clusterName string, clusterUrl string, roleArn string, session *session.Session) (*kubernetes.Clientset, error) {
 	clusterApi := &api.Cluster{Server: clusterUrl}
@@ -34,4 +49,174 @@ func AuthenticateToEks(clusterName string, clusterUrl string, roleArn string, se
 		return nil, fmt.Errorf("failed to generate client set: %v", err)
 	}
 	return clientSet, nil
+}
+
+func listTaggedEKSClusters(svc eks.EKS, tagName string) ([]eksCluster, error) {
+	var taggedClusters []eksCluster
+
+	log.Debugf("Listing all EKS clusters")
+	input := &eks.ListClustersInput{}
+	result, err := svc.ListClusters(input)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(result.Clusters) == 0 {
+		log.Debug("No EKS clusters were found")
+		return nil, nil
+	}
+
+	for _, cluster := range result.Clusters {
+		currentCluster := eks.DescribeClusterInput{
+			Name: aws.String(*cluster),
+		}
+		clusterName := *currentCluster.Name
+
+		clusterInfo, err := svc.DescribeCluster(&currentCluster)
+		if err != nil {
+			log.Errorf("Error while trying to get info from cluster %v", clusterName)
+			continue
+		}
+
+		if ttlValue, ok := clusterInfo.Cluster.Tags[tagName]; ok {
+			ttl, err := strconv.Atoi(*ttlValue)
+			if err != nil {
+				log.Errorf("Can't convert TTL tag for cluster %v, may be the value is not correct", clusterName)
+				continue
+			}
+
+			// ignore if creation is in progress to avoid nil fields
+			if *clusterInfo.Cluster.Status == "CREATING" {
+				log.Debugf("Can't perform action on cluster %v yet, current status is: %s", clusterName ,*clusterInfo.Cluster.Status)
+				continue
+			}
+
+			// get node groups
+			nodeGroups, err := svc.ListNodegroups(&eks.ListNodegroupsInput{
+				ClusterName: &clusterName,
+			})
+			if err != nil {
+				log.Errorf("Error while trying to get node groups from cluster %s: %s", clusterName, err)
+				continue
+			}
+
+			taggedClusters = append(taggedClusters, eksCluster{
+				ClusterCreateTime: *clusterInfo.Cluster.CreatedAt,
+				ClusterNodeGroupsName: nodeGroups.Nodegroups,
+				ClusterName:       clusterName,
+				Status:            *clusterInfo.Cluster.Status,
+				TTL:               int64(ttl),
+			})
+		}
+	}
+
+	log.Debugf("Found %d EKS cluster(s) in ready status with ttl tag", len(taggedClusters))
+
+	return taggedClusters, nil
+}
+
+func deleteEKSCluster(svc eks.EKS, cluster eksCluster, dryRun bool) error {
+	if cluster.Status == "DELETING" {
+		log.Infof("EKS cluster %s is already in deletion process, skipping...", cluster.ClusterName)
+		return nil
+	} else if cluster.Status == "CREATING" {
+		log.Infof("EKS cluster %s is in creating process, skipping...", cluster.ClusterName)
+		return nil
+	} else {
+		log.Infof("Deleting EKS cluster %s in %s, expired after %d seconds",
+			cluster.ClusterName, *svc.Config.Region, cluster.TTL)
+	}
+
+	if dryRun {
+		return nil
+	}
+
+	// delete node groups
+	if len(cluster.ClusterNodeGroupsName) > 0 {
+		for _, nodeGroupName := range cluster.ClusterNodeGroupsName {
+			nodeGroupStatus, err := getNodeGroupStatus(svc, cluster, *nodeGroupName)
+
+			if nodeGroupStatus == "DELETING" {
+				log.Infof("EKS cluster nodegroup %v (%s) is already in deletion process, skipping...", *nodeGroupName, cluster.ClusterName)
+				continue
+			} else if nodeGroupStatus == "CREATING" {
+				log.Infof("EKS cluster nodegroup %v (%s) is in creating process, skipping...", *nodeGroupName, cluster.ClusterName)
+				continue
+			} else {
+				log.Infof("Deleting EKS cluster nodegroup %v (%s)", *nodeGroupName, cluster.ClusterName)
+			}
+
+			err = deleteNodeGroupStatus(svc, cluster, *nodeGroupName, dryRun)
+			if err != nil {
+				return errors.New(fmt.Sprintf("Error while deleting node group %v: %s\n", *nodeGroupName, err))
+			}
+		}
+	}
+
+	// delete EKS cluster
+	// as requests are asynchronous, we'll wait next run to perform delete and avoid obvious failure
+	// because of nodes groups not yet deleted
+	if len(cluster.ClusterNodeGroupsName) == 0 {
+		_, err := svc.DeleteCluster(
+			&eks.DeleteClusterInput{
+				Name: &cluster.ClusterName,
+			},
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func getNodeGroupStatus(svc eks.EKS, cluster eksCluster, nodeGroupName string) (string, error) {
+	result, err := svc.DescribeNodegroup(&eks.DescribeNodegroupInput{
+		ClusterName:   &cluster.ClusterName,
+		NodegroupName: &nodeGroupName,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return *result.Nodegroup.Status, nil
+}
+
+func deleteNodeGroupStatus(svc eks.EKS, cluster eksCluster, nodeGroupName string, dryRun bool) error {
+	if dryRun {
+		return nil
+	}
+
+	_, err := svc.DeleteNodegroup(&eks.DeleteNodegroupInput{
+		ClusterName:   &cluster.ClusterName,
+		NodegroupName: &nodeGroupName,
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func DeleteExpiredEKSClusters(svc eks.EKS, tagName string, dryRun bool) error {
+	clusters, err := listTaggedEKSClusters(svc, tagName)
+	if err != nil {
+		return errors.New(fmt.Sprintf("can't list EKS clusters: %s\n", err))
+	}
+
+	for _, cluster := range clusters {
+		if utils.CheckIfExpired(cluster.ClusterCreateTime, cluster.TTL) {
+			err := deleteEKSCluster(svc, cluster, dryRun)
+			if err != nil {
+				log.Errorf("Deletion EKS cluster error %s/%s: %s",
+					cluster.ClusterName, *svc.Config.Region, err)
+				continue
+			}
+		} else {
+			log.Debugf("EKS cluster %s in %s, has not yet expired",
+				cluster.ClusterName, *svc.Config.Region)
+		}
+	}
+
+	return nil
 }

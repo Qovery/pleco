@@ -55,7 +55,10 @@ spec:
             {{ end }}
             {{ if eq .Values.enabledFeatures.documentdb true}}
             - --enable-documentdb
-          {{ end }}
+            {{ end }}
+            {{ if eq .Values.enabledFeatures.eks true}}
+            - --enable-eks
+            {{ end }}
           env:
             {{ range $key, $value := .Values.environmentVariables -}}
             - name: "{{ $key }}"

@@ -3,6 +3,7 @@ package core
 import (
 	"github.com/Qovery/pleco/providers/aws"
 	"github.com/Qovery/pleco/providers/k8s"
+	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	"github.com/aws/aws-sdk-go/service/rds"
 	log "github.com/sirupsen/logrus"
@@ -42,6 +43,13 @@ func StartDaemon(disableDryRun bool, interval int64, cmd *cobra.Command) {
 		currentElasticacheSession = aws.ElasticacheSession(*currentSession, os.Getenv("AWS_DEFAULT_REGION"))
 	}
 
+	// EKS connection
+	var currentEKSSession *eks.EKS
+	eksEnabled, _ := cmd.Flags().GetBool("enable-eks")
+	if eksEnabled {
+		currentEKSSession = eks.New(currentSession)
+	}
+
 	// Kubernetes connection
 	var k8sClientSet *kubernetes.Clientset
 	kubernetesEnabled := true
@@ -60,7 +68,7 @@ func StartDaemon(disableDryRun bool, interval int64, cmd *cobra.Command) {
 
 	// Todo: use a daemon lib instead of this dirty loop + goroutines
 	for {
-		// check Kube
+		// check Kubernetes
 		if kubernetesEnabled {
 			err = k8s.DeleteExpiredNamespaces(k8sClientSet, "ttl", dryRun)
 			if err != nil {
@@ -87,6 +95,14 @@ func StartDaemon(disableDryRun bool, interval int64, cmd *cobra.Command) {
 		// check Elasticache
 		if elasticacheEnabled {
 			err = aws.DeleteExpiredElasticacheDatabases(*currentElasticacheSession, "ttl", dryRun)
+			if err != nil {
+				log.Error(err)
+			}
+		}
+
+		// check EKS
+		if eksEnabled {
+			err = aws.DeleteExpiredEKSClusters(*currentEKSSession, "ttl", dryRun)
 			if err != nil {
 				log.Error(err)
 			}
