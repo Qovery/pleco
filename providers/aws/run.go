@@ -1,12 +1,13 @@
 package aws
 
 import (
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/elasticache"
+	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"os"
 	"sync"
 	"time"
 )
@@ -22,6 +23,15 @@ func RunPlecoAWS(cmd *cobra.Command, regions []string, interval int64, dryRun bo
 
 func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun bool) {
 	defer wg.Done()
+
+	var currentRdsSession *rds.RDS
+	var currentElasticacheSession *elasticache.ElastiCache
+	var currentEKSSession *eks.EKS
+	var currentElbSession *elbv2.ELBV2
+	var currentEC2Session *ec2.EC2
+	elbEnabled := false
+	//ec2Enabled := false
+
 	tagName, _ := cmd.Flags().GetString("tag-name")
 
 	// AWS session
@@ -31,25 +41,33 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 	}
 
 	// RDS + DocumentDB connection
-	var currentRdsSession *rds.RDS
 	rdsEnabled, _ := cmd.Flags().GetBool("enable-rds")
 	documentdbEnabled, _ := cmd.Flags().GetBool("enable-documentdb")
 	if rdsEnabled || documentdbEnabled {
-		currentRdsSession = RdsSession(*currentSession, os.Getenv("AWS_DEFAULT_REGION"))
+		currentRdsSession = RdsSession(*currentSession, region)
 	}
 
 	// Elasticache connection
-	var currentElasticacheSession *elasticache.ElastiCache
 	elasticacheEnabled, _ := cmd.Flags().GetBool("enable-elasticache")
 	if elasticacheEnabled {
-		currentElasticacheSession = ElasticacheSession(*currentSession, os.Getenv("AWS_DEFAULT_REGION"))
+		currentElasticacheSession = ElasticacheSession(*currentSession, region)
 	}
 
 	// EKS connection
-	var currentEKSSession *eks.EKS
 	eksEnabled, _ := cmd.Flags().GetBool("enable-eks")
 	if eksEnabled {
 		currentEKSSession = eks.New(currentSession)
+		currentElbSession = elbv2.New(currentSession)
+		elbEnabled = true
+		currentEC2Session = ec2.New(currentSession)
+		//ec2Enabled = true
+	}
+
+	// ELB connection
+	elbEnabledByUser, _ := cmd.Flags().GetBool("enable-elb")
+	if elbEnabled || elbEnabledByUser {
+		currentElbSession = elbv2.New(currentSession)
+		elbEnabled = true
 	}
 
 	for {
@@ -79,7 +97,15 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 
 		// check EKS
 		if eksEnabled {
-			err = DeleteExpiredEKSClusters(*currentEKSSession, tagName, dryRun)
+			err = DeleteExpiredEKSClusters(*currentEKSSession, *currentEC2Session, *currentElbSession, tagName, dryRun)
+			if err != nil {
+				logrus.Error(err)
+			}
+		}
+
+		// check load balancers
+		if elbEnabled {
+			err = DeleteExpiredLoadBalancers(*currentElbSession, tagName, dryRun)
 			if err != nil {
 				logrus.Error(err)
 			}
