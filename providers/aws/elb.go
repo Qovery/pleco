@@ -31,6 +31,10 @@ func TagLoadBalancersForDeletion(lbSession elbv2.ELBV2, tagKey string, loadBalan
 		lbArns = append(lbArns, aws.String(lb.Arn))
 	}
 
+	if len(lbArns) == 0 {
+		return nil
+	}
+
 	_, err := lbSession.AddTags(
 		&elbv2.AddTagsInput{
 			ResourceArns: lbArns,

@@ -158,9 +158,9 @@ func deleteEKSCluster(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.ELBV2, c
 
 	// as requests are asynchronous, we'll wait next run to perform delete and avoid obvious failure
 	// because of nodes groups are not yet deleted
-	//if len(cluster.ClusterNodeGroupsName) > 0 {
-	//	return nil
-	//}
+	if len(cluster.ClusterNodeGroupsName) > 0 {
+		return nil
+	}
 
 	// tag associated load balancers for deletion
 	lbsAssociatedToThisEksCluster, err := ListTaggedLoadBalancersWithKeyContains(elbSession, cluster.ClusterName)
@@ -172,9 +172,11 @@ func deleteEKSCluster(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.ELBV2, c
 		return err
 	}
 
-	// todo: delete all volumes + delete vpc
-	// delete associated EBS
-
+	// tag associated ebs for deletion
+	err = TagVolumesFromEksClusterForDeletion(ec2Session, tagName, cluster.ClusterName)
+	if err != nil {
+		return err
+	}
 
 	// delete EKS cluster
 	_, err = svc.DeleteCluster(

@@ -30,7 +30,7 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 	var currentElbSession *elbv2.ELBV2
 	var currentEC2Session *ec2.EC2
 	elbEnabled := false
-	//ec2Enabled := false
+	ebsEnabled := false
 
 	tagName, _ := cmd.Flags().GetString("tag-name")
 
@@ -60,7 +60,7 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 		currentElbSession = elbv2.New(currentSession)
 		elbEnabled = true
 		currentEC2Session = ec2.New(currentSession)
-		//ec2Enabled = true
+		ebsEnabled = true
 	}
 
 	// ELB connection
@@ -68,6 +68,13 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 	if elbEnabled || elbEnabledByUser {
 		currentElbSession = elbv2.New(currentSession)
 		elbEnabled = true
+	}
+
+	// ELB connection
+	ebsEnabledByUser, _ := cmd.Flags().GetBool("enable-ebs")
+	if ebsEnabled || ebsEnabledByUser {
+		currentEC2Session = ec2.New(currentSession)
+		ebsEnabled = true
 	}
 
 	for {
@@ -106,6 +113,14 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 		// check load balancers
 		if elbEnabled {
 			err = DeleteExpiredLoadBalancers(*currentElbSession, tagName, dryRun)
+			if err != nil {
+				logrus.Error(err)
+			}
+		}
+
+		// check EBS volumes
+		if ebsEnabled {
+			err = DeleteExpiredVolumes(*currentEC2Session, tagName, dryRun)
 			if err != nil {
 				logrus.Error(err)
 			}
