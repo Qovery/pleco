@@ -37,8 +37,8 @@ func init() {
 	startCmd.Flags().BoolP("enable-rds", "r", false, "Enable RDS watch")
 	startCmd.Flags().BoolP("enable-documentdb", "m", false, "Enable DocumentDB watch")
 	startCmd.Flags().BoolP("enable-elasticache", "c", false, "Enable Elasticache watch")
-	startCmd.Flags().BoolP("enable-elb", "l", false, "Enable Elastic Load Balancers watch")
-	startCmd.Flags().BoolP("enable-ebs", "b", false, "Enable Elastic Load Balancers watch")
+	startCmd.Flags().BoolP("enable-elb", "l", false, "Enable Elastic Load Balancers watch (true is eks is enabled)")
+	startCmd.Flags().BoolP("enable-ebs", "b", false, "Enable Elastic Load Balancers watch (true is eks is enabled)")
 
 	// K8s
 	startCmd.Flags().StringP("kube-conn", "k", "off","Kubernetes connection method, choose between : off/in/out")

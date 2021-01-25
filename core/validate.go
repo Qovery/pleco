@@ -27,12 +27,14 @@ func checkEnvVars(cmd *cobra.Command) {
 		requiredEnvVars = append(requiredEnvVars, "KUBECONFIG")
 	}
 
-	// if an AWS servie is required
+	// if an AWS service is required
 	if isAwsUsed(cmd, "rds") ||
 		isAwsUsed(cmd, "documentdb") ||
-		isAwsUsed(cmd, "elasticache") {
+		isAwsUsed(cmd, "elasticache") ||
+		isAwsUsed(cmd, "eks") ||
+		isAwsUsed(cmd, "elb") ||
+		isAwsUsed(cmd, "ebs"){
 		requiredEnvVars = append(requiredEnvVars, awsEnvVars...)
-		requiredEnvVars = append(requiredEnvVars, "aws-regions")
 	}
 
 	for _, envVar := range requiredEnvVars {

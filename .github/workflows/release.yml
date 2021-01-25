@@ -19,6 +19,7 @@ jobs:
       - name: Ensure tag match the current version
         run: |
             version=$(git tag | sort --version-sort | tail -1)
+            version_without_v=$(echo $version | sed -r 's/v(.+)/\1/')
             file="cmd/version.go"
             if [ "v$(grep '// ci-version-check' $file | sed -r 's/.+return\s"(.+)".+/\1/')" != "$version" ] ; then
                 echo "Tag version do not match application version in $file"
@@ -36,7 +37,7 @@ jobs:
             fi
 
             file="charts/pleco/values.yaml"
-            if [ "$(grep 'plecoImageTag' $file | awk -F'\"' '{ print $2 }')" != "$version" ] ; then
+            if [ "$(grep 'plecoImageTag' $file | awk -F'\"' '{ print $2 }')" != "$version_without_v" ] ; then
               echo "Tag version do not match application version in $file"
               exit 1
             fi
