@@ -83,10 +83,16 @@ func ListTaggedLoadBalancersWithKeyContains(lbSession elbv2.ELBV2, tagContains s
 
 func listTaggedLoadBalancers(lbSession elbv2.ELBV2, tagName string) ([]ElasticLoadBalancer, error) {
 	var taggedLoadBalancers []ElasticLoadBalancer
+	region := *lbSession.Config.Region
 
 	allLoadBalancers, err := ListLoadBalancers(lbSession)
 	if err != nil {
 		return nil, errors.New(fmt.Sprintf("Error while getting loadbalancer list on region %s\n", *lbSession.Config.Region))
+	}
+
+	if len(allLoadBalancers) == 0 {
+		log.Debugf("No Load balancers were found in region %s", region)
+		return nil, nil
 	}
 
 	// get tag with ttl
@@ -95,15 +101,15 @@ func listTaggedLoadBalancers(lbSession elbv2.ELBV2, tagName string) ([]ElasticLo
 
 		result, err := lbSession.DescribeTags(&input)
 		if err != nil {
-			log.Errorf("Error while getting load balancer tags from %s", currentLb.Name)
+			log.Errorf("Error while getting load balancer tags from %s in %s", currentLb.Name, region)
 			continue
 		}
 
 		for _, contentTag := range result.TagDescriptions[0].Tags {
-			if *contentTag.Value == tagName {
+			if *contentTag.Key == tagName {
 				ttlInt, err := strconv.Atoi(*contentTag.Value)
 				if err != nil {
-					log.Errorf("Bad %s value on load balancer %s (%s), can't use it, it should be a number", tagName, currentLb.Name, *lbSession.Config.Region)
+					log.Errorf("Bad %s value on load balancer %s (%s), can't use it, it should be a number", tagName, currentLb.Name, region)
 					continue
 				}
 				currentLb.TTL = int64(ttlInt)
@@ -111,6 +117,7 @@ func listTaggedLoadBalancers(lbSession elbv2.ELBV2, tagName string) ([]ElasticLo
 			}
 		}
 	}
+	log.Debugf("Found %d Load balancers in ready status with ttl tag", len(taggedLoadBalancers))
 
 	return taggedLoadBalancers, nil
 }
@@ -154,6 +161,8 @@ func deleteLoadBalancers(lbSession elbv2.ELBV2, loadBalancersList []ElasticLoadB
 	}
 
 	for _, lb := range loadBalancersList {
+		log.Infof("Deleting ELB %s in %s, expired after %d seconds",
+			lb.Name, *lbSession.Config.Region, lb.TTL)
 		_, err := lbSession.DeleteLoadBalancer(
 			&elbv2.DeleteLoadBalancerInput{LoadBalancerArn: &lb.Arn},
 		)

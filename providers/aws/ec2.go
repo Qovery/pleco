@@ -101,7 +101,7 @@ func listTaggedVolumes(ec2Session ec2.EC2, tagName string) ([]EBSVolume, error) 
 	region := *ec2Session.Config.Region
 
 	log.Debugf("Listing all volumes in region %s", region)
-	input := ec2.DescribeVolumesInput{
+	input := &ec2.DescribeVolumesInput{
 		//Filters: []*ec2.Filter{
 		//	{
 		//		Name: aws.String("tag:" + tagName),
@@ -109,7 +109,7 @@ func listTaggedVolumes(ec2Session ec2.EC2, tagName string) ([]EBSVolume, error) 
 		//},
 	}
 
-	result, err := ec2Session.DescribeVolumes(&input)
+	result, err := ec2Session.DescribeVolumes(input)
 	if err != nil {
 		return nil, err
 	}
@@ -158,12 +158,12 @@ func DeleteExpiredVolumes(ec2Session ec2.EC2, tagName string, dryRun bool) error
 		if utils.CheckIfExpired(volume.CreatedTime, volume.TTL) {
 			err := deleteVolumes(ec2Session, volumes, dryRun)
 			if err != nil {
-				log.Errorf("Deletion ELB %s (%s) error: %s",
+				log.Errorf("Deletion EBS %s (%s) error: %s",
 					volume.VolumeId, *ec2Session.Config.Region, err)
 				continue
 			}
 		} else {
-			log.Debugf("Load Balancer %s in %s, has not yet expired",
+			log.Debugf("EBS %s in %s, has not yet expired",
 				volume.VolumeId, *ec2Session.Config.Region)
 		}
 	}

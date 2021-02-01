@@ -31,6 +31,7 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 	var currentEC2Session *ec2.EC2
 	elbEnabled := false
 	ebsEnabled := false
+	vpcEnabled := false
 
 	tagName, _ := cmd.Flags().GetString("tag-name")
 
@@ -77,6 +78,12 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 		ebsEnabled = true
 	}
 
+	// VPC
+	vpcEnabled, _ = cmd.Flags().GetBool("enable-vpc")
+	if vpcEnabled {
+		currentEC2Session = ec2.New(currentSession)
+	}
+
 	for {
 		// check RDS
 		if rdsEnabled {
@@ -121,6 +128,14 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 		// check EBS volumes
 		if ebsEnabled {
 			err = DeleteExpiredVolumes(*currentEC2Session, tagName, dryRun)
+			if err != nil {
+				logrus.Error(err)
+			}
+		}
+
+		// check VPC
+		if vpcEnabled {
+			err = DeleteExpiredVPC(*currentEC2Session, tagName, dryRun)
 			if err != nil {
 				logrus.Error(err)
 			}
