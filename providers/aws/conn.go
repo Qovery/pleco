@@ -16,3 +16,12 @@ func CreateSession(region string) (*session.Session, error) {
 	}
 	return sess, nil
 }
+
+func CreateSessionWithoutRegion() (*session.Session, error) {
+	sess, err := session.NewSession()
+	if err != nil {
+		logrus.Errorf("Can't connect to AWS: %s", err)
+		return nil, err
+	}
+	return sess, nil
+}

@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/aws/aws-sdk-go/service/rds"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"sync"
@@ -29,6 +30,7 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 	var currentEKSSession *eks.EKS
 	var currentElbSession *elbv2.ELBV2
 	var currentEC2Session *ec2.EC2
+	var currentS3Session *s3.S3
 	elbEnabled := false
 	ebsEnabled := false
 	vpcEnabled := false
@@ -84,6 +86,12 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 		currentEC2Session = ec2.New(currentSession)
 	}
 
+	// S3
+	s3Enabled, _ := cmd.Flags().GetBool("enable-s3")
+	if s3Enabled {
+		currentS3Session = s3.New(currentSession)
+	}
+
 	for {
 		// check RDS
 		if rdsEnabled {
@@ -136,6 +144,14 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 		// check VPC
 		if vpcEnabled {
 			err = DeleteExpiredVPC(*currentEC2Session, tagName, dryRun)
+			if err != nil {
+				logrus.Error(err)
+			}
+		}
+
+		// check s3
+		if s3Enabled {
+			err = DeleteExpiredBuckets(*currentS3Session, tagName, dryRun)
 			if err != nil {
 				logrus.Error(err)
 			}
