@@ -26,6 +26,8 @@ enabledFeatures:
   eks: false
   elb: false
   ebs: false
+  vpc: false
+  s3: false
 
 imagePullSecrets: []
 nameOverride: ""
