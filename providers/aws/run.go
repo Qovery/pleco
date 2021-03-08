@@ -5,6 +5,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	"github.com/aws/aws-sdk-go/service/elbv2"
+	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/sirupsen/logrus"
@@ -31,6 +32,7 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 	var currentElbSession *elbv2.ELBV2
 	var currentEC2Session *ec2.EC2
 	var currentS3Session *s3.S3
+	var currentKMSSession *kms.KMS
 	elbEnabled := false
 	ebsEnabled := false
 	vpcEnabled := false
@@ -73,7 +75,7 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 		elbEnabled = true
 	}
 
-	// ELB connection
+	// EBS connection
 	ebsEnabledByUser, _ := cmd.Flags().GetBool("enable-ebs")
 	if ebsEnabled || ebsEnabledByUser {
 		currentEC2Session = ec2.New(currentSession)
@@ -90,6 +92,12 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 	s3Enabled, _ := cmd.Flags().GetBool("enable-s3")
 	if s3Enabled {
 		currentS3Session = s3.New(currentSession)
+	}
+
+	//KMS
+	kmsEnabled, _ := cmd.Flags().GetBool("enable-kms")
+	if kmsEnabled {
+		currentKMSSession = kms.New(currentSession)
 	}
 
 	for {
@@ -152,6 +160,14 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 		// check s3
 		if s3Enabled {
 			err = DeleteExpiredBuckets(*currentS3Session, tagName, dryRun)
+			if err != nil {
+				logrus.Error(err)
+			}
+		}
+
+		// check KMS
+		if kmsEnabled {
+			err = deleteExpiredKeys(*currentKMSSession, tagName, dryRun)
 			if err != nil {
 				logrus.Error(err)
 			}

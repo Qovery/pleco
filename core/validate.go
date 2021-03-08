@@ -35,7 +35,8 @@ func checkEnvVars(cmd *cobra.Command) {
 		isAwsUsed(cmd, "elb") ||
 		isAwsUsed(cmd, "vpc") ||
 		isAwsUsed(cmd, "s3") ||
-		isAwsUsed(cmd, "ebs"){
+		isAwsUsed(cmd, "ebs") ||
+		isAwsUsed(cmd, "kms"){
 		requiredEnvVars = append(requiredEnvVars, awsEnvVars...)
 	}
 
