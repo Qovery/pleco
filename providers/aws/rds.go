@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"errors"
 	"fmt"
 	"github.com/Qovery/pleco/utils"
 	"github.com/aws/aws-sdk-go/aws"
@@ -42,14 +41,14 @@ func listTaggedRDSDatabases(svc rds.RDS, tagName string) ([]rdsDatabase, error) 
 		for _, tag := range instance.TagList {
 			if *tag.Key == tagName {
 				if *tag.Key == "" {
-					log.Warn("Tag %s was empty and it wasn't expected, skipping", tag.Key)
+					log.Warnf("Tag %s was empty and it wasn't expected, skipping", *tag.Key)
 					continue
 				}
 
 				ttl, err := strconv.Atoi(*tag.Value)
 				if err != nil {
 					log.Errorf("Error while trying to convert tag value (%s) to integer on instance %s in %s",
-						*tag.Value, *instance.DBInstanceIdentifier, svc.Config.Region)
+						*tag.Value, *instance.DBInstanceIdentifier, *svc.Config.Region)
 					continue
 				}
 
@@ -126,7 +125,7 @@ func getRDSInstanceInfos(svc rds.RDS, databaseIdentifier string) (rdsDatabase, e
 func DeleteExpiredRDSDatabases(svc rds.RDS, tagName string, dryRun bool) error {
 	databases, err := listTaggedRDSDatabases(svc, tagName)
 	if err != nil {
-		return errors.New(fmt.Sprintf("can't list RDS databases: %s\n", err))
+		return fmt.Errorf("can't list RDS databases: %s\n", err)
 	}
 
 	for _, database := range databases {

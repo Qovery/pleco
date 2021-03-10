@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"errors"
 	"fmt"
 	"github.com/Qovery/pleco/utils"
 	"github.com/aws/aws-sdk-go/aws"
@@ -151,7 +150,7 @@ func listTaggedVolumes(ec2Session ec2.EC2, tagName string) ([]EBSVolume, error) 
 func DeleteExpiredVolumes(ec2Session ec2.EC2, tagName string, dryRun bool) error {
 	volumes, err := listTaggedVolumes(ec2Session, tagName)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Can't list volumes: %s\n", err))
+		return fmt.Errorf("Can't list volumes: %s\n", err)
 	}
 
 	for _, volume := range volumes {

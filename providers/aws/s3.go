@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"errors"
 	"fmt"
 	"github.com/Qovery/pleco/utils"
 	"github.com/aws/aws-sdk-go/aws"
@@ -59,7 +58,7 @@ func listTaggedBuckets(s3Session s3.S3, tagName string) ([]s3Bucket, error) {
 		for _, tag := range bucketTags.TagSet {
 			if *tag.Key == tagName {
 				if *tag.Key == "" {
-					log.Warn("Tag %s was empty and it wasn't expected, skipping", tag.Key)
+					log.Warnf("Tag %s was empty and it wasn't expected, skipping", *tag.Key)
 					continue
 				}
 
@@ -227,7 +226,7 @@ func deleteS3Buckets(s3session s3.S3, bucket string, dryRun bool) error {
 func DeleteExpiredBuckets(s3session s3.S3, tagName string, dryRun bool) error {
 	buckets, err := listTaggedBuckets(s3session, tagName)
 	if err != nil {
-		return errors.New(fmt.Sprintf("can't list S3 buckets: %s\n", err))
+		return fmt.Errorf("can't list S3 buckets: %s\n", err)
 	}
 
 	for _, bucket := range buckets {

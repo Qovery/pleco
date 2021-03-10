@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"errors"
 	"fmt"
 	"github.com/Qovery/pleco/utils"
 	"github.com/aws/aws-sdk-go/aws"
@@ -46,7 +45,7 @@ func listTaggedElasticacheDatabases(svc elasticache.ElastiCache, tagName string)
 		)
 		if err != nil {
 			if *cluster.CacheClusterStatus == "available" {
-				log.Errorf("Can't get tags for Elasticache cluster: %s", cluster.CacheClusterId)
+				log.Errorf("Can't get tags for Elasticache cluster: %s", *cluster.CacheClusterId)
 			}
 			continue
 		}
@@ -54,14 +53,14 @@ func listTaggedElasticacheDatabases(svc elasticache.ElastiCache, tagName string)
 		for _, tag := range tags.TagList {
 			if *tag.Key == tagName {
 				if *tag.Key == "" {
-					log.Warn("Tag %s was empty and it wasn't expected, skipping", tag.Key)
+					log.Warnf("Tag %s was empty and it wasn't expected, skipping", *tag.Key)
 					continue
 				}
 
 				ttl, err := strconv.Atoi(*tag.Value)
 				if err != nil {
 					log.Errorf("Error while trying to convert tag value (%s) to integer on instance %s in %s",
-						*tag.Value, *cluster.CacheClusterId, svc.Config.Region)
+						*tag.Value, *cluster.CacheClusterId, *svc.Config.Region)
 					continue
 				}
 
@@ -127,7 +126,7 @@ func deleteElasticacheCluster(svc elasticache.ElastiCache, cluster elasticacheCl
 func DeleteExpiredElasticacheDatabases(svc elasticache.ElastiCache, tagName string, dryRun bool) error {
 	clusters, err := listTaggedElasticacheDatabases(svc, tagName)
 	if err != nil {
-		return errors.New(fmt.Sprintf("can't list Elasticache databases: %s\n", err))
+		return fmt.Errorf("can't list Elasticache databases: %s\n", err)
 	}
 
 	for _, cluster := range clusters {

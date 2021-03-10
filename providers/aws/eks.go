@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"errors"
 	"fmt"
 	"github.com/Qovery/pleco/utils"
 	"github.com/aws/aws-sdk-go/aws"
@@ -137,7 +136,7 @@ func deleteEKSCluster(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.ELBV2, c
 	// delete node groups
 	if len(cluster.ClusterNodeGroupsName) > 0 {
 		for _, nodeGroupName := range cluster.ClusterNodeGroupsName {
-			nodeGroupStatus, err := getNodeGroupStatus(svc, cluster, *nodeGroupName)
+			nodeGroupStatus, _ := getNodeGroupStatus(svc, cluster, *nodeGroupName)
 
 			if nodeGroupStatus == "DELETING" {
 				log.Infof("EKS cluster nodegroup %v (%s) is already in deletion process, skipping...", *nodeGroupName, cluster.ClusterName)
@@ -149,9 +148,9 @@ func deleteEKSCluster(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.ELBV2, c
 				log.Infof("Deleting EKS cluster nodegroup %v (%s)", *nodeGroupName, cluster.ClusterName)
 			}
 
-			err = deleteNodeGroupStatus(svc, cluster, *nodeGroupName, dryRun)
+			err := deleteNodeGroupStatus(svc, cluster, *nodeGroupName, dryRun)
 			if err != nil {
-				return errors.New(fmt.Sprintf("Error while deleting node group %v: %s\n", *nodeGroupName, err))
+				return fmt.Errorf("Error while deleting node group %v: %s\n", *nodeGroupName, err)
 			}
 		}
 	}
@@ -222,7 +221,7 @@ func deleteNodeGroupStatus(svc eks.EKS, cluster eksCluster, nodeGroupName string
 func DeleteExpiredEKSClusters(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.ELBV2, tagName string, dryRun bool) error {
 	clusters, err := listTaggedEKSClusters(svc, tagName)
 	if err != nil {
-		return errors.New(fmt.Sprintf("can't list EKS clusters: %s\n", err))
+		return fmt.Errorf("can't list EKS clusters: %s\n", err)
 	}
 
 	for _, cluster := range clusters {
