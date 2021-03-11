@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"errors"
 	"fmt"
 	"github.com/Qovery/pleco/utils"
 	"github.com/aws/aws-sdk-go/aws"
@@ -58,7 +57,7 @@ func ListTaggedLoadBalancersWithKeyContains(lbSession elbv2.ELBV2, tagContains s
 
 	allLoadBalancers, err := ListLoadBalancers(lbSession)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Error while getting loadbalancer list on region %s\n", *lbSession.Config.Region))
+		return nil, fmt.Errorf("Error while getting loadbalancer list on region %s\n", *lbSession.Config.Region)
 	}
 
 	// get lb tags and identify if one belongs to
@@ -87,7 +86,7 @@ func listTaggedLoadBalancers(lbSession elbv2.ELBV2, tagName string) ([]ElasticLo
 
 	allLoadBalancers, err := ListLoadBalancers(lbSession)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Error while getting loadbalancer list on region %s\n", *lbSession.Config.Region))
+		return nil, fmt.Errorf("Error while getting loadbalancer list on region %s\n", *lbSession.Config.Region)
 	}
 
 	if len(allLoadBalancers) == 0 {
@@ -176,7 +175,7 @@ func deleteLoadBalancers(lbSession elbv2.ELBV2, loadBalancersList []ElasticLoadB
 func DeleteExpiredLoadBalancers(elbSession elbv2.ELBV2, tagName string, dryRun bool) error {
 	lbs, err := listTaggedLoadBalancers(elbSession, tagName)
 	if err != nil {
-		return errors.New(fmt.Sprintf("can't list Load Balancers: %s\n", err))
+		return fmt.Errorf("can't list Load Balancers: %s\n", err)
 	}
 
 	for _, lb := range lbs {

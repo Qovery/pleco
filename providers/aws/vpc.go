@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"errors"
 	"fmt"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	log "github.com/sirupsen/logrus"
@@ -44,7 +43,7 @@ func listTaggedVPC(ec2Session ec2.EC2, tagName string) ([]vpcInfo, error) {
 		for _, tag := range vpc.Tags {
 			if *tag.Key == tagName {
 				if *tag.Key == "" {
-					log.Warn("Tag %s was empty and it wasn't expected, skipping", tag.Key)
+					log.Warnf("Tag %s was empty and it wasn't expected, skipping", *tag.Key)
 					continue
 				}
 
@@ -113,7 +112,7 @@ func deleteVPC(ec2Session ec2.EC2, VpcList []vpcInfo, dryRun bool) error {
 func DeleteExpiredVPC(ec2Session ec2.EC2, tagName string, dryRun bool) error {
 	vpcs, err := listTaggedVPC(ec2Session, tagName)
 	if err != nil {
-		return errors.New(fmt.Sprintf("can't list VPC: %s\n", err))
+		return fmt.Errorf("can't list VPC: %s\n", err)
 	}
 
 	_ = deleteVPC(ec2Session, vpcs, dryRun)

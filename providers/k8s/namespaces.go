@@ -2,7 +2,6 @@ package k8s
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/Qovery/pleco/utils"
 	log "github.com/sirupsen/logrus"
@@ -43,14 +42,14 @@ func listTaggedNamespaces(clientSet *kubernetes.Clientset, tagName string) ([]ku
 				ttlValue, err := strconv.Atoi(value)
 
 				if err != nil {
-					log.Error("ttl value unrecognized for namespace %s", namespace.Name)
+					log.Errorf("ttl value unrecognized for namespace %s", namespace.Name)
 					continue
 				}
 
 				taggedNamespaces = append(taggedNamespaces, kubernetesNamespace{
 					Name:                namespace.Name,
 					NamespaceCreateTime: namespace.CreationTimestamp.Time,
-					Status:              fmt.Sprintf("%s", namespace.Status.Phase),
+					Status:              string(namespace.Status.Phase),
 					TTL:                 int64(ttlValue),
 				})
 			}
@@ -86,7 +85,7 @@ func DeleteExpiredNamespaces(clientSet *kubernetes.Clientset, tagName string, dr
 
 	namespaces, err := listTaggedNamespaces(clientSet, tagName)
 	if err != nil {
-		return errors.New(fmt.Sprintf("can't list kubernetes namespaces: %s\n", err))
+		return fmt.Errorf("can't list kubernetes namespaces: %s\n", err)
 	}
 
 	for _, namespace := range namespaces {

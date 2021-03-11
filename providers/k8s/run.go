@@ -13,6 +13,7 @@ var wg sync.WaitGroup
 func RunPlecoKubernetes(cmd *cobra.Command, interval int64, dryRun bool) {
 	wg.Add(1)
 	go runPlecoOnKube(cmd, interval, dryRun)
+	wg.Wait()
 }
 
 func runPlecoOnKube(cmd *cobra.Command, interval int64, dryRun bool) {
@@ -48,5 +49,4 @@ func runPlecoOnKube(cmd *cobra.Command, interval int64, dryRun bool) {
 		time.Sleep(time.Duration(interval) * time.Second)
 	}
 
-	wg.Wait()
 }

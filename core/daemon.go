@@ -24,5 +24,4 @@ func StartDaemon(disableDryRun bool, interval int64, cmd *cobra.Command) {
 	regions, _ := cmd.Flags().GetStringSlice("aws-regions")
 	aws.RunPlecoAWS(cmd, regions, interval, dryRun)
 
-	for {}
 }

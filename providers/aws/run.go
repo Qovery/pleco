@@ -22,6 +22,7 @@ func RunPlecoAWS(cmd *cobra.Command, regions []string, interval int64, dryRun bo
 		wg.Add(1)
 		go runPlecoInRegion(cmd, region, interval, dryRun)
 	}
+	wg.Wait()
 }
 
 func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun bool) {
@@ -193,5 +194,4 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 		time.Sleep(time.Duration(interval) * time.Second)
 	}
 
-	wg.Wait()
 }
