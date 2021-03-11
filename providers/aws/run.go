@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/elasticache"
@@ -32,6 +33,7 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 	var currentElbSession *elbv2.ELBV2
 	var currentEC2Session *ec2.EC2
 	var currentS3Session *s3.S3
+	var currentCloudwatchLogsSession *cloudwatchlogs.CloudWatchLogs
 	var currentKMSSession *kms.KMS
 	elbEnabled := false
 	ebsEnabled := false
@@ -66,6 +68,7 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 		elbEnabled = true
 		currentEC2Session = ec2.New(currentSession)
 		ebsEnabled = true
+		currentCloudwatchLogsSession = cloudwatchlogs.New(currentSession)
 	}
 
 	// ELB connection
@@ -92,6 +95,12 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 	s3Enabled, _ := cmd.Flags().GetBool("enable-s3")
 	if s3Enabled {
 		currentS3Session = s3.New(currentSession)
+	}
+
+	// Cloudwatch
+	cloudwatchLogsEnabled, _ := cmd.Flags().GetBool("enable-cloudwatch-logs")
+	if cloudwatchLogsEnabled {
+		currentCloudwatchLogsSession = cloudwatchlogs.New(currentSession)
 	}
 
 	//KMS
@@ -127,7 +136,7 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 
 		// check EKS
 		if eksEnabled {
-			err = DeleteExpiredEKSClusters(*currentEKSSession, *currentEC2Session, *currentElbSession, tagName, dryRun)
+			err = DeleteExpiredEKSClusters(*currentEKSSession, *currentEC2Session, *currentElbSession, *currentCloudwatchLogsSession, tagName, dryRun)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -160,6 +169,14 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 		// check s3
 		if s3Enabled {
 			err = DeleteExpiredBuckets(*currentS3Session, tagName, dryRun)
+			if err != nil {
+				logrus.Error(err)
+			}
+		}
+
+		//check Cloudwatch
+		if cloudwatchLogsEnabled {
+			err = DeleteExpiredLogs(*currentCloudwatchLogsSession, tagName, dryRun)
 			if err != nil {
 				logrus.Error(err)
 			}

@@ -6,6 +6,7 @@ import (
 	"github.com/Qovery/pleco/utils"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/elbv2"
@@ -21,6 +22,7 @@ import (
 type eksCluster struct {
 	ClusterCreateTime time.Time
 	ClusterName string
+	ClusterId string
 	ClusterNodeGroupsName []*string
 	Status string
 	TTL int64
@@ -107,6 +109,7 @@ func listTaggedEKSClusters(svc eks.EKS, tagName string) ([]eksCluster, error) {
 				ClusterCreateTime: *clusterInfo.Cluster.CreatedAt,
 				ClusterNodeGroupsName: nodeGroups.Nodegroups,
 				ClusterName:       clusterName,
+				ClusterId:			clusterInfo.Cluster.Identity.String(),
 				Status:            *clusterInfo.Cluster.Status,
 				TTL:               int64(ttl),
 			})
@@ -118,7 +121,7 @@ func listTaggedEKSClusters(svc eks.EKS, tagName string) ([]eksCluster, error) {
 	return taggedClusters, nil
 }
 
-func deleteEKSCluster(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.ELBV2, cluster eksCluster, tagName string, dryRun bool) error {
+func deleteEKSCluster(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.ELBV2, cloudwatchLogsSession cloudwatchlogs.CloudWatchLogs, cluster eksCluster, tagName string, dryRun bool) error {
 	if cluster.Status == "DELETING" {
 		log.Infof("EKS cluster %s (%s) is already in deletion process, skipping...", cluster.ClusterName, *svc.Config.Region)
 		return nil
@@ -178,6 +181,12 @@ func deleteEKSCluster(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.ELBV2, c
 		return err
 	}
 
+	// tag cloudwatch logs for deletion
+	err = TagLogsForDeletion(cloudwatchLogsSession, tagName, cluster.ClusterId)
+	if err != nil {
+		return err
+	}
+
 	// delete EKS cluster
 	_, err = svc.DeleteCluster(
 		&eks.DeleteClusterInput{
@@ -219,7 +228,7 @@ func deleteNodeGroupStatus(svc eks.EKS, cluster eksCluster, nodeGroupName string
 	return nil
 }
 
-func DeleteExpiredEKSClusters(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.ELBV2, tagName string, dryRun bool) error {
+func DeleteExpiredEKSClusters(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.ELBV2, cloudwatchLogsSession cloudwatchlogs.CloudWatchLogs, tagName string, dryRun bool) error {
 	clusters, err := listTaggedEKSClusters(svc, tagName)
 	if err != nil {
 		return errors.New(fmt.Sprintf("can't list EKS clusters: %s\n", err))
@@ -227,7 +236,7 @@ func DeleteExpiredEKSClusters(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.
 
 	for _, cluster := range clusters {
 		if utils.CheckIfExpired(cluster.ClusterCreateTime, cluster.TTL) {
-			err := deleteEKSCluster(svc, ec2Session, elbSession, cluster, tagName, dryRun)
+			err := deleteEKSCluster(svc, ec2Session, elbSession,cloudwatchLogsSession, cluster, tagName, dryRun)
 			if err != nil {
 				log.Errorf("Deletion EKS cluster error %s/%s: %s",
 					cluster.ClusterName, *svc.Config.Region, err)
