@@ -17,13 +17,13 @@ jobs:
         uses: actions/setup-go@main
         with:
           go-version: 1.15.x
-#      -
-#        name: Run golangci-lint
-#        uses: actions-contrib/golangci-lint@v1
-#        env:
-#          GOROOT: ""
-#        with:
-#          args: "run"
+      -
+        name: Run golangci-lint
+        uses: actions-contrib/golangci-lint@v1
+        env:
+          GOROOT: ""
+        with:
+          args: "run --timeout 5m0s"
       -
         name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v1
