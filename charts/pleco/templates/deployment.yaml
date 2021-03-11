@@ -75,6 +75,12 @@ spec:
             {{ if or (eq .Values.enabledFeatures.ebs true) (eq .Values.enabledFeatures.eks true)}}
             - --enable-ebs
             {{ end }}
+            {{ if or (eq .Values.enabledFeatures.kms true)}}
+            - --enable-kms
+            {{ end }}
+            {{ if or (eq .Values.enabledFeatures.cloudwatchLogs true)}}
+            - --enable-cloudwatch-logs
+            {{ end }}
           env:
             {{ range $key, $value := .Values.environmentVariables -}}
             - name: "{{ $key }}"
