@@ -8,15 +8,13 @@ import (
 	"time"
 )
 
-var wg sync.WaitGroup
 
-func RunPlecoKubernetes(cmd *cobra.Command, interval int64, dryRun bool) {
+func RunPlecoKubernetes(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGroup) {
 	wg.Add(1)
-	go runPlecoOnKube(cmd, interval, dryRun)
-	wg.Wait()
+	go runPlecoOnKube(cmd, interval, dryRun, wg)
 }
 
-func runPlecoOnKube(cmd *cobra.Command, interval int64, dryRun bool) {
+func runPlecoOnKube(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	// Kubernetes connection
@@ -38,8 +36,8 @@ func runPlecoOnKube(cmd *cobra.Command, interval int64, dryRun bool) {
 		logrus.Errorf("failed to authenticate on kubernetes with %s connection: %v", KubernetesConn, err)
 	}
 
+	// check Kubernetes
 	for {
-		// check Kubernetes
 		if kubernetesEnabled {
 			err := DeleteExpiredNamespaces(k8sClientSet, tagName, dryRun)
 			if err != nil {

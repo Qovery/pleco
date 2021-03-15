@@ -2,6 +2,8 @@ package aws
 
 import (
 	"fmt"
+	ec22 "github.com/Qovery/pleco/providers/aws/ec2"
+	"github.com/Qovery/pleco/providers/aws/vpc"
 	"github.com/Qovery/pleco/utils"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -165,23 +167,29 @@ func deleteEKSCluster(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.ELBV2, c
 	}
 
 	// tag associated load balancers for deletion
-	lbsAssociatedToThisEksCluster, err := ListTaggedLoadBalancersWithKeyContains(elbSession, cluster.ClusterName)
+	lbsAssociatedToThisEksCluster, err := ec22.ListTaggedLoadBalancersWithKeyContains(elbSession, cluster.ClusterName)
 	if err != nil {
 		return err
 	}
-	err = TagLoadBalancersForDeletion(elbSession, tagName, lbsAssociatedToThisEksCluster)
+	err = ec22.TagLoadBalancersForDeletion(elbSession, tagName, lbsAssociatedToThisEksCluster)
 	if err != nil {
 		return err
 	}
 
 	// tag associated ebs for deletion
-	err = TagVolumesFromEksClusterForDeletion(ec2Session, tagName, cluster.ClusterName)
+	err = ec22.TagVolumesFromEksClusterForDeletion(ec2Session, tagName, cluster.ClusterName)
 	if err != nil {
 		return err
 	}
 
 	// tag cloudwatch logs for deletion
 	err = TagLogsForDeletion(cloudwatchLogsSession, tagName, cluster.ClusterId)
+	if err != nil {
+		return err
+	}
+
+	// add cluster creation date vpc for deletion
+	err = vpc.TagVPCsForDeletion(ec2Session, tagName, cluster.ClusterName, cluster.ClusterCreateTime, cluster.TTL)
 	if err != nil {
 		return err
 	}

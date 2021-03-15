@@ -1,4 +1,4 @@
-package aws
+package database
 
 import (
 	"errors"
@@ -82,7 +82,7 @@ func deleteDocumentDBCluster(svc rds.RDS, cluster documentDBCluster, dryRun bool
 
 	// delete instance before deleting the cluster (otherwise it fails)
 	for _, instance := range cluster.DBClusterMembers {
-		rdsInstanceInfo, err := getRDSInstanceInfos(svc, instance)
+		rdsInstanceInfo, err := GetRDSInstanceInfos(svc, instance)
 		if err != nil {
 			log.Errorf("Can't access RDS instance %s information for DocumentDB cluster %s: %s",
 				instance, cluster.DBClusterIdentifier, err)
@@ -90,7 +90,7 @@ func deleteDocumentDBCluster(svc rds.RDS, cluster documentDBCluster, dryRun bool
 			continue
 		}
 
-		err = deleteRDSDatabase(svc, rdsInstanceInfo, dryRun)
+		err = DeleteRDSDatabase(svc, rdsInstanceInfo, dryRun)
 		if err != nil {
 			log.Errorf("Deletion error on DocumentDB instance %s/%s/%s: %s",
 				instance, cluster.DBClusterIdentifier, *svc.Config.Region, err)
