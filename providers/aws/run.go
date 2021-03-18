@@ -1,6 +1,9 @@
 package aws
 
 import (
+	"github.com/Qovery/pleco/providers/aws/database"
+	ec22 "github.com/Qovery/pleco/providers/aws/ec2"
+	"github.com/Qovery/pleco/providers/aws/vpc"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/eks"
@@ -15,17 +18,15 @@ import (
 	"time"
 )
 
-var wg sync.WaitGroup
 
-func RunPlecoAWS(cmd *cobra.Command, regions []string, interval int64, dryRun bool) {
+func RunPlecoAWS(cmd *cobra.Command, regions []string, interval int64, dryRun bool, wg *sync.WaitGroup) {
 	for _, region := range regions {
 		wg.Add(1)
-		go runPlecoInRegion(cmd, region, interval, dryRun)
+		go runPlecoInRegion(cmd, region, interval, dryRun, wg)
 	}
-	wg.Wait()
 }
 
-func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun bool) {
+func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun bool, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	var currentRdsSession *rds.RDS
@@ -52,13 +53,13 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 	rdsEnabled, _ := cmd.Flags().GetBool("enable-rds")
 	documentdbEnabled, _ := cmd.Flags().GetBool("enable-documentdb")
 	if rdsEnabled || documentdbEnabled {
-		currentRdsSession = RdsSession(*currentSession, region)
+		currentRdsSession = database.RdsSession(*currentSession, region)
 	}
 
 	// Elasticache connection
 	elasticacheEnabled, _ := cmd.Flags().GetBool("enable-elasticache")
 	if elasticacheEnabled {
-		currentElasticacheSession = ElasticacheSession(*currentSession, region)
+		currentElasticacheSession = database.ElasticacheSession(*currentSession, region)
 	}
 
 	// EKS connection
@@ -113,7 +114,7 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 	for {
 		// check RDS
 		if rdsEnabled {
-			err = DeleteExpiredRDSDatabases(*currentRdsSession, tagName, dryRun)
+			err = database.DeleteExpiredRDSDatabases(*currentRdsSession, tagName, dryRun)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -121,7 +122,7 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 
 		// check DocumentDB
 		if documentdbEnabled {
-			err = DeleteExpiredDocumentDBClusters(*currentRdsSession, tagName, dryRun)
+			err = database.DeleteExpiredDocumentDBClusters(*currentRdsSession, tagName, dryRun)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -129,7 +130,7 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 
 		// check Elasticache
 		if elasticacheEnabled {
-			err = DeleteExpiredElasticacheDatabases(*currentElasticacheSession, tagName, dryRun)
+			err = database.DeleteExpiredElasticacheDatabases(*currentElasticacheSession, tagName, dryRun)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -145,7 +146,7 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 
 		// check load balancers
 		if elbEnabled {
-			err = DeleteExpiredLoadBalancers(*currentElbSession, tagName, dryRun)
+			err = ec22.DeleteExpiredLoadBalancers(*currentElbSession, tagName, dryRun)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -153,7 +154,7 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 
 		// check EBS volumes
 		if ebsEnabled {
-			err = DeleteExpiredVolumes(*currentEC2Session, tagName, dryRun)
+			err = ec22.DeleteExpiredVolumes(*currentEC2Session, tagName, dryRun)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -161,7 +162,7 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 
 		// check VPC
 		if vpcEnabled {
-			err = DeleteExpiredVPC(*currentEC2Session, tagName, dryRun)
+			err = vpc.DeleteExpiredVPC(*currentEC2Session, tagName, dryRun)
 			if err != nil {
 				logrus.Error(err)
 			}

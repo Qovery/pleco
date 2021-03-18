@@ -1,4 +1,4 @@
-package aws
+package database
 
 import (
 	"fmt"
@@ -71,7 +71,7 @@ func listTaggedRDSDatabases(svc rds.RDS, tagName string) ([]rdsDatabase, error) 
 	return taggedDatabases, nil
 }
 
-func deleteRDSDatabase(svc rds.RDS, database rdsDatabase, dryRun bool) error {
+func DeleteRDSDatabase(svc rds.RDS, database rdsDatabase, dryRun bool) error {
 	if database.DBInstanceStatus == "deleting" {
 		log.Infof("RDS instance %s is already in deletion process, skipping...", database.DBInstanceIdentifier)
 		return nil
@@ -98,7 +98,7 @@ func deleteRDSDatabase(svc rds.RDS, database rdsDatabase, dryRun bool) error {
 	return nil
 }
 
-func getRDSInstanceInfos(svc rds.RDS, databaseIdentifier string) (rdsDatabase, error) {
+func GetRDSInstanceInfos(svc rds.RDS, databaseIdentifier string) (rdsDatabase, error) {
 	input := rds.DescribeDBInstancesInput{
 		DBInstanceIdentifier: aws.String(databaseIdentifier),
 	}
@@ -130,7 +130,7 @@ func DeleteExpiredRDSDatabases(svc rds.RDS, tagName string, dryRun bool) error {
 
 	for _, database := range databases {
 		if utils.CheckIfExpired(database.InstanceCreateTime, database.TTL) {
-			err := deleteRDSDatabase(svc, database, dryRun)
+			err := DeleteRDSDatabase(svc, database, dryRun)
 			if err != nil {
 				log.Errorf("Deletion RDS database error %s/%s: %s",
 					database.DBInstanceIdentifier, *svc.Config.Region, err)
