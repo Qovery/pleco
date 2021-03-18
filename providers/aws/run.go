@@ -3,12 +3,14 @@ package aws
 import (
 	"github.com/Qovery/pleco/providers/aws/database"
 	ec22 "github.com/Qovery/pleco/providers/aws/ec2"
+	iam2 "github.com/Qovery/pleco/providers/aws/iam"
 	"github.com/Qovery/pleco/providers/aws/vpc"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	"github.com/aws/aws-sdk-go/service/elbv2"
+	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -37,6 +39,7 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 	var currentS3Session *s3.S3
 	var currentCloudwatchLogsSession *cloudwatchlogs.CloudWatchLogs
 	var currentKMSSession *kms.KMS
+	var currentIAMSession *iam.IAM
 	elbEnabled := false
 	ebsEnabled := false
 	vpcEnabled := false
@@ -105,10 +108,16 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 		currentCloudwatchLogsSession = cloudwatchlogs.New(currentSession)
 	}
 
-	//KMS
+	// KMS
 	kmsEnabled, _ := cmd.Flags().GetBool("enable-kms")
 	if kmsEnabled {
 		currentKMSSession = kms.New(currentSession)
+	}
+
+	// IAM
+	iamEnabled, _ := cmd.Flags().GetBool("enable-iam")
+	if iamEnabled {
+		currentIAMSession = iam.New(currentSession)
 	}
 
 	for {
@@ -187,6 +196,14 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 		// check KMS
 		if kmsEnabled {
 			err = deleteExpiredKeys(*currentKMSSession, tagName, dryRun)
+			if err != nil {
+				logrus.Error(err)
+			}
+		}
+
+		// check IAM
+		if iamEnabled {
+			err = iam2.DeleteExpiredIAM(currentIAMSession, tagName, dryRun)
 			if err != nil {
 				logrus.Error(err)
 			}
