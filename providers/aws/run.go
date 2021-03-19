@@ -3,6 +3,7 @@ package aws
 import (
 	"github.com/Qovery/pleco/providers/aws/database"
 	ec22 "github.com/Qovery/pleco/providers/aws/ec2"
+	eks2 "github.com/Qovery/pleco/providers/aws/eks"
 	"github.com/Qovery/pleco/providers/aws/vpc"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -138,7 +139,7 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 
 		// check EKS
 		if eksEnabled {
-			err = DeleteExpiredEKSClusters(*currentEKSSession, *currentEC2Session, *currentElbSession, *currentCloudwatchLogsSession, tagName, dryRun)
+			err = eks2.DeleteExpiredEKSClusters(*currentEKSSession, *currentEC2Session, *currentElbSession, *currentCloudwatchLogsSession, tagName, dryRun)
 			if err != nil {
 				logrus.Error(err)
 			}

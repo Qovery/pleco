@@ -1,7 +1,8 @@
-package aws
+package eks
 
 import (
 	"fmt"
+	aws2 "github.com/Qovery/pleco/providers/aws"
 	ec22 "github.com/Qovery/pleco/providers/aws/ec2"
 	"github.com/Qovery/pleco/providers/aws/vpc"
 	"github.com/Qovery/pleco/utils"
@@ -183,7 +184,7 @@ func deleteEKSCluster(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.ELBV2, c
 	}
 
 	// tag cloudwatch logs for deletion
-	err = TagLogsForDeletion(cloudwatchLogsSession, tagName, cluster.ClusterId)
+	err = aws2.TagLogsForDeletion(cloudwatchLogsSession, tagName, cluster.ClusterId)
 	if err != nil {
 		return err
 	}
