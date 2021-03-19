@@ -5,6 +5,7 @@ import (
 	ec22 "github.com/Qovery/pleco/providers/aws/ec2"
 	eks2 "github.com/Qovery/pleco/providers/aws/eks"
 	iam2 "github.com/Qovery/pleco/providers/aws/iam"
+	"github.com/Qovery/pleco/providers/aws/logs"
 	"github.com/Qovery/pleco/providers/aws/vpc"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -109,7 +110,7 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 		currentCloudwatchLogsSession = cloudwatchlogs.New(currentSession)
 	}
 
-	//KMS
+	// KMS
 	kmsEnabled, _ := cmd.Flags().GetBool("enable-kms")
 	if kmsEnabled {
 		currentKMSSession = kms.New(currentSession)
@@ -119,6 +120,12 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 	iamEnabled, _ := cmd.Flags().GetBool("enable-iam")
 	if iamEnabled {
 		currentIAMSession = iam.New(currentSession)
+	}
+
+	// SSH
+	sshEnabled, _ := cmd.Flags().GetBool("enable-ssh")
+	if sshEnabled {
+		currentEC2Session = ec2.New(currentSession)
 	}
 
 	for {
@@ -188,7 +195,7 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 
 		//check Cloudwatch
 		if cloudwatchLogsEnabled {
-			err = DeleteExpiredLogs(*currentCloudwatchLogsSession, tagName, dryRun)
+			err = logs.DeleteExpiredLogs(*currentCloudwatchLogsSession, tagName, dryRun)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -205,6 +212,14 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 		// check IAM
 		if iamEnabled {
 			err = iam2.DeleteExpiredIAM(currentIAMSession, tagName, dryRun)
+			if err != nil {
+				logrus.Error(err)
+			}
+		}
+
+		// check SSH
+		if sshEnabled {
+			err = ec22.DeleteExpiredKeys(currentEC2Session, tagName, dryRun)
 			if err != nil {
 				logrus.Error(err)
 			}
