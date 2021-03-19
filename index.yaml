@@ -3,10 +3,10 @@ entries:
   pleco:
   - apiVersion: v2
     appVersion: 0.6.0
-    created: "2021-03-19T09:21:09.072495202Z"
+    created: "2021-03-19T10:30:51.272903604Z"
     description: Automatically removes Cloud managed services and Kubernetes resources
       based on tags with TTL
-    digest: c1dfdd5beda6315e5efb9708b6969786c1c549526df82988d2144579263dbc63
+    digest: f455ae0181fa9044eb4b433e0acf38c5fd7dec375a25ebcd18f15c8f94baa23e
     home: https://github.com/Qovery/pleco
     icon: https://github.com/Qovery/pleco/raw/main/assets/pleco_logo.png
     name: pleco
@@ -16,7 +16,7 @@ entries:
     version: 0.6.0
   - apiVersion: v2
     appVersion: 0.5.1
-    created: "2021-03-19T09:21:09.071506033Z"
+    created: "2021-03-19T10:30:51.272539781Z"
     description: Automatically removes Cloud managed services and Kubernetes resources
       based on tags with TTL
     digest: d4518aafbfba0a43b004eb10a3ea804d18cab15b93d455a85ecb4bacf8e9aebb
@@ -29,7 +29,7 @@ entries:
     version: 0.5.1
   - apiVersion: v2
     appVersion: 0.5.0
-    created: "2021-03-19T09:21:09.070773181Z"
+    created: "2021-03-19T10:30:51.272173858Z"
     description: Automatically removes Cloud managed services and Kubernetes resources
       based on tags with TTL
     digest: 955616249bf26e98348df97e988bc69cc167830d140db8805148ca559cbf1d7a
@@ -42,7 +42,7 @@ entries:
     version: 0.5.0
   - apiVersion: v2
     appVersion: 0.4.1
-    created: "2021-03-19T09:21:09.070030329Z"
+    created: "2021-03-19T10:30:51.271789934Z"
     description: Automatically removes Cloud managed services and Kubernetes resources
       based on tags with TTL
     digest: 63f97f2b4f1cb02f68367523df64662d1a1db169ae41eaa87665ade1c0c78b3e
@@ -55,7 +55,7 @@ entries:
     version: 0.4.1
   - apiVersion: v2
     appVersion: 0.4.0
-    created: "2021-03-19T09:21:09.068966354Z"
+    created: "2021-03-19T10:30:51.271444112Z"
     description: Automatically removes Cloud managed services and Kubernetes resources
       based on tags with TTL
     digest: 8060f5bdec2ac940257c9eccef36dfb4b3fcba9fb3ef3b8db639f94fb29cbb1e
@@ -68,7 +68,7 @@ entries:
     version: 0.4.0
   - apiVersion: v2
     appVersion: 0.3.3
-    created: "2021-03-19T09:21:09.067881977Z"
+    created: "2021-03-19T10:30:51.27110189Z"
     description: Automatically removes Cloud managed services and Kubernetes resources
       based on tags with TTL
     digest: 8fd9d9192b8316d494f5983a21cd6240b9b08a8e5187c7cacccacb674403c2cc
@@ -81,7 +81,7 @@ entries:
     version: 0.3.3
   - apiVersion: v2
     appVersion: 0.3.2
-    created: "2021-03-19T09:21:09.067381042Z"
+    created: "2021-03-19T10:30:51.270747768Z"
     description: Automatically removes Cloud managed services and Kubernetes resources
       based on tags with TTL
     digest: 35b715759a2b0cecd89b465b453057e13696c66c7ef6087380e6691f04f98b3d
@@ -94,7 +94,7 @@ entries:
     version: 0.3.2
   - apiVersion: v2
     appVersion: 0.3.1
-    created: "2021-03-19T09:21:09.066882807Z"
+    created: "2021-03-19T10:30:51.270406347Z"
     description: Automatically removes Cloud managed services and Kubernetes resources
       based on tags with TTL
     digest: 0221cf7061f666108e959a1c2e300cfe9b0fcec38a0770df18849df655f86ce2
@@ -107,7 +107,7 @@ entries:
     version: 0.3.1
   - apiVersion: v2
     appVersion: 0.3.0
-    created: "2021-03-19T09:21:09.066387272Z"
+    created: "2021-03-19T10:30:51.270045824Z"
     description: Automatically removes Cloud managed services and Kubernetes resources
       based on tags with TTL
     digest: bfad9f4667b41d0173ab7aa1796c6144efc4961778717dbb9055acc26b11999c
@@ -120,7 +120,7 @@ entries:
     version: 0.3.0
   - apiVersion: v2
     appVersion: 0.2.1
-    created: "2021-03-19T09:21:09.06593194Z"
+    created: "2021-03-19T10:30:51.269697902Z"
     description: Automatically removes Cloud managed services and Kubernetes resources
       based on tags with TTL
     digest: bc04e41d83f126b986895e3357a93452e9554cb9d554d13cf14bc3ab86ac39d3
@@ -133,7 +133,7 @@ entries:
     version: 0.2.1
   - apiVersion: v2
     appVersion: 0.2.0
-    created: "2021-03-19T09:21:09.065467907Z"
+    created: "2021-03-19T10:30:51.269397383Z"
     description: Automatically removes Cloud managed services and Kubernetes resources
       based on tags with TTL
     digest: 300bed7d938f472c92a9aedc9d9f8b46f3593e0a43ae233a5365832f9e5dbad4
@@ -146,7 +146,7 @@ entries:
     version: 0.2.0
   - apiVersion: v2
     appVersion: 0.1.8
-    created: "2021-03-19T09:21:09.065040677Z"
+    created: "2021-03-19T10:30:51.269098664Z"
     description: Automatically removes Cloud managed services and Kubernetes resources
       based on tags with TTL
     digest: 53d450d0b55c101dc93478d79a715c83e4efc66453a17d23042811373933410a
@@ -159,7 +159,7 @@ entries:
     version: 0.1.8
   - apiVersion: v2
     appVersion: 0.1.7
-    created: "2021-03-19T09:21:09.064607847Z"
+    created: "2021-03-19T10:30:51.268762543Z"
     description: Automatically removes Cloud managed services and Kubernetes resources
       based on tags with TTL
     digest: a96020f0a1c1dc34da57ec6dbd062d3cc407f6a5ece667257afd9a9d295d2681
@@ -172,7 +172,7 @@ entries:
     version: 0.1.7
   - apiVersion: v2
     appVersion: 0.1.6
-    created: "2021-03-19T09:21:09.064164215Z"
+    created: "2021-03-19T10:30:51.268377518Z"
     description: Automatically removes Cloud managed services and Kubernetes resources
       based on tags with TTL
     digest: 6882c78a103641e2eb4dd26af1d95eba11a8c5bbd44946154f038724aaeeab7a
@@ -185,7 +185,7 @@ entries:
     version: 0.1.6
   - apiVersion: v2
     appVersion: 0.1.5
-    created: "2021-03-19T09:21:09.063734385Z"
+    created: "2021-03-19T10:30:51.268009395Z"
     description: Automatically removes Cloud managed services and Kubernetes resources
       based on tags with TTL
     digest: 07b34660afa592eb93d7d2f472c1a3660df293e422572224b11a8b791f6376e7
@@ -198,7 +198,7 @@ entries:
     version: 0.1.5
   - apiVersion: v2
     appVersion: 0.1.4
-    created: "2021-03-19T09:21:09.063293154Z"
+    created: "2021-03-19T10:30:51.267703276Z"
     description: A Helm chart for Pleco
     digest: c49f5dba7d92ec176f63f00e833a33344d32dfbdbd86a57d04e91937727b9339
     home: https://github.com/Qovery/pleco
@@ -208,4 +208,4 @@ entries:
     urls:
     - https://Qovery.github.io/pleco/pleco-0.1.0.tgz
     version: 0.1.0
-generated: "2021-03-19T09:21:09.062689411Z"
+generated: "2021-03-19T10:30:51.267168942Z"
