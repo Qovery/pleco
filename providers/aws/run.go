@@ -3,10 +3,13 @@ package aws
 import (
 	"github.com/Qovery/pleco/providers/aws/database"
 	ec22 "github.com/Qovery/pleco/providers/aws/ec2"
+	eks2 "github.com/Qovery/pleco/providers/aws/eks"
 	iam2 "github.com/Qovery/pleco/providers/aws/iam"
+	"github.com/Qovery/pleco/providers/aws/logs"
 	"github.com/Qovery/pleco/providers/aws/vpc"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	"github.com/aws/aws-sdk-go/service/elbv2"
@@ -40,6 +43,7 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 	var currentCloudwatchLogsSession *cloudwatchlogs.CloudWatchLogs
 	var currentKMSSession *kms.KMS
 	var currentIAMSession *iam.IAM
+	var currentECRSession *ecr.ECR
 	elbEnabled := false
 	ebsEnabled := false
 	vpcEnabled := false
@@ -120,6 +124,18 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 		currentIAMSession = iam.New(currentSession)
 	}
 
+	// SSH
+	sshEnabled, _ := cmd.Flags().GetBool("enable-ssh")
+	if sshEnabled {
+		currentEC2Session = ec2.New(currentSession)
+	}
+
+	// ECR
+	ecrEnabled, _ := cmd.Flags().GetBool("enable-ecr")
+	if ecrEnabled {
+		currentECRSession = ecr.New(currentSession)
+	}
+
 	for {
 		// check RDS
 		if rdsEnabled {
@@ -147,7 +163,7 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 
 		// check EKS
 		if eksEnabled {
-			err = DeleteExpiredEKSClusters(*currentEKSSession, *currentEC2Session, *currentElbSession, *currentCloudwatchLogsSession, tagName, dryRun)
+			err = eks2.DeleteExpiredEKSClusters(*currentEKSSession, *currentEC2Session, *currentElbSession, *currentCloudwatchLogsSession, tagName, dryRun)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -187,7 +203,7 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 
 		//check Cloudwatch
 		if cloudwatchLogsEnabled {
-			err = DeleteExpiredLogs(*currentCloudwatchLogsSession, tagName, dryRun)
+			err = logs.DeleteExpiredLogs(*currentCloudwatchLogsSession, tagName, dryRun)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -207,6 +223,19 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 			if err != nil {
 				logrus.Error(err)
 			}
+		}
+
+		// check SSH
+		if sshEnabled {
+			err = ec22.DeleteExpiredKeys(currentEC2Session, tagName, dryRun)
+			if err != nil {
+				logrus.Error(err)
+			}
+		}
+
+		// check ECR
+		if ecrEnabled {
+			eks2.DeleteEmptyRepositories(currentECRSession, dryRun)
 		}
 
 		time.Sleep(time.Duration(interval) * time.Second)

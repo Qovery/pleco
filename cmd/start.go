@@ -46,6 +46,9 @@ func init() {
 	startCmd.Flags().BoolP("enable-cloudwatch-logs", "w", false, "Enable Cloudwatch Logs watch")
 	startCmd.Flags().BoolP("enable-kms", "n", false, "Enable KMS watch")
 	startCmd.Flags().BoolP("enable-iam", "u", false, "Enable IAM watch")
+	startCmd.Flags().BoolP("enable-ssh", "z", false, "Enable Key Pair watch")
+	startCmd.Flags().BoolP("enable-ecr", "o", false, "Enable ECR watch")
+
 
 	// K8s
 	startCmd.Flags().StringP("kube-conn", "k", "off","Kubernetes connection method, choose between : off/in/out")
