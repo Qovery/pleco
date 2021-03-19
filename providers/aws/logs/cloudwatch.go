@@ -1,4 +1,4 @@
-package aws
+package logs
 
 import (
 	"github.com/Qovery/pleco/utils"
