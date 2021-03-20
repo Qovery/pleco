@@ -22,7 +22,7 @@ func ElasticacheSession(sess session.Session, region string) *elasticache.Elasti
 	return elasticache.New(&sess, &aws.Config{Region: aws.String(region)})
 }
 
-func listTaggedElasticacheDatabases(svc elasticache.ElastiCache, tagName string) ([]elasticacheCluster, error) {
+func listTaggedElasticacheDatabases(svc *elasticache.ElastiCache, tagName string) ([]elasticacheCluster, error) {
 	var taggedClusters []elasticacheCluster
 
 	log.Debugf("Listing all Elasticache clusters")
@@ -84,7 +84,7 @@ func listTaggedElasticacheDatabases(svc elasticache.ElastiCache, tagName string)
 	return taggedClusters, nil
 }
 
-func deleteElasticacheCluster(svc elasticache.ElastiCache, cluster elasticacheCluster, dryRun bool) error {
+func deleteElasticacheCluster(svc *elasticache.ElastiCache, cluster elasticacheCluster, dryRun bool) error {
 	if cluster.ClusterStatus == "deleting" {
 		log.Infof("Elasticache cluster %s is already in deletion process, skipping...", cluster.ClusterIdentifier)
 		return nil
@@ -122,23 +122,23 @@ func deleteElasticacheCluster(svc elasticache.ElastiCache, cluster elasticacheCl
 	return nil
 }
 
-func DeleteExpiredElasticacheDatabases(svc elasticache.ElastiCache, tagName string, dryRun bool) error {
-	clusters, err := listTaggedElasticacheDatabases(svc, tagName)
+func DeleteExpiredElasticacheDatabases(sessions *AWSSessions, options *AwsOption) error {
+	clusters, err := listTaggedElasticacheDatabases(sessions.ElastiCache, options.TagName)
 	if err != nil {
 		return fmt.Errorf("can't list Elasticache databases: %s\n", err)
 	}
 
 	for _, cluster := range clusters {
 		if CheckIfExpired(cluster.ClusterCreateTime, cluster.TTL) {
-			err := deleteElasticacheCluster(svc, cluster, dryRun)
+			err := deleteElasticacheCluster(sessions.ElastiCache, cluster, options.DryRun)
 			if err != nil {
 				log.Errorf("Deletion Elasticache cluster error %s/%s: %s",
-					cluster.ClusterIdentifier, *svc.Config.Region, err)
+					cluster.ClusterIdentifier, *sessions.ElastiCache.Config.Region, err)
 				continue
 			}
 		} else {
 			log.Debugf("Elasticache cluster %s in %s, has not yet expired",
-				cluster.ClusterIdentifier, *svc.Config.Region)
+				cluster.ClusterIdentifier, *sessions.ElastiCache.Config.Region)
 		}
 	}
 

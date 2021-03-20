@@ -9,18 +9,18 @@ import (
 	"time"
 )
 
-func DeleteExpiredIAM(iamSession *iam.IAM, tagName string, dryRun bool) error {
-	err := DeleteExpiredUsers(iamSession, tagName, dryRun)
+func DeleteExpiredIAM(sessions *AWSSessions, options *AwsOption) error {
+	err := DeleteExpiredUsers(sessions.IAM, options.TagName, options.DryRun)
 	if err != nil {
 		return err
 	}
 
-	err = DeleteExpiredRoles(iamSession, tagName, dryRun)
+	err = DeleteExpiredRoles(sessions.IAM, options.TagName, options.DryRun)
 	if err != nil {
 		return err
 	}
 
-	err = DeleteDetachedPolicies(iamSession, dryRun)
+	err = DeleteDetachedPolicies(sessions.IAM, options.DryRun)
 	if err != nil {
 		return err
 	}

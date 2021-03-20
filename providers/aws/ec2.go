@@ -18,7 +18,7 @@ type EBSVolume struct {
 	TTL         int64
 }
 
-func TagVolumesFromEksClusterForDeletion(ec2Session ec2.EC2, tagKey string, clusterName string) error {
+func TagVolumesFromEksClusterForDeletion(ec2Session *ec2.EC2, tagKey string, clusterName string) error {
 	var volumesIds []*string
 
 	input := &ec2.DescribeVolumesInput{
@@ -62,7 +62,7 @@ func TagVolumesFromEksClusterForDeletion(ec2Session ec2.EC2, tagKey string, clus
 	return nil
 }
 
-func deleteVolumes(ec2Session ec2.EC2, VolumesList []EBSVolume, dryRun bool) error {
+func deleteVolumes(ec2Session *ec2.EC2, VolumesList []EBSVolume, dryRun bool) error {
 	if dryRun {
 		return nil
 	}
@@ -96,7 +96,7 @@ func deleteVolumes(ec2Session ec2.EC2, VolumesList []EBSVolume, dryRun bool) err
 	return nil
 }
 
-func listTaggedVolumes(ec2Session ec2.EC2, tagName string) ([]EBSVolume, error) {
+func listTaggedVolumes(ec2Session *ec2.EC2, tagName string) ([]EBSVolume, error) {
 	var taggedVolumes []EBSVolume
 	region := *ec2Session.Config.Region
 
@@ -148,23 +148,23 @@ func listTaggedVolumes(ec2Session ec2.EC2, tagName string) ([]EBSVolume, error) 
 	return taggedVolumes, nil
 }
 
-func DeleteExpiredVolumes(ec2Session ec2.EC2, tagName string, dryRun bool) error {
-	volumes, err := listTaggedVolumes(ec2Session, tagName)
+func DeleteExpiredVolumes(sessions *AWSSessions, options *AwsOption) error {
+	volumes, err := listTaggedVolumes(sessions.EC2, options.TagName)
 	if err != nil {
 		return fmt.Errorf("Can't list volumes: %s\n", err)
 	}
 
 	for _, volume := range volumes {
 		if CheckIfExpired(volume.CreatedTime, volume.TTL) {
-			err := deleteVolumes(ec2Session, volumes, dryRun)
+			err := deleteVolumes(sessions.EC2, volumes, options.DryRun)
 			if err != nil {
 				log.Errorf("Deletion EBS %s (%s) error: %s",
-					volume.VolumeId, *ec2Session.Config.Region, err)
+					volume.VolumeId, *sessions.EC2.Config.Region, err)
 				continue
 			}
 		} else {
 			log.Debugf("EBS %s in %s, has not yet expired",
-				volume.VolumeId, *ec2Session.Config.Region)
+				volume.VolumeId, *sessions.EC2.Config.Region)
 		}
 	}
 
@@ -182,7 +182,7 @@ type ElasticLoadBalancer struct {
 	TTL         int64
 }
 
-func TagLoadBalancersForDeletion(lbSession elbv2.ELBV2, tagKey string, loadBalancersList []ElasticLoadBalancer) error {
+func TagLoadBalancersForDeletion(lbSession *elbv2.ELBV2, tagKey string, loadBalancersList []ElasticLoadBalancer) error {
 	var lbArns []*string
 
 	if len(loadBalancersList) == 0 {
@@ -215,7 +215,7 @@ func TagLoadBalancersForDeletion(lbSession elbv2.ELBV2, tagKey string, loadBalan
 	return nil
 }
 
-func ListTaggedLoadBalancersWithKeyContains(lbSession elbv2.ELBV2, tagContains string) ([]ElasticLoadBalancer, error) {
+func ListTaggedLoadBalancersWithKeyContains(lbSession *elbv2.ELBV2, tagContains string) ([]ElasticLoadBalancer, error) {
 	var taggedLoadBalancers []ElasticLoadBalancer
 
 	allLoadBalancers, err := ListLoadBalancers(lbSession)
@@ -243,7 +243,7 @@ func ListTaggedLoadBalancersWithKeyContains(lbSession elbv2.ELBV2, tagContains s
 	return taggedLoadBalancers, nil
 }
 
-func listTaggedLoadBalancers(lbSession elbv2.ELBV2, tagName string) ([]ElasticLoadBalancer, error) {
+func listTaggedLoadBalancers(lbSession *elbv2.ELBV2, tagName string) ([]ElasticLoadBalancer, error) {
 	var taggedLoadBalancers []ElasticLoadBalancer
 	region := *lbSession.Config.Region
 
@@ -284,7 +284,7 @@ func listTaggedLoadBalancers(lbSession elbv2.ELBV2, tagName string) ([]ElasticLo
 	return taggedLoadBalancers, nil
 }
 
-func ListLoadBalancers(lbSession elbv2.ELBV2) ([]ElasticLoadBalancer, error) {
+func ListLoadBalancers(lbSession *elbv2.ELBV2) ([]ElasticLoadBalancer, error) {
 	var allLoadBalancers []ElasticLoadBalancer
 	region := *lbSession.Config.Region
 
@@ -313,7 +313,7 @@ func ListLoadBalancers(lbSession elbv2.ELBV2) ([]ElasticLoadBalancer, error) {
 	return allLoadBalancers, nil
 }
 
-func deleteLoadBalancers(lbSession elbv2.ELBV2, loadBalancersList []ElasticLoadBalancer, dryRun bool) error {
+func deleteLoadBalancers(lbSession *elbv2.ELBV2, loadBalancersList []ElasticLoadBalancer, dryRun bool) error {
 	if dryRun {
 		return nil
 	}
@@ -335,23 +335,23 @@ func deleteLoadBalancers(lbSession elbv2.ELBV2, loadBalancersList []ElasticLoadB
 	return nil
 }
 
-func DeleteExpiredLoadBalancers(elbSession elbv2.ELBV2, tagName string, dryRun bool) error {
-	lbs, err := listTaggedLoadBalancers(elbSession, tagName)
+func DeleteExpiredLoadBalancers(sessions *AWSSessions, options *AwsOption) error {
+	lbs, err := listTaggedLoadBalancers(sessions.ELB, options.TagName)
 	if err != nil {
 		return fmt.Errorf("can't list Load Balancers: %s\n", err)
 	}
 
 	for _, lb := range lbs {
 		if CheckIfExpired(lb.CreatedTime, lb.TTL) {
-			err := deleteLoadBalancers(elbSession, lbs, dryRun)
+			err := deleteLoadBalancers(sessions.ELB, lbs, options.DryRun)
 			if err != nil {
 				log.Errorf("Deletion ELB %s (%s) error: %s",
-					lb.Name, *elbSession.Config.Region, err)
+					lb.Name, *sessions.ELB.Config.Region, err)
 				continue
 			}
 		} else {
 			log.Debugf("Load Balancer %s in %s, has not yet expired",
-				lb.Name, *elbSession.Config.Region)
+				lb.Name, *sessions.ELB.Config.Region)
 		}
 	}
 
@@ -409,16 +409,16 @@ func deleteEc2Key(ec2session *ec2.EC2, keyId string) error {
 	return err
 }
 
-func DeleteExpiredKeys(ec2session *ec2.EC2, tagName string, dryRun bool) error {
-	keys := getSshKeys(ec2session, tagName)
+func DeleteSSHExpiredKeys(sessions *AWSSessions, options *AwsOption) error {
+	keys := getSshKeys(sessions.EC2, options.TagName)
 	var expiredKeysCount int64
 
 	for _, key := range keys {
 		if CheckIfExpired(key.CreationDate, key.ttl) {
 			expiredKeysCount++
 
-			if !dryRun {
-				err := deleteEc2Key(ec2session, key.KeyId)
+			if !options.DryRun {
+				err := deleteEc2Key(sessions.EC2, key.KeyId)
 				if err != nil {
 					return err
 				}

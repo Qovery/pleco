@@ -17,7 +17,7 @@ type CompleteKey struct {
 	CreationDate time.Time
 }
 
-func getKeys(svc kms.KMS) []*kms.KeyListEntry {
+func getKeys(svc *kms.KMS) []*kms.KeyListEntry {
 	input := &kms.ListKeysInput{
 		Limit: aws.Int64(1000),
 	}
@@ -28,7 +28,7 @@ func getKeys(svc kms.KMS) []*kms.KeyListEntry {
 	return keys.Keys
 }
 
-func getCompleteKey(svc kms.KMS, keyId *string, tagName string) CompleteKey {
+func getCompleteKey(svc *kms.KMS, keyId *string, tagName string) CompleteKey {
 	var completeKey CompleteKey
 	tags := getKeyTags(svc, keyId)
 	metaData := getKeyMetadata(svc, keyId)
@@ -51,7 +51,7 @@ func getCompleteKey(svc kms.KMS, keyId *string, tagName string) CompleteKey {
 	return completeKey
 }
 
-func deleteKmsKey(svc kms.KMS, keyId *string) (*kms.ScheduleKeyDeletionOutput, error) {
+func deleteKmsKey(svc *kms.KMS, keyId *string) (*kms.ScheduleKeyDeletionOutput, error) {
 	input := &kms.ScheduleKeyDeletionInput{
 		KeyId:               aws.String(*keyId),
 		PendingWindowInDays: aws.Int64(7),
@@ -63,7 +63,7 @@ func deleteKmsKey(svc kms.KMS, keyId *string) (*kms.ScheduleKeyDeletionOutput, e
 	return result, err
 }
 
-func getKeyTags(svc kms.KMS, keyId *string) []*kms.Tag {
+func getKeyTags(svc *kms.KMS, keyId *string) []*kms.Tag {
 	input := &kms.ListResourceTagsInput{
 		KeyId: aws.String(*keyId),
 	}
@@ -74,7 +74,7 @@ func getKeyTags(svc kms.KMS, keyId *string) []*kms.Tag {
 	return tags.Tags
 }
 
-func getKeyMetadata(svc kms.KMS, keyId *string) *kms.DescribeKeyOutput {
+func getKeyMetadata(svc *kms.KMS, keyId *string) *kms.DescribeKeyOutput {
 	input := &kms.DescribeKeyInput{KeyId: keyId}
 
 	data, err := svc.DescribeKey(input)
@@ -107,19 +107,19 @@ func handleKMSError(error error) {
 	}
 }
 
-func deleteExpiredKeys(svc kms.KMS, tagName string, dryRun bool) error {
-	keys := getKeys(svc)
+func DeleteKMSExpiredKeys(sessions *AWSSessions, options *AwsOption) error {
+	keys := getKeys(sessions.KMS)
 	var numberOfKeysToDelete int64
 
 	for _, key := range keys {
-		completeKey := getCompleteKey(svc, key.KeyId, tagName)
+		completeKey := getCompleteKey(sessions.KMS, key.KeyId, options.TagName)
 
 		if completeKey.Status != "PendingDeletion" &&
 			completeKey.TTL != 0 &&
 			CheckIfExpired(completeKey.CreationDate, completeKey.TTL) {
-			if completeKey.Tag == tagName || tagName == "ttl" {
-				if !dryRun {
-					_, err := deleteKmsKey(svc, key.KeyId)
+			if completeKey.Tag == options.TagName || options.TagName == "ttl" {
+				if !options.DryRun {
+					_, err := deleteKmsKey(sessions.KMS, key.KeyId)
 					if err != nil {
 						return err
 					}

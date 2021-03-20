@@ -4,10 +4,7 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	cloudwatch "github.com/aws/aws-sdk-go/service/cloudwatchlogs"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/eks"
-	"github.com/aws/aws-sdk-go/service/elbv2"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -53,7 +50,7 @@ func AuthenticateToEks(clusterName string, clusterUrl string, roleArn string, se
 	return clientSet, nil
 }
 
-func listTaggedEKSClusters(svc eks.EKS, tagName string) ([]eksCluster, error) {
+func listTaggedEKSClusters(svc *eks.EKS, tagName string) ([]eksCluster, error) {
 	var taggedClusters []eksCluster
 	region := *svc.Config.Region
 
@@ -119,26 +116,28 @@ func listTaggedEKSClusters(svc eks.EKS, tagName string) ([]eksCluster, error) {
 	return taggedClusters, nil
 }
 
-func deleteEKSCluster(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.ELBV2, cloudwatchLogsSession cloudwatch.CloudWatchLogs, cluster eksCluster, tagName string, dryRun bool) error {
+//svc *eks.EKS, ec2Session *ec2.EC2, elbSession *elbv2.ELBV2, cloudwatchLogsSession *cloudwatch.CloudWatchLogs, cluster *eksCluster, tagName string, dryRun bool) error {
+
+func deleteEKSCluster(cluster *eksCluster, sessions *AWSSessions, options *AwsOption) error {
 	if cluster.Status == "DELETING" {
-		log.Infof("EKS cluster %s (%s) is already in deletion process, skipping...", cluster.ClusterName, *svc.Config.Region)
+		log.Infof("EKS cluster %s (%s) is already in deletion process, skipping...", cluster.ClusterName, *sessions.EKS.Config.Region)
 		return nil
 	} else if cluster.Status == "CREATING" {
-		log.Infof("EKS cluster %s (%s) is in creating process, skipping...", cluster.ClusterName, *svc.Config.Region)
+		log.Infof("EKS cluster %s (%s) is in creating process, skipping...", cluster.ClusterName, sessions.EKS.Config.Region)
 		return nil
 	} else {
 		log.Infof("Deleting EKS cluster %s (%s), expired after %d seconds",
-			cluster.ClusterName, *svc.Config.Region, cluster.TTL)
+			cluster.ClusterName, *sessions.EKS.Config.Region, cluster.TTL)
 	}
 
-	if dryRun {
+	if options.DryRun {
 		return nil
 	}
 
 	// delete node groups
 	if len(cluster.ClusterNodeGroupsName) > 0 {
 		for _, nodeGroupName := range cluster.ClusterNodeGroupsName {
-			nodeGroupStatus, _ := getNodeGroupStatus(svc, cluster, *nodeGroupName)
+			nodeGroupStatus, _ := getNodeGroupStatus(sessions.EKS, cluster, *nodeGroupName)
 
 			if nodeGroupStatus == "DELETING" {
 				log.Infof("EKS cluster nodegroup %v (%s) is already in deletion process, skipping...", *nodeGroupName, cluster.ClusterName)
@@ -150,7 +149,7 @@ func deleteEKSCluster(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.ELBV2, c
 				log.Infof("Deleting EKS cluster nodegroup %v (%s)", *nodeGroupName, cluster.ClusterName)
 			}
 
-			err := deleteNodeGroupStatus(svc, cluster, *nodeGroupName, dryRun)
+			err := deleteNodeGroupStatus(sessions.EKS, cluster, *nodeGroupName, options.DryRun)
 			if err != nil {
 				return fmt.Errorf("Error while deleting node group %v: %s\n", *nodeGroupName, err)
 			}
@@ -164,35 +163,35 @@ func deleteEKSCluster(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.ELBV2, c
 	}
 
 	// tag associated load balancers for deletion
-	lbsAssociatedToThisEksCluster, err := ListTaggedLoadBalancersWithKeyContains(elbSession, cluster.ClusterName)
+	lbsAssociatedToThisEksCluster, err := ListTaggedLoadBalancersWithKeyContains(sessions.ELB, cluster.ClusterName)
 	if err != nil {
 		return err
 	}
-	err = TagLoadBalancersForDeletion(elbSession, tagName, lbsAssociatedToThisEksCluster)
+	err = TagLoadBalancersForDeletion(sessions.ELB, options.TagName, lbsAssociatedToThisEksCluster)
 	if err != nil {
 		return err
 	}
 
 	// tag associated ebs for deletion
-	err = TagVolumesFromEksClusterForDeletion(ec2Session, tagName, cluster.ClusterName)
+	err = TagVolumesFromEksClusterForDeletion(sessions.EC2, options.TagName, cluster.ClusterName)
 	if err != nil {
 		return err
 	}
 
 	// tag cloudwatch logs for deletion
-	err = TagLogsForDeletion(cloudwatchLogsSession, tagName, cluster.ClusterId)
+	err = TagLogsForDeletion(sessions.CloudWatchLogs, options.TagName, cluster.ClusterId)
 	if err != nil {
 		return err
 	}
 
 	// add cluster creation date vpc for deletion
-	err = TagVPCsForDeletion(ec2Session, tagName, cluster.ClusterName, cluster.ClusterCreateTime, cluster.TTL)
+	err = TagVPCsForDeletion(sessions.EC2, options.TagName, cluster.ClusterName, cluster.ClusterCreateTime, cluster.TTL)
 	if err != nil {
 		return err
 	}
 
 	// delete EKS cluster
-	_, err = svc.DeleteCluster(
+	_, err = sessions.EKS.DeleteCluster(
 		&eks.DeleteClusterInput{
 			Name: &cluster.ClusterName,
 		},
@@ -204,7 +203,7 @@ func deleteEKSCluster(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.ELBV2, c
 	return nil
 }
 
-func getNodeGroupStatus(svc eks.EKS, cluster eksCluster, nodeGroupName string) (string, error) {
+func getNodeGroupStatus(svc *eks.EKS, cluster *eksCluster, nodeGroupName string) (string, error) {
 	result, err := svc.DescribeNodegroup(&eks.DescribeNodegroupInput{
 		ClusterName:   &cluster.ClusterName,
 		NodegroupName: &nodeGroupName,
@@ -216,7 +215,7 @@ func getNodeGroupStatus(svc eks.EKS, cluster eksCluster, nodeGroupName string) (
 	return *result.Nodegroup.Status, nil
 }
 
-func deleteNodeGroupStatus(svc eks.EKS, cluster eksCluster, nodeGroupName string, dryRun bool) error {
+func deleteNodeGroupStatus(svc *eks.EKS, cluster *eksCluster, nodeGroupName string, dryRun bool) error {
 	if dryRun {
 		return nil
 	}
@@ -232,23 +231,23 @@ func deleteNodeGroupStatus(svc eks.EKS, cluster eksCluster, nodeGroupName string
 	return nil
 }
 
-func DeleteExpiredEKSClusters(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.ELBV2, cloudwatchLogsSession cloudwatch.CloudWatchLogs, tagName string, dryRun bool) error {
-	clusters, err := listTaggedEKSClusters(svc, tagName)
+func DeleteExpiredEKSClusters(sessions *AWSSessions, options *AwsOption) error {
+	clusters, err := listTaggedEKSClusters(sessions.EKS, options.TagName)
 	if err != nil {
 		return fmt.Errorf("can't list EKS clusters: %s\n", err)
 	}
 
 	for _, cluster := range clusters {
 		if CheckIfExpired(cluster.ClusterCreateTime, cluster.TTL) {
-			err := deleteEKSCluster(svc, ec2Session, elbSession, cloudwatchLogsSession, cluster, tagName, dryRun)
+			err := deleteEKSCluster(&cluster, sessions, options)
 			if err != nil {
 				log.Errorf("Deletion EKS cluster error %s/%s: %s",
-					cluster.ClusterName, *svc.Config.Region, err)
+					cluster.ClusterName, *sessions.EKS.Config.Region, err)
 				continue
 			}
 		} else {
 			log.Debugf("EKS cluster %s in %s, has not yet expired",
-				cluster.ClusterName, *svc.Config.Region)
+				cluster.ClusterName, *sessions.EKS.Config.Region)
 		}
 	}
 

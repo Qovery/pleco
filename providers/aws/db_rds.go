@@ -21,7 +21,7 @@ func RdsSession(sess session.Session, region string) *rds.RDS {
 	return rds.New(&sess, &aws.Config{Region: aws.String(region)})
 }
 
-func listTaggedRDSDatabases(svc rds.RDS, tagName string) ([]rdsDatabase, error) {
+func listTaggedRDSDatabases(svc *rds.RDS, tagName string) ([]rdsDatabase, error) {
 	var taggedDatabases []rdsDatabase
 
 	log.Debugf("Listing all RDS databases")
@@ -70,7 +70,7 @@ func listTaggedRDSDatabases(svc rds.RDS, tagName string) ([]rdsDatabase, error) 
 	return taggedDatabases, nil
 }
 
-func DeleteRDSDatabase(svc rds.RDS, database rdsDatabase, dryRun bool) error {
+func DeleteRDSDatabase(svc *rds.RDS, database rdsDatabase, dryRun bool) error {
 	if database.DBInstanceStatus == "deleting" {
 		log.Infof("RDS instance %s is already in deletion process, skipping...", database.DBInstanceIdentifier)
 		return nil
@@ -97,7 +97,7 @@ func DeleteRDSDatabase(svc rds.RDS, database rdsDatabase, dryRun bool) error {
 	return nil
 }
 
-func GetRDSInstanceInfos(svc rds.RDS, databaseIdentifier string) (rdsDatabase, error) {
+func GetRDSInstanceInfos(svc *rds.RDS, databaseIdentifier string) (rdsDatabase, error) {
 	input := rds.DescribeDBInstancesInput{
 		DBInstanceIdentifier: aws.String(databaseIdentifier),
 	}
@@ -121,23 +121,23 @@ func GetRDSInstanceInfos(svc rds.RDS, databaseIdentifier string) (rdsDatabase, e
 	}, nil
 }
 
-func DeleteExpiredRDSDatabases(svc rds.RDS, tagName string, dryRun bool) error {
-	databases, err := listTaggedRDSDatabases(svc, tagName)
+func DeleteExpiredRDSDatabases(sessions *AWSSessions, options *AwsOption) error {
+	databases, err := listTaggedRDSDatabases(sessions.RDS, options.TagName)
 	if err != nil {
 		return fmt.Errorf("can't list RDS databases: %s\n", err)
 	}
 
 	for _, database := range databases {
 		if CheckIfExpired(database.InstanceCreateTime, database.TTL) {
-			err := DeleteRDSDatabase(svc, database, dryRun)
+			err := DeleteRDSDatabase(sessions.RDS, database, options.DryRun)
 			if err != nil {
 				log.Errorf("Deletion RDS database error %s/%s: %s",
-					database.DBInstanceIdentifier, *svc.Config.Region, err)
+					database.DBInstanceIdentifier, *sessions.RDS.Config.Region, err)
 				continue
 			}
 		} else {
 			log.Debugf("RDS database %s in %s, has not yet expired",
-				database.DBInstanceIdentifier, *svc.Config.Region)
+				database.DBInstanceIdentifier, *sessions.RDS.Config.Region)
 		}
 	}
 

@@ -30,7 +30,7 @@ func CheckIfExpired(creationTime time.Time, ttl int64) bool {
 	return time.Now().After(expirationTime)
 }
 
-func AddCreationDateTag(ec2Session ec2.EC2, idsToTag []*string, creationDate time.Time, ttl int64) error {
+func AddCreationDateTag(ec2Session *ec2.EC2, idsToTag []*string, creationDate time.Time, ttl int64) error {
 	_, err := ec2Session.CreateTags(
 		&ec2.CreateTagsInput{
 			Resources: idsToTag,

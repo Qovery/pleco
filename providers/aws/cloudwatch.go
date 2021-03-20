@@ -18,7 +18,7 @@ type CompleteLogGroup struct {
 	clusterId    string
 }
 
-func getCloudwatchLogs(svc cloudwatchlogs.CloudWatchLogs) []*cloudwatchlogs.LogGroup {
+func getCloudwatchLogs(svc *cloudwatchlogs.CloudWatchLogs) []*cloudwatchlogs.LogGroup {
 	input := &cloudwatchlogs.DescribeLogGroupsInput{
 		Limit: aws.Int64(50),
 	}
@@ -29,7 +29,7 @@ func getCloudwatchLogs(svc cloudwatchlogs.CloudWatchLogs) []*cloudwatchlogs.LogG
 	return logs.LogGroups
 }
 
-func getCompleteLogGroup(svc cloudwatchlogs.CloudWatchLogs, log cloudwatchlogs.LogGroup, tagName string) CompleteLogGroup {
+func getCompleteLogGroup(svc *cloudwatchlogs.CloudWatchLogs, log cloudwatchlogs.LogGroup, tagName string) CompleteLogGroup {
 	var completeLogGroup CompleteLogGroup
 	tags := getLogGroupTag(svc, *log.LogGroupName)
 
@@ -54,7 +54,7 @@ func getCompleteLogGroup(svc cloudwatchlogs.CloudWatchLogs, log cloudwatchlogs.L
 	return completeLogGroup
 }
 
-func deleteCloudwatchLog(svc cloudwatchlogs.CloudWatchLogs, logGroupName string) (string, error) {
+func deleteCloudwatchLog(svc *cloudwatchlogs.CloudWatchLogs, logGroupName string) (string, error) {
 	input := &cloudwatchlogs.DeleteLogGroupInput{
 		LogGroupName: aws.String(logGroupName),
 	}
@@ -65,7 +65,7 @@ func deleteCloudwatchLog(svc cloudwatchlogs.CloudWatchLogs, logGroupName string)
 	return result.String(), err
 }
 
-func getLogGroupTag(svc cloudwatchlogs.CloudWatchLogs, logGroupName string) map[string]*string {
+func getLogGroupTag(svc *cloudwatchlogs.CloudWatchLogs, logGroupName string) map[string]*string {
 	input := &cloudwatchlogs.ListTagsLogGroupInput{
 		LogGroupName: aws.String(logGroupName),
 	}
@@ -100,16 +100,16 @@ func handleCloudwatchLogsError(err error) {
 	}
 }
 
-func DeleteExpiredLogs(svc cloudwatchlogs.CloudWatchLogs, tagName string, dryRun bool) error {
-	logs := getCloudwatchLogs(svc)
+func DeleteExpiredLogs(sessions *AWSSessions, options *AwsOption) error {
+	logs := getCloudwatchLogs(sessions.CloudWatchLogs)
 	var numberOfLogsToDelete int64
 
 	for _, log := range logs {
-		completeLogGroup := getCompleteLogGroup(svc, *log, tagName)
+		completeLogGroup := getCompleteLogGroup(sessions.CloudWatchLogs, *log, options.TagName)
 
 		if completeLogGroup.ttl != 0 && CheckIfExpired(completeLogGroup.creationDate, completeLogGroup.ttl) {
-			if !dryRun {
-				_, err := deleteCloudwatchLog(svc, completeLogGroup.logGroupName)
+			if !options.DryRun {
+				_, err := deleteCloudwatchLog(sessions.CloudWatchLogs, completeLogGroup.logGroupName)
 				if err != nil {
 					return err
 				}
@@ -123,7 +123,7 @@ func DeleteExpiredLogs(svc cloudwatchlogs.CloudWatchLogs, tagName string, dryRun
 
 	return nil
 }
-func addTtlToLogGroup(svc cloudwatchlogs.CloudWatchLogs, logGroupName string) (string, error) {
+func addTtlToLogGroup(svc *cloudwatchlogs.CloudWatchLogs, logGroupName string) (string, error) {
 	input := &cloudwatchlogs.TagLogGroupInput{
 		LogGroupName: aws.String(logGroupName),
 		Tags:         aws.StringMap(map[string]string{"ttl": "1"}),
@@ -135,7 +135,7 @@ func addTtlToLogGroup(svc cloudwatchlogs.CloudWatchLogs, logGroupName string) (s
 	return result.String(), err
 }
 
-func TagLogsForDeletion(svc cloudwatchlogs.CloudWatchLogs, tagName string, clusterId string) error {
+func TagLogsForDeletion(svc *cloudwatchlogs.CloudWatchLogs, tagName string, clusterId string) error {
 	logs := getCloudwatchLogs(svc)
 	var numberOfLogsToTag int64
 

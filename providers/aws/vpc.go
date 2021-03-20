@@ -22,7 +22,7 @@ type VpcInfo struct {
 	Tag              string
 }
 
-func GetVpcsIdsByClusterNameTag(ec2Session ec2.EC2, clusterName string) []*string {
+func GetVpcsIdsByClusterNameTag(ec2Session *ec2.EC2, clusterName string) []*string {
 	result, err := ec2Session.DescribeVpcs(
 		&ec2.DescribeVpcsInput{
 			Filters: []*ec2.Filter{
@@ -46,7 +46,7 @@ func GetVpcsIdsByClusterNameTag(ec2Session ec2.EC2, clusterName string) []*strin
 	return vpcsIds
 }
 
-func getVPCs(ec2Session ec2.EC2, tagName string) []*ec2.Vpc {
+func getVPCs(ec2Session *ec2.EC2, tagName string) []*ec2.Vpc {
 	log.Debugf("Listing all VPCs")
 	input := &ec2.DescribeVpcsInput{
 		Filters: []*ec2.Filter{
@@ -71,7 +71,7 @@ func getVPCs(ec2Session ec2.EC2, tagName string) []*ec2.Vpc {
 	return result.Vpcs
 }
 
-func listTaggedVPC(ec2Session ec2.EC2, tagName string) ([]VpcInfo, error) {
+func listTaggedVPC(ec2Session *ec2.EC2, tagName string) ([]VpcInfo, error) {
 	var taggedVPCs []VpcInfo
 
 	var VPCs = getVPCs(ec2Session, tagName)
@@ -119,7 +119,7 @@ func listTaggedVPC(ec2Session ec2.EC2, tagName string) ([]VpcInfo, error) {
 	return taggedVPCs, nil
 }
 
-func deleteVPC(ec2Session ec2.EC2, VpcList []VpcInfo, dryRun bool) error {
+func deleteVPC(ec2Session *ec2.EC2, VpcList []VpcInfo, dryRun bool) error {
 	if dryRun {
 		return nil
 	}
@@ -160,19 +160,19 @@ func deleteVPC(ec2Session ec2.EC2, VpcList []VpcInfo, dryRun bool) error {
 	return nil
 }
 
-func DeleteExpiredVPC(ec2Session ec2.EC2, tagName string, dryRun bool) error {
-	VPCs, err := listTaggedVPC(ec2Session, tagName)
+func DeleteExpiredVPC(sessions *AWSSessions, options *AwsOption) error {
+	VPCs, err := listTaggedVPC(sessions.EC2, options.TagName)
 
 	if err != nil {
 		return fmt.Errorf("can't list VPC: %s\n", err)
 	}
 
-	_ = deleteVPC(ec2Session, VPCs, dryRun)
+	_ = deleteVPC(sessions.EC2, VPCs, options.DryRun)
 
 	return nil
 }
 
-func getCompleteVpc(ec2Session ec2.EC2, vpc *VpcInfo) {
+func getCompleteVpc(ec2Session *ec2.EC2, vpc *VpcInfo) {
 	var waitGroup sync.WaitGroup
 	waitGroup.Add(1)
 	go SetSecurityGroupsIdsByVpcId(ec2Session, vpc, &waitGroup)
@@ -185,7 +185,7 @@ func getCompleteVpc(ec2Session ec2.EC2, vpc *VpcInfo) {
 	waitGroup.Wait()
 }
 
-func TagVPCsForDeletion(ec2Session ec2.EC2, tagName string, clusterId string, clusterCreationTime time.Time, clusterTtl int64) error {
+func TagVPCsForDeletion(ec2Session *ec2.EC2, tagName string, clusterId string, clusterCreationTime time.Time, clusterTtl int64) error {
 	vpcsIds := GetVpcsIdsByClusterNameTag(ec2Session, clusterId)
 
 	err := AddCreationDateTagToSG(ec2Session, vpcsIds, clusterCreationTime, clusterTtl)
@@ -219,7 +219,7 @@ type Subnet struct {
 	ttl          int64
 }
 
-func getSubnetsByVpcId(ec2Session ec2.EC2, vpcId string) []*ec2.Subnet {
+func getSubnetsByVpcId(ec2Session *ec2.EC2, vpcId string) []*ec2.Subnet {
 	input := &ec2.DescribeSubnetsInput{
 		Filters: []*ec2.Filter{
 			{
@@ -237,7 +237,7 @@ func getSubnetsByVpcId(ec2Session ec2.EC2, vpcId string) []*ec2.Subnet {
 	return subnets.Subnets
 }
 
-func getSubnetsByVpcsIds(ec2Session ec2.EC2, vpcsIds []*string) []*ec2.Subnet {
+func getSubnetsByVpcsIds(ec2Session *ec2.EC2, vpcsIds []*string) []*ec2.Subnet {
 	input := &ec2.DescribeSubnetsInput{
 		Filters: []*ec2.Filter{
 			{
@@ -255,7 +255,7 @@ func getSubnetsByVpcsIds(ec2Session ec2.EC2, vpcsIds []*string) []*ec2.Subnet {
 	return result.Subnets
 }
 
-func SetSubnetsIdsByVpcId(ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup) {
+func SetSubnetsIdsByVpcId(ec2Session *ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup) {
 	defer waitGroup.Done()
 	var subnetsStruct []Subnet
 
@@ -275,7 +275,7 @@ func SetSubnetsIdsByVpcId(ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.Wait
 	vpc.Subnets = subnetsStruct
 }
 
-func DeleteSubnetsByIds(ec2Session ec2.EC2, subnets []Subnet) {
+func DeleteSubnetsByIds(ec2Session *ec2.EC2, subnets []Subnet) {
 	for _, subnet := range subnets {
 		if CheckIfExpired(subnet.CreationDate, subnet.ttl) {
 			_, err := ec2Session.DeleteSubnet(
@@ -292,7 +292,7 @@ func DeleteSubnetsByIds(ec2Session ec2.EC2, subnets []Subnet) {
 	}
 }
 
-func AddCreationDateTagToSubnets(ec2Session ec2.EC2, vpcsIds []*string, creationDate time.Time, ttl int64) error {
+func AddCreationDateTagToSubnets(ec2Session *ec2.EC2, vpcsIds []*string, creationDate time.Time, ttl int64) error {
 	subnets := getSubnetsByVpcsIds(ec2Session, vpcsIds)
 	var subnetsIds []*string
 
@@ -311,7 +311,7 @@ type SecurityGroup struct {
 	ttl          int64
 }
 
-func getSecurityGroupsByVpcId(ec2Session ec2.EC2, vpcId string) []*ec2.SecurityGroup {
+func getSecurityGroupsByVpcId(ec2Session *ec2.EC2, vpcId string) []*ec2.SecurityGroup {
 	input := &ec2.DescribeSecurityGroupsInput{
 		Filters: []*ec2.Filter{
 			{
@@ -329,7 +329,7 @@ func getSecurityGroupsByVpcId(ec2Session ec2.EC2, vpcId string) []*ec2.SecurityG
 	return result.SecurityGroups
 }
 
-func getSecurityGroupsByVpcsIds(ec2Session ec2.EC2, vpcsIds []*string) []*ec2.SecurityGroup {
+func getSecurityGroupsByVpcsIds(ec2Session *ec2.EC2, vpcsIds []*string) []*ec2.SecurityGroup {
 	result, err := ec2Session.DescribeSecurityGroups(
 		&ec2.DescribeSecurityGroupsInput{
 			Filters: []*ec2.Filter{
@@ -346,7 +346,7 @@ func getSecurityGroupsByVpcsIds(ec2Session ec2.EC2, vpcsIds []*string) []*ec2.Se
 	return result.SecurityGroups
 }
 
-func SetSecurityGroupsIdsByVpcId(ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup) {
+func SetSecurityGroupsIdsByVpcId(ec2Session *ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup) {
 	defer waitGroup.Done()
 	var securityGroupsStruct []SecurityGroup
 
@@ -369,7 +369,7 @@ func SetSecurityGroupsIdsByVpcId(ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sy
 	vpc.SecurityGroups = securityGroupsStruct
 }
 
-func DeleteSecurityGroupsByIds(ec2Session ec2.EC2, securityGroups []SecurityGroup) {
+func DeleteSecurityGroupsByIds(ec2Session *ec2.EC2, securityGroups []SecurityGroup) {
 	for _, securityGroup := range securityGroups {
 		if CheckIfExpired(securityGroup.CreationDate, securityGroup.ttl) {
 			deleteIpPermissions(ec2Session, securityGroup.Id)
@@ -388,7 +388,7 @@ func DeleteSecurityGroupsByIds(ec2Session ec2.EC2, securityGroups []SecurityGrou
 	}
 }
 
-func deleteIpPermissions(ec2Session ec2.EC2, securityGroupId string) {
+func deleteIpPermissions(ec2Session *ec2.EC2, securityGroupId string) {
 	_, ingressErr := ec2Session.RevokeSecurityGroupIngress(
 		&ec2.RevokeSecurityGroupIngressInput{
 			GroupId:    aws.String(securityGroupId),
@@ -414,7 +414,7 @@ func deleteIpPermissions(ec2Session ec2.EC2, securityGroupId string) {
 	}
 }
 
-func AddCreationDateTagToSG(ec2Session ec2.EC2, vpcsId []*string, creationDate time.Time, ttl int64) error {
+func AddCreationDateTagToSG(ec2Session *ec2.EC2, vpcsId []*string, creationDate time.Time, ttl int64) error {
 	securityGroups := getSecurityGroupsByVpcsIds(ec2Session, vpcsId)
 	var securityGroupsIds []*string
 
@@ -434,7 +434,7 @@ type RouteTable struct {
 	Associations []*ec2.RouteTableAssociation
 }
 
-func getRouteTablesByVpcId(ec2Session ec2.EC2, vpcId string) []*ec2.RouteTable {
+func getRouteTablesByVpcId(ec2Session *ec2.EC2, vpcId string) []*ec2.RouteTable {
 	input := &ec2.DescribeRouteTablesInput{
 		Filters: []*ec2.Filter{
 			{
@@ -452,7 +452,7 @@ func getRouteTablesByVpcId(ec2Session ec2.EC2, vpcId string) []*ec2.RouteTable {
 	return routeTables.RouteTables
 }
 
-func getRouteTablesByVpcsIds(ec2Session ec2.EC2, vpcsIds []*string) []*ec2.RouteTable {
+func getRouteTablesByVpcsIds(ec2Session *ec2.EC2, vpcsIds []*string) []*ec2.RouteTable {
 	input := &ec2.DescribeRouteTablesInput{
 		Filters: []*ec2.Filter{
 			{
@@ -470,7 +470,7 @@ func getRouteTablesByVpcsIds(ec2Session ec2.EC2, vpcsIds []*string) []*ec2.Route
 	return result.RouteTables
 }
 
-func SetRouteTablesIdsByVpcId(ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup) {
+func SetRouteTablesIdsByVpcId(ec2Session *ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup) {
 	defer waitGroup.Done()
 	var routeTablesStruct []RouteTable
 
@@ -491,7 +491,7 @@ func SetRouteTablesIdsByVpcId(ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.
 	vpc.RouteTables = routeTablesStruct
 }
 
-func DeleteRouteTablesByIds(ec2Session ec2.EC2, routeTables []RouteTable) {
+func DeleteRouteTablesByIds(ec2Session *ec2.EC2, routeTables []RouteTable) {
 	for _, routeTable := range routeTables {
 		if CheckIfExpired(routeTable.CreationDate, routeTable.ttl) && !isMainRouteTable(routeTable) {
 			_, err := ec2Session.DeleteRouteTable(
@@ -507,7 +507,7 @@ func DeleteRouteTablesByIds(ec2Session ec2.EC2, routeTables []RouteTable) {
 	}
 }
 
-func AddCreationDateTagToRTB(ec2Session ec2.EC2, vpcsIds []*string, creationDate time.Time, ttl int64) error {
+func AddCreationDateTagToRTB(ec2Session *ec2.EC2, vpcsIds []*string, creationDate time.Time, ttl int64) error {
 	routeTables := getRouteTablesByVpcsIds(ec2Session, vpcsIds)
 	var routeTablesIds []*string
 
@@ -536,7 +536,7 @@ type InternetGateway struct {
 	ttl          int64
 }
 
-func getInternetGatewaysByVpcId(ec2Session ec2.EC2, vpcId string) []*ec2.InternetGateway {
+func getInternetGatewaysByVpcId(ec2Session *ec2.EC2, vpcId string) []*ec2.InternetGateway {
 	input := &ec2.DescribeInternetGatewaysInput{
 		Filters: []*ec2.Filter{
 			{
@@ -554,7 +554,7 @@ func getInternetGatewaysByVpcId(ec2Session ec2.EC2, vpcId string) []*ec2.Interne
 	return gateways.InternetGateways
 }
 
-func getInternetGatewaysByVpcsIds(ec2Session ec2.EC2, vpcsIds []*string) []*ec2.InternetGateway {
+func getInternetGatewaysByVpcsIds(ec2Session *ec2.EC2, vpcsIds []*string) []*ec2.InternetGateway {
 	input := &ec2.DescribeInternetGatewaysInput{
 		Filters: []*ec2.Filter{
 			{
@@ -572,7 +572,7 @@ func getInternetGatewaysByVpcsIds(ec2Session ec2.EC2, vpcsIds []*string) []*ec2.
 	return result.InternetGateways
 }
 
-func SetInternetGatewaysIdsByVpcId(ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup) {
+func SetInternetGatewaysIdsByVpcId(ec2Session *ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup) {
 	defer waitGroup.Done()
 	var internetGateways []InternetGateway
 
@@ -593,7 +593,7 @@ func SetInternetGatewaysIdsByVpcId(ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *
 	vpc.InternetGateways = internetGateways
 }
 
-func DeleteInternetGatewaysByIds(ec2Session ec2.EC2, internetGateways []InternetGateway) {
+func DeleteInternetGatewaysByIds(ec2Session *ec2.EC2, internetGateways []InternetGateway) {
 	for _, internetGateway := range internetGateways {
 		if CheckIfExpired(internetGateway.CreationDate, internetGateway.ttl) {
 			_, err := ec2Session.DeleteInternetGateway(
@@ -610,7 +610,7 @@ func DeleteInternetGatewaysByIds(ec2Session ec2.EC2, internetGateways []Internet
 	}
 }
 
-func AddCreationDateTagToIGW(ec2Session ec2.EC2, vpcsId []*string, creationDate time.Time, ttl int64) error {
+func AddCreationDateTagToIGW(ec2Session *ec2.EC2, vpcsId []*string, creationDate time.Time, ttl int64) error {
 	gateways := getInternetGatewaysByVpcsIds(ec2Session, vpcsId)
 	var gatewaysIds []*string
 

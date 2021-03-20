@@ -11,35 +11,61 @@ import (
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
 	"sync"
 	"time"
 )
 
-func RunPlecoAWS(cmd *cobra.Command, regions []string, interval int64, dryRun bool, wg *sync.WaitGroup) {
-	for _, region := range regions {
-		wg.Add(1)
-		go runPlecoInRegion(cmd, region, interval, dryRun, wg)
-	}
+type AwsOption struct {
+	TagName              string
+	EnableRDS            bool
+	EnableElastiCache    bool
+	EnableEKS            bool
+	EnableELB            bool
+	EnableEBS            bool
+	EnableVPC            bool
+	EnableS3             bool
+	EnableCloudWatchLogs bool
+	EnableKMS            bool
+	EnableIAM            bool
+	EnableSSH            bool
+	EnableDocumentDB     bool
+	DryRun               bool
 }
 
-func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun bool, wg *sync.WaitGroup) {
+type AWSSessions struct {
+	RDS            *rds.RDS
+	ElastiCache    *elasticache.ElastiCache
+	EKS            *eks.EKS
+	ELB            *elbv2.ELBV2
+	EC2            *ec2.EC2
+	S3             *s3.S3
+	CloudWatchLogs *cloudwatchlogs.CloudWatchLogs
+	KMS            *kms.KMS
+	IAM            *iam.IAM
+}
+
+func RunPlecoAWS(regions []string, interval int64, options *AwsOption) chan error {
+	c := make(chan error)
+	var wg sync.WaitGroup
+	for _, region := range regions {
+		wg.Add(1)
+		go func() {
+			if err := runPlecoInRegion(region, interval, &wg, options); err != nil {
+				c <- err
+			}
+		}()
+	}
+	go func() {
+		wg.Wait()
+		close(c)
+	}()
+	return c
+}
+
+func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options *AwsOption) error {
 	defer wg.Done()
 
-	var currentRdsSession *rds.RDS
-	var currentElasticacheSession *elasticache.ElastiCache
-	var currentEKSSession *eks.EKS
-	var currentElbSession *elbv2.ELBV2
-	var currentEC2Session *ec2.EC2
-	var currentS3Session *s3.S3
-	var currentCloudwatchLogsSession *cloudwatchlogs.CloudWatchLogs
-	var currentKMSSession *kms.KMS
-	var currentIAMSession *iam.IAM
-	elbEnabled := false
-	ebsEnabled := false
-	vpcEnabled := false
-
-	tagName, _ := cmd.Flags().GetString("tag-name")
+	sessions := &AWSSessions{}
 
 	// AWS session
 	currentSession, err := CreateSession(region)
@@ -47,178 +73,84 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 		logrus.Errorf("AWS session error: %s", err)
 	}
 
-	// RDS + DocumentDB connection
-	rdsEnabled, _ := cmd.Flags().GetBool("enable-rds")
-	documentdbEnabled, _ := cmd.Flags().GetBool("enable-documentdb")
-	if rdsEnabled || documentdbEnabled {
-		currentRdsSession = RdsSession(*currentSession, region)
+	if options.EnableRDS || options.EnableDocumentDB {
+		options.EnableRDS = true
+		sessions.RDS = RdsSession(*currentSession, region)
 	}
 
-	// Elasticache connection
-	elasticacheEnabled, _ := cmd.Flags().GetBool("enable-elasticache")
-	if elasticacheEnabled {
-		currentElasticacheSession = ElasticacheSession(*currentSession, region)
+	if options.EnableElastiCache {
+		sessions.ElastiCache = ElasticacheSession(*currentSession, region)
 	}
 
 	// EKS connection
-	eksEnabled, _ := cmd.Flags().GetBool("enable-eks")
-	if eksEnabled {
-		currentEKSSession = eks.New(currentSession)
-		currentElbSession = elbv2.New(currentSession)
-		elbEnabled = true
-		currentEC2Session = ec2.New(currentSession)
-		ebsEnabled = true
-		currentCloudwatchLogsSession = cloudwatchlogs.New(currentSession)
+	if options.EnableEKS {
+		sessions.EKS = eks.New(currentSession)
+		sessions.ELB = elbv2.New(currentSession)
+		options.EnableELB = true
+		sessions.EC2 = ec2.New(currentSession)
+		options.EnableEBS = true
+		sessions.CloudWatchLogs = cloudwatchlogs.New(currentSession)
 	}
 
 	// ELB connection
-	elbEnabledByUser, _ := cmd.Flags().GetBool("enable-elb")
-	if elbEnabled || elbEnabledByUser {
-		currentElbSession = elbv2.New(currentSession)
-		elbEnabled = true
+	if options.EnableELB {
+		sessions.ELB = elbv2.New(currentSession)
 	}
 
-	// EBS connection
-	ebsEnabledByUser, _ := cmd.Flags().GetBool("enable-ebs")
-	if ebsEnabled || ebsEnabledByUser {
-		currentEC2Session = ec2.New(currentSession)
-		ebsEnabled = true
-	}
-
-	// VPC
-	vpcEnabled, _ = cmd.Flags().GetBool("enable-vpc")
-	if vpcEnabled {
-		currentEC2Session = ec2.New(currentSession)
+	// EBS connection (VPC + SSH)
+	if options.EnableEBS || options.EnableVPC || options.EnableSSH {
+		options.EnableEBS = true
+		sessions.EC2 = ec2.New(currentSession)
 	}
 
 	// S3
-	s3Enabled, _ := cmd.Flags().GetBool("enable-s3")
-	if s3Enabled {
-		currentS3Session = s3.New(currentSession)
+	if options.EnableS3 {
+		sessions.S3 = s3.New(currentSession)
 	}
 
 	// Cloudwatch
-	cloudwatchLogsEnabled, _ := cmd.Flags().GetBool("enable-cloudwatch-logs")
-	if cloudwatchLogsEnabled {
-		currentCloudwatchLogsSession = cloudwatchlogs.New(currentSession)
+	if options.EnableCloudWatchLogs {
+		sessions.CloudWatchLogs = cloudwatchlogs.New(currentSession)
 	}
 
 	// KMS
-	kmsEnabled, _ := cmd.Flags().GetBool("enable-kms")
-	if kmsEnabled {
-		currentKMSSession = kms.New(currentSession)
+	if options.EnableKMS {
+		sessions.KMS = kms.New(currentSession)
 	}
 
 	// IAM
-	iamEnabled, _ := cmd.Flags().GetBool("enable-iam")
-	if iamEnabled {
-		currentIAMSession = iam.New(currentSession)
+	if options.EnableIAM {
+		sessions.IAM = iam.New(currentSession)
 	}
-
-	// SSH
-	sshEnabled, _ := cmd.Flags().GetBool("enable-ssh")
-	if sshEnabled {
-		currentEC2Session = ec2.New(currentSession)
+	listServiceToCheckStatus := []struct {
+		Active bool
+		Func   funcDeleteExpired
+	}{
+		{Active: options.EnableRDS, Func: DeleteExpiredRDSDatabases},
+		{Active: options.EnableDocumentDB, Func: DeleteExpiredDocumentDBClusters},
+		{Active: options.EnableElastiCache, Func: DeleteExpiredElasticacheDatabases},
+		{Active: options.EnableEKS, Func: DeleteExpiredEKSClusters},
+		{Active: options.EnableELB, Func: DeleteExpiredLoadBalancers},
+		{Active: options.EnableELB, Func: DeleteExpiredVolumes},
+		{Active: options.EnableVPC, Func: DeleteExpiredVPC},
+		{Active: options.EnableS3, Func: DeleteExpiredBuckets},
+		{Active: options.EnableCloudWatchLogs, Func: DeleteExpiredLogs},
+		{Active: options.EnableKMS, Func: DeleteKMSExpiredKeys},
+		{Active: options.EnableIAM, Func: DeleteExpiredIAM},
+		{Active: options.EnableSSH, Func: DeleteSSHExpiredKeys},
 	}
-
 	for {
-		// check RDS
-		if rdsEnabled {
-			err = DeleteExpiredRDSDatabases(*currentRdsSession, tagName, dryRun)
-			if err != nil {
-				logrus.Error(err)
+		for _, l := range listServiceToCheckStatus {
+			if l.Active {
+				if err := l.Func(sessions, options); err != nil {
+					// TODO : return error ?? will be added to chan error
+					logrus.Errorf("error: %s", err.Error())
+				}
 			}
 		}
-
-		// check DocumentDB
-		if documentdbEnabled {
-			err = DeleteExpiredDocumentDBClusters(*currentRdsSession, tagName, dryRun)
-			if err != nil {
-				logrus.Error(err)
-			}
-		}
-
-		// check Elasticache
-		if elasticacheEnabled {
-			err = DeleteExpiredElasticacheDatabases(*currentElasticacheSession, tagName, dryRun)
-			if err != nil {
-				logrus.Error(err)
-			}
-		}
-
-		// check EKS
-		if eksEnabled {
-			err = DeleteExpiredEKSClusters(*currentEKSSession, *currentEC2Session, *currentElbSession, *currentCloudwatchLogsSession, tagName, dryRun)
-			if err != nil {
-				logrus.Error(err)
-			}
-		}
-
-		// check load balancers
-		if elbEnabled {
-			err = DeleteExpiredLoadBalancers(*currentElbSession, tagName, dryRun)
-			if err != nil {
-				logrus.Error(err)
-			}
-		}
-
-		// check EBS volumes
-		if ebsEnabled {
-			err = DeleteExpiredVolumes(*currentEC2Session, tagName, dryRun)
-			if err != nil {
-				logrus.Error(err)
-			}
-		}
-
-		// check VPC
-		if vpcEnabled {
-			err = DeleteExpiredVPC(*currentEC2Session, tagName, dryRun)
-			if err != nil {
-				logrus.Error(err)
-			}
-		}
-
-		// check s3
-		if s3Enabled {
-			err = DeleteExpiredBuckets(*currentS3Session, tagName, dryRun)
-			if err != nil {
-				logrus.Error(err)
-			}
-		}
-
-		//check Cloudwatch
-		if cloudwatchLogsEnabled {
-			err = DeleteExpiredLogs(*currentCloudwatchLogsSession, tagName, dryRun)
-			if err != nil {
-				logrus.Error(err)
-			}
-		}
-
-		// check KMS
-		if kmsEnabled {
-			err = deleteExpiredKeys(*currentKMSSession, tagName, dryRun)
-			if err != nil {
-				logrus.Error(err)
-			}
-		}
-
-		// check IAM
-		if iamEnabled {
-			err = DeleteExpiredIAM(currentIAMSession, tagName, dryRun)
-			if err != nil {
-				logrus.Error(err)
-			}
-		}
-
-		// check SSH
-		if sshEnabled {
-			err = DeleteExpiredKeys(currentEC2Session, tagName, dryRun)
-			if err != nil {
-				logrus.Error(err)
-			}
-		}
-
 		time.Sleep(time.Duration(interval) * time.Second)
 	}
-
+	return nil
 }
+
+type funcDeleteExpired func(sessions *AWSSessions, options *AwsOption) error

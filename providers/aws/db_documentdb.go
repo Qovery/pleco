@@ -18,7 +18,7 @@ type documentDBCluster struct {
 	TTL                 int64
 }
 
-func listTaggedDocumentDBClusters(svc rds.RDS, tagName string) ([]documentDBCluster, error) {
+func listTaggedDocumentDBClusters(svc *rds.RDS, tagName string) ([]documentDBCluster, error) {
 	var taggedClusters []documentDBCluster
 	var instances []string
 
@@ -68,7 +68,7 @@ func listTaggedDocumentDBClusters(svc rds.RDS, tagName string) ([]documentDBClus
 	return taggedClusters, nil
 }
 
-func deleteDocumentDBCluster(svc rds.RDS, cluster documentDBCluster, dryRun bool) error {
+func deleteDocumentDBCluster(cluster documentDBCluster, sessions *AWSSessions, options *AwsOption) error {
 	deleteInstancesErrors := 0
 
 	if cluster.Status == "deleting" {
@@ -76,12 +76,12 @@ func deleteDocumentDBCluster(svc rds.RDS, cluster documentDBCluster, dryRun bool
 		return nil
 	} else {
 		log.Infof("Deleting DocumentDB cluster %s in %s, expired after %d seconds",
-			cluster.DBClusterIdentifier, *svc.Config.Region, cluster.TTL)
+			cluster.DBClusterIdentifier, *sessions.RDS.Config.Region, cluster.TTL)
 	}
 
 	// delete instance before deleting the cluster (otherwise it fails)
 	for _, instance := range cluster.DBClusterMembers {
-		rdsInstanceInfo, err := GetRDSInstanceInfos(svc, instance)
+		rdsInstanceInfo, err := GetRDSInstanceInfos(sessions.RDS, instance)
 		if err != nil {
 			log.Errorf("Can't access RDS instance %s information for DocumentDB cluster %s: %s",
 				instance, cluster.DBClusterIdentifier, err)
@@ -89,10 +89,10 @@ func deleteDocumentDBCluster(svc rds.RDS, cluster documentDBCluster, dryRun bool
 			continue
 		}
 
-		err = DeleteRDSDatabase(svc, rdsInstanceInfo, dryRun)
+		err = DeleteRDSDatabase(sessions.RDS, rdsInstanceInfo, options.DryRun)
 		if err != nil {
 			log.Errorf("Deletion error on DocumentDB instance %s/%s/%s: %s",
-				instance, cluster.DBClusterIdentifier, *svc.Config.Region, err)
+				instance, cluster.DBClusterIdentifier, *sessions.RDS.Config.Region, err)
 			deleteInstancesErrors++
 		}
 	}
@@ -102,12 +102,12 @@ func deleteDocumentDBCluster(svc rds.RDS, cluster documentDBCluster, dryRun bool
 		return errors.New(message)
 	}
 
-	if dryRun {
+	if options.DryRun {
 		return nil
 	}
 
 	// delete cluster
-	_, err := svc.DeleteDBCluster(
+	_, err := sessions.RDS.DeleteDBCluster(
 		&rds.DeleteDBClusterInput{
 			DBClusterIdentifier: aws.String(cluster.DBClusterIdentifier),
 			SkipFinalSnapshot:   aws.Bool(true),
@@ -120,23 +120,23 @@ func deleteDocumentDBCluster(svc rds.RDS, cluster documentDBCluster, dryRun bool
 	return nil
 }
 
-func DeleteExpiredDocumentDBClusters(svc rds.RDS, tagName string, dryRun bool) error {
-	clusters, err := listTaggedDocumentDBClusters(svc, tagName)
+func DeleteExpiredDocumentDBClusters(sessions *AWSSessions, options *AwsOption) error {
+	clusters, err := listTaggedDocumentDBClusters(sessions.RDS, options.TagName)
 	if err != nil {
 		return fmt.Errorf("can't list DocumentDB databases: %s\n", err)
 	}
 
 	for _, cluster := range clusters {
 		if CheckIfExpired(cluster.ClusterCreateTime, cluster.TTL) {
-			err := deleteDocumentDBCluster(svc, cluster, dryRun)
+			err := deleteDocumentDBCluster(cluster, sessions, options)
 			if err != nil {
 				log.Errorf("Deletion DocumentDB cluster error %s/%s: %s",
-					cluster.DBClusterIdentifier, *svc.Config.Region, err)
+					cluster.DBClusterIdentifier, *sessions.RDS.Config.Region, err)
 				continue
 			}
 		} else {
 			log.Debugf("DocumentDB cluster %s in %s, has not yet expired",
-				cluster.DBClusterIdentifier, *svc.Config.Region)
+				cluster.DBClusterIdentifier, *sessions.RDS.Config.Region)
 		}
 	}
 
