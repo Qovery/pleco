@@ -8,7 +8,6 @@ import (
 	"time"
 )
 
-
 func RunPlecoKubernetes(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGroup) {
 	wg.Add(1)
 	go runPlecoOnKube(cmd, interval, dryRun, wg)
