@@ -1,8 +1,7 @@
-package database
+package aws
 
 import (
 	"fmt"
-	"github.com/Qovery/pleco/utils"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/elasticache"
@@ -12,11 +11,11 @@ import (
 )
 
 type elasticacheCluster struct {
-	ClusterIdentifier string
+	ClusterIdentifier  string
 	ReplicationGroupId string
-	ClusterCreateTime time.Time
-	ClusterStatus string
-	TTL int64
+	ClusterCreateTime  time.Time
+	ClusterStatus      string
+	TTL                int64
 }
 
 func ElasticacheSession(sess session.Session, region string) *elasticache.ElastiCache {
@@ -71,11 +70,11 @@ func listTaggedElasticacheDatabases(svc elasticache.ElastiCache, tagName string)
 				}
 
 				taggedClusters = append(taggedClusters, elasticacheCluster{
-					ClusterIdentifier:    *cluster.CacheClusterId,
-					ReplicationGroupId:	  replicationGroupId,
-					ClusterCreateTime:    *cluster.CacheClusterCreateTime,
-					ClusterStatus:        *cluster.CacheClusterStatus,
-					TTL:                  int64(ttl),
+					ClusterIdentifier:  *cluster.CacheClusterId,
+					ReplicationGroupId: replicationGroupId,
+					ClusterCreateTime:  *cluster.CacheClusterCreateTime,
+					ClusterStatus:      *cluster.CacheClusterStatus,
+					TTL:                int64(ttl),
 				})
 			}
 		}
@@ -102,8 +101,8 @@ func deleteElasticacheCluster(svc elasticache.ElastiCache, cluster elasticacheCl
 	if cluster.ReplicationGroupId != "" {
 		_, err := svc.DeleteReplicationGroup(
 			&elasticache.DeleteReplicationGroupInput{
-				ReplicationGroupId:      aws.String(cluster.ReplicationGroupId),
-				RetainPrimaryCluster:    aws.Bool(false),
+				ReplicationGroupId:   aws.String(cluster.ReplicationGroupId),
+				RetainPrimaryCluster: aws.Bool(false),
 			},
 		)
 		if err != nil {
@@ -130,7 +129,7 @@ func DeleteExpiredElasticacheDatabases(svc elasticache.ElastiCache, tagName stri
 	}
 
 	for _, cluster := range clusters {
-		if utils.CheckIfExpired(cluster.ClusterCreateTime, cluster.TTL) {
+		if CheckIfExpired(cluster.ClusterCreateTime, cluster.TTL) {
 			err := deleteElasticacheCluster(svc, cluster, dryRun)
 			if err != nil {
 				log.Errorf("Deletion Elasticache cluster error %s/%s: %s",

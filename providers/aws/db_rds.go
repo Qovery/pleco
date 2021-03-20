@@ -1,8 +1,7 @@
-package database
+package aws
 
 import (
 	"fmt"
-	"github.com/Qovery/pleco/utils"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/rds"
@@ -13,9 +12,9 @@ import (
 
 type rdsDatabase struct {
 	DBInstanceIdentifier string
-	InstanceCreateTime time.Time
-	DBInstanceStatus string
-	TTL int64
+	InstanceCreateTime   time.Time
+	DBInstanceStatus     string
+	TTL                  int64
 }
 
 func RdsSession(sess session.Session, region string) *rds.RDS {
@@ -86,9 +85,9 @@ func DeleteRDSDatabase(svc rds.RDS, database rdsDatabase, dryRun bool) error {
 
 	_, err := svc.DeleteDBInstance(
 		&rds.DeleteDBInstanceInput{
-			DBInstanceIdentifier:      aws.String(database.DBInstanceIdentifier),
-			DeleteAutomatedBackups:    aws.Bool(true),
-			SkipFinalSnapshot:         aws.Bool(true),
+			DBInstanceIdentifier:   aws.String(database.DBInstanceIdentifier),
+			DeleteAutomatedBackups: aws.Bool(true),
+			SkipFinalSnapshot:      aws.Bool(true),
 		},
 	)
 	if err != nil {
@@ -129,7 +128,7 @@ func DeleteExpiredRDSDatabases(svc rds.RDS, tagName string, dryRun bool) error {
 	}
 
 	for _, database := range databases {
-		if utils.CheckIfExpired(database.InstanceCreateTime, database.TTL) {
+		if CheckIfExpired(database.InstanceCreateTime, database.TTL) {
 			err := DeleteRDSDatabase(svc, database, dryRun)
 			if err != nil {
 				log.Errorf("Deletion RDS database error %s/%s: %s",

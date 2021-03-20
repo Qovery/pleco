@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/Qovery/pleco/core"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -22,7 +21,7 @@ var startCmd = &cobra.Command{
 		fmt.Println("")
 		log.Infof("Starting Pleco %s", GetCurrentVersion())
 
-		core.StartDaemon(disableDryRun, interval, cmd)
+		StartDaemon(disableDryRun, interval, cmd)
 	},
 }
 

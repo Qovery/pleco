@@ -2,7 +2,6 @@ package aws
 
 import (
 	"fmt"
-	"github.com/Qovery/pleco/utils"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	log "github.com/sirupsen/logrus"
@@ -11,9 +10,9 @@ import (
 )
 
 type s3Bucket struct {
-	Name string
+	Name       string
 	CreateTime time.Time
-	TTL int64
+	TTL        int64
 }
 
 func listTaggedBuckets(s3Session s3.S3, tagName string) ([]s3Bucket, error) {
@@ -70,9 +69,9 @@ func listTaggedBuckets(s3Session s3.S3, tagName string) ([]s3Bucket, error) {
 				}
 
 				taggedS3Buckets = append(taggedS3Buckets, s3Bucket{
-					Name:   	*bucket.Name,
+					Name:       *bucket.Name,
 					CreateTime: *bucket.CreationDate,
-					TTL:    	int64(ttl),
+					TTL:        int64(ttl),
 				})
 			}
 		}
@@ -89,7 +88,7 @@ func deleteS3Objects(s3session s3.S3, bucket string, objects []*s3.ObjectIdentif
 		Bucket: aws.String(bucket),
 		Delete: &s3.Delete{
 			Objects: objects,
-			Quiet: aws.Bool(false),
+			Quiet:   aws.Bool(false),
 		},
 	}
 
@@ -104,7 +103,7 @@ func deleteS3Objects(s3session s3.S3, bucket string, objects []*s3.ObjectIdentif
 func deleteS3ObjectsVersions(s3session s3.S3, bucket string) error {
 	// list all objects
 	input := &s3.ListObjectVersionsInput{
-		Bucket:              aws.String(bucket),
+		Bucket: aws.String(bucket),
 	}
 	result, err := s3session.ListObjectVersions(input)
 	if err != nil {
@@ -178,7 +177,7 @@ func deleteAllS3Objects(s3session s3.S3, bucket string) error {
 
 		objectsIdentifiers = append(objectsIdentifiers,
 			&s3.ObjectIdentifier{
-				Key:       object.Key,
+				Key: object.Key,
 			},
 		)
 
@@ -230,7 +229,7 @@ func DeleteExpiredBuckets(s3session s3.S3, tagName string, dryRun bool) error {
 	}
 
 	for _, bucket := range buckets {
-		if utils.CheckIfExpired(bucket.CreateTime, bucket.TTL) {
+		if CheckIfExpired(bucket.CreateTime, bucket.TTL) {
 			err := deleteS3Buckets(s3session, bucket.Name, dryRun)
 			if err != nil {
 				log.Errorf("Deletion S3 Bucket %s/%s error: %s",

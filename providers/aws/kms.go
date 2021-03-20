@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"github.com/Qovery/pleco/utils"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/kms"
@@ -11,15 +10,14 @@ import (
 )
 
 type CompleteKey struct {
-	KeyId string
-	TTL int64
-	Tag string
-	Status string
+	KeyId        string
+	TTL          int64
+	Tag          string
+	Status       string
 	CreationDate time.Time
 }
 
-
-func getKeys(svc kms.KMS) []*kms.KeyListEntry{
+func getKeys(svc kms.KMS) []*kms.KeyListEntry {
 	input := &kms.ListKeysInput{
 		Limit: aws.Int64(1000),
 	}
@@ -32,8 +30,8 @@ func getKeys(svc kms.KMS) []*kms.KeyListEntry{
 
 func getCompleteKey(svc kms.KMS, keyId *string, tagName string) CompleteKey {
 	var completeKey CompleteKey
-	tags := getKeyTags(svc,keyId)
-	metaData := getKeyMetadata(svc,keyId)
+	tags := getKeyTags(svc, keyId)
+	metaData := getKeyMetadata(svc, keyId)
 
 	completeKey.KeyId = *keyId
 	completeKey.Status = *metaData.KeyMetadata.KeyState
@@ -41,7 +39,7 @@ func getCompleteKey(svc kms.KMS, keyId *string, tagName string) CompleteKey {
 
 	for i := range tags {
 		if *tags[i].TagKey == "ttl" {
-			ttl , _ := strconv.ParseInt(*tags[i].TagValue,10,64)
+			ttl, _ := strconv.ParseInt(*tags[i].TagValue, 10, 64)
 			completeKey.TTL = ttl
 		}
 
@@ -53,7 +51,7 @@ func getCompleteKey(svc kms.KMS, keyId *string, tagName string) CompleteKey {
 	return completeKey
 }
 
-func deleteKey(svc kms.KMS,keyId *string) (*kms.ScheduleKeyDeletionOutput,error){
+func deleteKmsKey(svc kms.KMS, keyId *string) (*kms.ScheduleKeyDeletionOutput, error) {
 	input := &kms.ScheduleKeyDeletionInput{
 		KeyId:               aws.String(*keyId),
 		PendingWindowInDays: aws.Int64(7),
@@ -62,10 +60,10 @@ func deleteKey(svc kms.KMS,keyId *string) (*kms.ScheduleKeyDeletionOutput,error)
 	result, err := svc.ScheduleKeyDeletion(input)
 	handleKMSError(err)
 
-	return result,err
+	return result, err
 }
 
-func getKeyTags (svc kms.KMS, keyId *string) []*kms.Tag {
+func getKeyTags(svc kms.KMS, keyId *string) []*kms.Tag {
 	input := &kms.ListResourceTagsInput{
 		KeyId: aws.String(*keyId),
 	}
@@ -76,7 +74,7 @@ func getKeyTags (svc kms.KMS, keyId *string) []*kms.Tag {
 	return tags.Tags
 }
 
-func getKeyMetadata (svc kms.KMS,keyId *string) *kms.DescribeKeyOutput{
+func getKeyMetadata(svc kms.KMS, keyId *string) *kms.DescribeKeyOutput {
 	input := &kms.DescribeKeyInput{KeyId: keyId}
 
 	data, err := svc.DescribeKey(input)
@@ -85,7 +83,7 @@ func getKeyMetadata (svc kms.KMS,keyId *string) *kms.DescribeKeyOutput{
 	return data
 }
 
-func handleKMSError (error error) {
+func handleKMSError(error error) {
 	if error != nil {
 		if aerr, ok := error.(awserr.Error); ok {
 			switch aerr.Code() {
@@ -109,7 +107,7 @@ func handleKMSError (error error) {
 	}
 }
 
-func deleteExpiredKeys(svc kms.KMS, tagName string, dryRun bool) error{
+func deleteExpiredKeys(svc kms.KMS, tagName string, dryRun bool) error {
 	keys := getKeys(svc)
 	var numberOfKeysToDelete int64
 
@@ -118,10 +116,10 @@ func deleteExpiredKeys(svc kms.KMS, tagName string, dryRun bool) error{
 
 		if completeKey.Status != "PendingDeletion" &&
 			completeKey.TTL != 0 &&
-			utils.CheckIfExpired(completeKey.CreationDate,  completeKey.TTL) {
-			if completeKey.Tag == tagName || tagName == "ttl"{
+			CheckIfExpired(completeKey.CreationDate, completeKey.TTL) {
+			if completeKey.Tag == tagName || tagName == "ttl" {
 				if !dryRun {
-					_, err := deleteKey(svc, key.KeyId)
+					_, err := deleteKmsKey(svc, key.KeyId)
 					if err != nil {
 						return err
 					}

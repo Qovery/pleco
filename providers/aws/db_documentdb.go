@@ -1,9 +1,8 @@
-package database
+package aws
 
 import (
 	"errors"
 	"fmt"
-	"github.com/Qovery/pleco/utils"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/rds"
 	log "github.com/sirupsen/logrus"
@@ -13,10 +12,10 @@ import (
 
 type documentDBCluster struct {
 	DBClusterIdentifier string
-	DBClusterMembers []string
-	ClusterCreateTime time.Time
-	Status string
-	TTL int64
+	DBClusterMembers    []string
+	ClusterCreateTime   time.Time
+	Status              string
+	TTL                 int64
 }
 
 func listTaggedDocumentDBClusters(svc rds.RDS, tagName string) ([]documentDBCluster, error) {
@@ -55,11 +54,11 @@ func listTaggedDocumentDBClusters(svc rds.RDS, tagName string) ([]documentDBClus
 				}
 
 				taggedClusters = append(taggedClusters, documentDBCluster{
-					DBClusterIdentifier:  *cluster.DBClusterIdentifier,
-					DBClusterMembers: 	  instances,
-					ClusterCreateTime:    *cluster.ClusterCreateTime,
-					Status:               *cluster.Status,
-					TTL:                  int64(ttl),
+					DBClusterIdentifier: *cluster.DBClusterIdentifier,
+					DBClusterMembers:    instances,
+					ClusterCreateTime:   *cluster.ClusterCreateTime,
+					Status:              *cluster.Status,
+					TTL:                 int64(ttl),
 				})
 			}
 		}
@@ -110,8 +109,8 @@ func deleteDocumentDBCluster(svc rds.RDS, cluster documentDBCluster, dryRun bool
 	// delete cluster
 	_, err := svc.DeleteDBCluster(
 		&rds.DeleteDBClusterInput{
-			DBClusterIdentifier:       aws.String(cluster.DBClusterIdentifier),
-			SkipFinalSnapshot:         aws.Bool(true),
+			DBClusterIdentifier: aws.String(cluster.DBClusterIdentifier),
+			SkipFinalSnapshot:   aws.Bool(true),
 		},
 	)
 	if err != nil {
@@ -128,7 +127,7 @@ func DeleteExpiredDocumentDBClusters(svc rds.RDS, tagName string, dryRun bool) e
 	}
 
 	for _, cluster := range clusters {
-		if utils.CheckIfExpired(cluster.ClusterCreateTime, cluster.TTL) {
+		if CheckIfExpired(cluster.ClusterCreateTime, cluster.TTL) {
 			err := deleteDocumentDBCluster(svc, cluster, dryRun)
 			if err != nil {
 				log.Errorf("Deletion DocumentDB cluster error %s/%s: %s",

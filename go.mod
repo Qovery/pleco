@@ -1,15 +1,17 @@
 module github.com/Qovery/pleco
 
-go 1.15
+go 1.16
+
+replace github.com/Qovery/pleco/cmd => ./cmd
+
+replace github.com/Qovery/pleco/providers/aws => ./providers/aws
+
+replace github.com/Qovery/pleco/providers/k8s => ./providers/k8s
+
+replace github.com/Qovery/pleco/providers => ./providers
 
 require (
-	github.com/aws/aws-sdk-go v1.35.25
-	github.com/mitchellh/go-homedir v1.1.0
-	github.com/sirupsen/logrus v1.7.0
-	github.com/spf13/cobra v1.1.1
-	github.com/spf13/viper v1.7.1
-	gopkg.in/ini.v1 v1.51.0
-	k8s.io/apimachinery v0.19.0
-	k8s.io/client-go v0.19.0
-	sigs.k8s.io/aws-iam-authenticator v0.5.2
+	github.com/Qovery/pleco/cmd v0.0.0-00010101000000-000000000000
+	github.com/Qovery/pleco/providers/aws v0.0.0-00010101000000-000000000000 // indirect
+	github.com/Qovery/pleco/providers/k8s v0.0.0-00010101000000-000000000000 // indirect
 )

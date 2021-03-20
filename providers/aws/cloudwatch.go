@@ -1,7 +1,6 @@
-package logs
+package aws
 
 import (
-	"github.com/Qovery/pleco/utils"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
@@ -13,13 +12,13 @@ import (
 
 type CompleteLogGroup struct {
 	logGroupName string
-	tag string
-	ttl int64
+	tag          string
+	ttl          int64
 	creationDate time.Time
-	clusterId string
+	clusterId    string
 }
 
-func getCloudwatchLogs(svc cloudwatchlogs.CloudWatchLogs)  []*cloudwatchlogs.LogGroup {
+func getCloudwatchLogs(svc cloudwatchlogs.CloudWatchLogs) []*cloudwatchlogs.LogGroup {
 	input := &cloudwatchlogs.DescribeLogGroupsInput{
 		Limit: aws.Int64(50),
 	}
@@ -35,11 +34,11 @@ func getCompleteLogGroup(svc cloudwatchlogs.CloudWatchLogs, log cloudwatchlogs.L
 	tags := getLogGroupTag(svc, *log.LogGroupName)
 
 	completeLogGroup.logGroupName = *log.LogGroupName
-	completeLogGroup.creationDate = time.Unix(*log.CreationTime/1000,0)
+	completeLogGroup.creationDate = time.Unix(*log.CreationTime/1000, 0)
 
 	for key, element := range tags {
 		if key == "ttl" {
-			ttl , _ := strconv.ParseInt(*element,10,64)
+			ttl, _ := strconv.ParseInt(*element, 10, 64)
 			completeLogGroup.ttl = ttl
 		}
 
@@ -55,7 +54,7 @@ func getCompleteLogGroup(svc cloudwatchlogs.CloudWatchLogs, log cloudwatchlogs.L
 	return completeLogGroup
 }
 
-func deleteCloudwatchLog (svc cloudwatchlogs.CloudWatchLogs, logGroupName string) (string, error) {
+func deleteCloudwatchLog(svc cloudwatchlogs.CloudWatchLogs, logGroupName string) (string, error) {
 	input := &cloudwatchlogs.DeleteLogGroupInput{
 		LogGroupName: aws.String(logGroupName),
 	}
@@ -66,7 +65,7 @@ func deleteCloudwatchLog (svc cloudwatchlogs.CloudWatchLogs, logGroupName string
 	return result.String(), err
 }
 
-func getLogGroupTag (svc cloudwatchlogs.CloudWatchLogs, logGroupName string) map[string]*string{
+func getLogGroupTag(svc cloudwatchlogs.CloudWatchLogs, logGroupName string) map[string]*string {
 	input := &cloudwatchlogs.ListTagsLogGroupInput{
 		LogGroupName: aws.String(logGroupName),
 	}
@@ -77,7 +76,7 @@ func getLogGroupTag (svc cloudwatchlogs.CloudWatchLogs, logGroupName string) map
 	return tags.Tags
 }
 
-func handleCloudwatchLogsError(err error){
+func handleCloudwatchLogsError(err error) {
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
@@ -108,7 +107,7 @@ func DeleteExpiredLogs(svc cloudwatchlogs.CloudWatchLogs, tagName string, dryRun
 	for _, log := range logs {
 		completeLogGroup := getCompleteLogGroup(svc, *log, tagName)
 
-		if completeLogGroup.ttl != 0 && utils.CheckIfExpired(completeLogGroup.creationDate, completeLogGroup.ttl) {
+		if completeLogGroup.ttl != 0 && CheckIfExpired(completeLogGroup.creationDate, completeLogGroup.ttl) {
 			if !dryRun {
 				_, err := deleteCloudwatchLog(svc, completeLogGroup.logGroupName)
 				if err != nil {
@@ -124,10 +123,10 @@ func DeleteExpiredLogs(svc cloudwatchlogs.CloudWatchLogs, tagName string, dryRun
 
 	return nil
 }
-func addTtlToLogGroup(svc cloudwatchlogs.CloudWatchLogs, logGroupName string) (string,error) {
+func addTtlToLogGroup(svc cloudwatchlogs.CloudWatchLogs, logGroupName string) (string, error) {
 	input := &cloudwatchlogs.TagLogGroupInput{
 		LogGroupName: aws.String(logGroupName),
-		Tags: aws.StringMap(map[string]string{"ttl": "1" }),
+		Tags:         aws.StringMap(map[string]string{"ttl": "1"}),
 	}
 
 	result, err := svc.TagLogGroup(input)
@@ -143,7 +142,7 @@ func TagLogsForDeletion(svc cloudwatchlogs.CloudWatchLogs, tagName string, clust
 	for _, log := range logs {
 		completeLogGroup := getCompleteLogGroup(svc, *log, tagName)
 
-		if completeLogGroup.ttl == 0 && strings.Contains(completeLogGroup.logGroupName, clusterId){
+		if completeLogGroup.ttl == 0 && strings.Contains(completeLogGroup.logGroupName, clusterId) {
 			_, err := addTtlToLogGroup(svc, completeLogGroup.logGroupName)
 			if err != nil {
 				return err
