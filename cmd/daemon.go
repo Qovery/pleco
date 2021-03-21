@@ -14,15 +14,25 @@ func StartDaemon(disableDryRun bool, interval int64, cmd *cobra.Command) {
 	if dryRun {
 		log.Info("Dry run mode enabled")
 	}
-
 	checkEnvVars(cmd)
 
 	// run Kubernetes check
-	k8s.RunPlecoKubernetes(cmd, interval, dryRun, &wg)
+	wg.Add(1)
+	go startK8S(cmd, interval, dryRun, &wg)
 
 	// run AWS checks
+	wg.Add(1)
 	go startAWS(cmd, interval, dryRun, &wg)
 	wg.Wait()
+}
+
+func startK8S(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGroup) {
+	k8s.RunPlecoKubernetes(interval, &k8s.K8SOptions{
+		TagName:        getCmdString(cmd, "tag-name"),
+		DryRun:         dryRun,
+		ConnectionType: getCmdString(cmd, "kube-conn"),
+	})
+	wg.Done()
 }
 
 func startAWS(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGroup) {

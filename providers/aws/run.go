@@ -17,6 +17,7 @@ import (
 
 type AwsOption struct {
 	TagName              string
+	DryRun               bool
 	EnableRDS            bool
 	EnableElastiCache    bool
 	EnableEKS            bool
@@ -29,7 +30,6 @@ type AwsOption struct {
 	EnableIAM            bool
 	EnableSSH            bool
 	EnableDocumentDB     bool
-	DryRun               bool
 }
 
 type AWSSessions struct {

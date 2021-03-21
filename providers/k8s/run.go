@@ -2,28 +2,27 @@ package k8s
 
 import (
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
 	"k8s.io/client-go/kubernetes"
-	"sync"
 	"time"
 )
 
-func RunPlecoKubernetes(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGroup) {
-	wg.Add(1)
-	go runPlecoOnKube(cmd, interval, dryRun, wg)
+type K8SOptions struct {
+	TagName        string
+	DryRun         bool
+	ConnectionType string
 }
 
-func runPlecoOnKube(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGroup) {
-	defer wg.Done()
+func RunPlecoKubernetes(interval int64, options *K8SOptions) {
+	runPlecoOnKube(interval, options)
+}
 
+func runPlecoOnKube(interval int64, options *K8SOptions) {
 	// Kubernetes connection
 	var k8sClientSet *kubernetes.Clientset
 	var err error
 	kubernetesEnabled := true
-	KubernetesConn, _ := cmd.Flags().GetString("kube-conn")
-	tagName, _ := cmd.Flags().GetString("tag-name")
 
-	switch KubernetesConn {
+	switch options.ConnectionType {
 	case "in":
 		k8sClientSet, err = AuthenticateInCluster()
 	case "out":
@@ -32,13 +31,14 @@ func runPlecoOnKube(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.Wa
 		kubernetesEnabled = false
 	}
 	if err != nil {
-		logrus.Errorf("failed to authenticate on kubernetes with %s connection: %v", KubernetesConn, err)
+		logrus.Errorf("failed to authenticate on kubernetes with %s connection: %v", options.ConnectionType, err)
 	}
 
 	// check Kubernetes
 	for {
 		if kubernetesEnabled {
-			err := DeleteExpiredNamespaces(k8sClientSet, tagName, dryRun)
+			// TODO : create an interface if more func is called like aws package
+			err := DeleteExpiredNamespaces(k8sClientSet, options.TagName, options.DryRun)
 			if err != nil {
 				logrus.Error(err)
 			}
