@@ -211,10 +211,7 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 
 		// check IAM
 		if iamEnabled {
-			err = iam2.DeleteExpiredIAM(currentIAMSession, tagName, dryRun)
-			if err != nil {
-				logrus.Error(err)
-			}
+			iam2.DeleteExpiredIAM(currentIAMSession, tagName, dryRun)
 		}
 
 		// check SSH

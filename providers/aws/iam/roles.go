@@ -70,7 +70,9 @@ func getRoleTags(iamSession *iam.IAM, roleName string) []*iam.Tag {
 	return tags.Tags
 }
 
-func DeleteExpiredRoles(iamSession *iam.IAM, tagName string, dryRun bool) error{
+
+
+func DeleteExpiredRoles(iamSession *iam.IAM, tagName string, dryRun bool) {
 	roles := getRoles(iamSession, tagName)
 	var expiredRoles []Role
 
@@ -83,17 +85,22 @@ func DeleteExpiredRoles(iamSession *iam.IAM, tagName string, dryRun bool) error{
 	log.Info("There is " + strconv.FormatInt(int64(len(expiredRoles)), 10) + " expired role(s) to delete.")
 
 	if dryRun {
-		return nil
+		return
 	}
+
+	log.Info("Starting expired roles deletion.")
+
 
 	for _, role := range expiredRoles {
+		HandleRolePolicies(iamSession, role.RoleName)
+
 		_, err := iamSession.DeleteRole(
 			&iam.DeleteRoleInput{
-				RoleName: aws.String(role.RoleName),})
-		if err != nil {
-						return err
-					}
-	}
+				RoleName: aws.String(role.RoleName),
+			})
 
-	return nil
+		if err != nil {
+			log.Errorf("Can't delete role %s : %s", role.RoleName, err)
+			}
+	}
 }
