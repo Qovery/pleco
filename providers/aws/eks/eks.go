@@ -61,7 +61,6 @@ func listTaggedEKSClusters(svc eks.EKS, tagName string) ([]eksCluster, error) {
 	var taggedClusters []eksCluster
 	region := *svc.Config.Region
 
-	log.Debugf("Listing all EKS clusters in region %s", region)
 	input := &eks.ListClustersInput{}
 	result, err := svc.ListClusters(input)
 	if err != nil {
@@ -69,7 +68,6 @@ func listTaggedEKSClusters(svc eks.EKS, tagName string) ([]eksCluster, error) {
 	}
 
 	if len(result.Clusters) == 0 {
-		log.Debugf("No EKS clusters were found in region %s", region)
 		return nil, nil
 	}
 
@@ -117,8 +115,6 @@ func listTaggedEKSClusters(svc eks.EKS, tagName string) ([]eksCluster, error) {
 			})
 		}
 	}
-
-	log.Debugf("Found %d EKS cluster(s) (%s) in ready status with ttl tag", len(taggedClusters), region)
 
 	return taggedClusters, nil
 }
@@ -236,25 +232,37 @@ func deleteNodeGroupStatus(svc eks.EKS, cluster eksCluster, nodeGroupName string
 	return nil
 }
 
-func DeleteExpiredEKSClusters(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.ELBV2, cloudwatchLogsSession cloudwatchlogs.CloudWatchLogs, tagName string, dryRun bool) error {
+func DeleteExpiredEKSClusters(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.ELBV2, cloudwatchLogsSession cloudwatchlogs.CloudWatchLogs, tagName string, dryRun bool) {
 	clusters, err := listTaggedEKSClusters(svc, tagName)
+	region := svc.Config.Region
 	if err != nil {
-		return fmt.Errorf("can't list EKS clusters: %s\n", err)
+		log.Errorf("can't list EKS clusters: %s\n", err)
+		return
 	}
 
+	var expiredCluster []eksCluster
 	for _, cluster := range clusters {
 		if utils.CheckIfExpired(cluster.ClusterCreateTime, cluster.TTL) {
-			err := deleteEKSCluster(svc, ec2Session, elbSession,cloudwatchLogsSession, cluster, tagName, dryRun)
-			if err != nil {
-				log.Errorf("Deletion EKS cluster error %s/%s: %s",
-					cluster.ClusterName, *svc.Config.Region, err)
-				continue
-			}
-		} else {
-			log.Debugf("EKS cluster %s in %s, has not yet expired",
-				cluster.ClusterName, *svc.Config.Region)
+			expiredCluster = append(expiredCluster, cluster)
 		}
 	}
 
-	return nil
+	count, start:= utils.ElemToDeleteFormattedInfos("expired EKS cluster", len(expiredCluster), *region)
+
+	log.Debug(count)
+
+	if dryRun || len(expiredCluster) == 0 {
+		return
+	}
+
+	log.Debug(start)
+
+	for _, cluster := range clusters {
+		deletionErr := deleteEKSCluster(svc, ec2Session, elbSession,cloudwatchLogsSession, cluster, tagName, dryRun)
+		if deletionErr != nil {
+			log.Errorf("Deletion EKS cluster error %s/%s: %s",
+					cluster.ClusterName, *region, err)
+		}
+
+	}
 }

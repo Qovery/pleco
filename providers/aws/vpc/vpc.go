@@ -1,7 +1,7 @@
 package vpc
 
 import (
-	"fmt"
+	"github.com/Qovery/pleco/utils"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	log "github.com/sirupsen/logrus"
@@ -49,7 +49,6 @@ func GetVpcsIdsByClusterNameTag (ec2Session ec2.EC2, clusterName string) []*stri
 }
 
 func getVPCs(ec2Session ec2.EC2, tagName string) []*ec2.Vpc {
-	log.Debugf("Listing all VPCs")
 	input := &ec2.DescribeVpcsInput{
 		Filters: []*ec2.Filter{
 			{
@@ -66,7 +65,6 @@ func getVPCs(ec2Session ec2.EC2, tagName string) []*ec2.Vpc {
 	}
 
 	if len(result.Vpcs) == 0 {
-		log.Debug("No VPCs were found")
 		return nil
 	}
 
@@ -116,7 +114,6 @@ func listTaggedVPC(ec2Session ec2.EC2, tagName string) ([]VpcInfo, error) {
 			taggedVPCs = append(taggedVPCs, taggedVpc)
 		}
 	}
-	log.Debugf("Found %d VPC cluster(s) in ready status with ttl tag", len(taggedVPCs))
 
 	return taggedVPCs, nil
 }
@@ -162,16 +159,25 @@ func deleteVPC(ec2Session ec2.EC2, VpcList []VpcInfo, dryRun bool) error {
 	return nil
 }
 
-func DeleteExpiredVPC(ec2Session ec2.EC2, tagName string, dryRun bool) error {
+func DeleteExpiredVPC(ec2Session ec2.EC2, tagName string, dryRun bool) {
 	VPCs, err := listTaggedVPC(ec2Session, tagName)
-
+	region := ec2Session.Config.Region
 	if err != nil {
-		return fmt.Errorf("can't list VPC: %s\n", err)
+		log.Errorf("can't list VPC: %s\n", err)
 	}
+
+	count, start := utils.ElemToDeleteFormattedInfos("tagged VPC resource", len(VPCs), *region)
+
+	log.Debug(count)
+
+	if dryRun || len(VPCs) == 0 {
+		return
+	}
+
+	log.Debug(start)
 
 	_ = deleteVPC(ec2Session, VPCs, dryRun)
 
-	return nil
 }
 
 func getCompleteVpc(ec2Session ec2.EC2, vpc *VpcInfo){

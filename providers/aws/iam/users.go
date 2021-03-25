@@ -1,6 +1,7 @@
 package iam
 
 import (
+	"fmt"
 	"github.com/Qovery/pleco/utils"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
@@ -119,13 +120,21 @@ func DeleteExpiredUsers(iamSession *iam.IAM, tagName string, dryRun bool) {
 		}
 	}
 
-	log.Info("There is " + strconv.FormatInt(int64(len(expiredUsers)), 10) + " expired user(s) to delete.")
+	s := "There is no expired IAM user to delete."
+	if len(expiredUsers) == 1 {
+		s = "There is 1 expired IAM user to delete."
+	}
+	if len(expiredUsers) > 1 {
+		s = fmt.Sprintf("There are %d expired IAM users to delete.", len(expiredUsers))
+	}
 
-	if dryRun {
+	log.Debug(s)
+
+	if dryRun || len(expiredUsers) == 0 {
 		return
 	}
 
-	log.Info("Starting expired users deletion.")
+	log.Debug("Starting expired IAM users deletion.")
 
 	for _, user := range expiredUsers {
 		HandleUserPolicies(iamSession, user.UserName)

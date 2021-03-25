@@ -6,12 +6,12 @@ import (
 )
 
 func DeleteExpiredIAM (iamSession *iam.IAM, tagName string, dryRun bool) {
-	log.Info("Starting expired users scan.")
+	log.Debug("Listing all IAM users.")
 	DeleteExpiredUsers(iamSession, tagName, dryRun)
 
-	log.Info("Starting expired roles scan.")
+	log.Debug("Listing all IAM roles.")
 	DeleteExpiredRoles(iamSession, tagName, dryRun)
 
-	log.Info("Starting detached policies scan.")
+	log.Debug("Listing all IAM policies.")
 	DeleteDetachedPolicies(iamSession, dryRun)
 }

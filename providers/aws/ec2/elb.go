@@ -90,7 +90,6 @@ func listTaggedLoadBalancers(lbSession elbv2.ELBV2, tagName string) ([]ElasticLo
 	}
 
 	if len(allLoadBalancers) == 0 {
-		log.Debugf("No Load balancers were found in region %s", region)
 		return nil, nil
 	}
 
@@ -116,16 +115,13 @@ func listTaggedLoadBalancers(lbSession elbv2.ELBV2, tagName string) ([]ElasticLo
 			}
 		}
 	}
-	log.Debugf("Found %d Load balancers in ready status with ttl tag", len(taggedLoadBalancers))
 
 	return taggedLoadBalancers, nil
 }
 
 func ListLoadBalancers(lbSession elbv2.ELBV2) ([]ElasticLoadBalancer, error) {
 	var allLoadBalancers []ElasticLoadBalancer
-	region := *lbSession.Config.Region
 
-	log.Debugf("Listing all Loadbalancers in region %s", region)
 	input := elbv2.DescribeLoadBalancersInput{}
 
 	result, err := lbSession.DescribeLoadBalancers(&input)
@@ -172,25 +168,36 @@ func deleteLoadBalancers(lbSession elbv2.ELBV2, loadBalancersList []ElasticLoadB
 	return nil
 }
 
-func DeleteExpiredLoadBalancers(elbSession elbv2.ELBV2, tagName string, dryRun bool) error {
+func DeleteExpiredLoadBalancers(elbSession elbv2.ELBV2, tagName string, dryRun bool) {
 	lbs, err := listTaggedLoadBalancers(elbSession, tagName)
+	region := elbSession.Config.Region
 	if err != nil {
-		return fmt.Errorf("can't list Load Balancers: %s\n", err)
+		log.Errorf("can't list Load Balancers: %s\n", err)
+		return
 	}
 
-	for _, lb := range lbs {
+	var expiredLoadBalancers []ElasticLoadBalancer
+	for _, lb := range lbs{
 		if utils.CheckIfExpired(lb.CreatedTime, lb.TTL) {
-			err := deleteLoadBalancers(elbSession, lbs, dryRun)
-			if err != nil {
-				log.Errorf("Deletion ELB %s (%s) error: %s",
-					lb.Name, *elbSession.Config.Region, err)
-				continue
-			}
-		} else {
-			log.Debugf("Load Balancer %s in %s, has not yet expired",
-				lb.Name, *elbSession.Config.Region)
+			expiredLoadBalancers = append(expiredLoadBalancers, lb)
 		}
 	}
 
-	return nil
+	count, start:= utils.ElemToDeleteFormattedInfos("expired ELB load balancer", len(expiredLoadBalancers), *region)
+
+	log.Debug(count)
+
+	if dryRun || len(expiredLoadBalancers) == 0 {
+		return
+	}
+
+	log.Debug(start)
+
+	for _, lb := range lbs {
+		deletionErr := deleteLoadBalancers(elbSession, lbs, dryRun)
+		if deletionErr != nil {
+			log.Errorf("Deletion ELB %s (%s) error: %s",
+					lb.Name, *elbSession.Config.Region, err)
+		}
+	}
 }

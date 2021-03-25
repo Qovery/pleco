@@ -1,7 +1,6 @@
 package database
 
 import (
-	"fmt"
 	"github.com/Qovery/pleco/utils"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -25,7 +24,6 @@ func RdsSession(sess session.Session, region string) *rds.RDS {
 func listTaggedRDSDatabases(svc rds.RDS, tagName string) ([]rdsDatabase, error) {
 	var taggedDatabases []rdsDatabase
 
-	log.Debugf("Listing all RDS databases")
 	// unfortunately AWS doesn't support tag filtering for RDS
 	result, err := svc.DescribeDBInstances(nil)
 	if err != nil {
@@ -33,7 +31,6 @@ func listTaggedRDSDatabases(svc rds.RDS, tagName string) ([]rdsDatabase, error) 
 	}
 
 	if len(result.DBInstances) == 0 {
-		log.Debug("No RDS instances were found")
 		return nil, nil
 	}
 
@@ -66,12 +63,11 @@ func listTaggedRDSDatabases(svc rds.RDS, tagName string) ([]rdsDatabase, error) 
 			}
 		}
 	}
-	log.Debugf("Found %d RDS instance(s) in ready status with ttl tag", len(taggedDatabases))
 
 	return taggedDatabases, nil
 }
 
-func DeleteRDSDatabase(svc rds.RDS, database rdsDatabase, dryRun bool) error {
+func DeleteRDSDatabase(svc rds.RDS, database rdsDatabase) error {
 	if database.DBInstanceStatus == "deleting" {
 		log.Infof("RDS instance %s is already in deletion process, skipping...", database.DBInstanceIdentifier)
 		return nil
@@ -80,9 +76,6 @@ func DeleteRDSDatabase(svc rds.RDS, database rdsDatabase, dryRun bool) error {
 			database.DBInstanceIdentifier, *svc.Config.Region, database.TTL)
 	}
 
-	if dryRun {
-		return nil
-	}
 
 	_, err := svc.DeleteDBInstance(
 		&rds.DeleteDBInstanceInput{
@@ -122,25 +115,36 @@ func GetRDSInstanceInfos(svc rds.RDS, databaseIdentifier string) (rdsDatabase, e
 	}, nil
 }
 
-func DeleteExpiredRDSDatabases(svc rds.RDS, tagName string, dryRun bool) error {
+func DeleteExpiredRDSDatabases(svc rds.RDS, tagName string, dryRun bool) {
 	databases, err := listTaggedRDSDatabases(svc, tagName)
+	region := svc.Config.Region
 	if err != nil {
-		return fmt.Errorf("can't list RDS databases: %s\n", err)
+		log.Errorf("can't list RDS databases: %s\n", err)
+		return
 	}
 
+	var expiredDatabases []rdsDatabase
 	for _, database := range databases {
 		if utils.CheckIfExpired(database.InstanceCreateTime, database.TTL) {
-			err := DeleteRDSDatabase(svc, database, dryRun)
-			if err != nil {
-				log.Errorf("Deletion RDS database error %s/%s: %s",
-					database.DBInstanceIdentifier, *svc.Config.Region, err)
-				continue
-			}
-		} else {
-			log.Debugf("RDS database %s in %s, has not yet expired",
-				database.DBInstanceIdentifier, *svc.Config.Region)
+			expiredDatabases = append(expiredDatabases, database)
 		}
 	}
 
-	return nil
+	count, start:= utils.ElemToDeleteFormattedInfos("expired RDS database", len(expiredDatabases), *region)
+
+	log.Debug(count)
+
+	if dryRun || len(expiredDatabases) == 0 {
+		return
+	}
+
+	log.Debug(start)
+
+	for _, database := range expiredDatabases {
+		deletionErr := DeleteRDSDatabase(svc, database)
+			if deletionErr != nil {
+				log.Errorf("Deletion RDS database error %s/%s: %s",
+					database.DBInstanceIdentifier, *svc.Config.Region, err)
+			}
+	}
 }

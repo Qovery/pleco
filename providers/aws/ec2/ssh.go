@@ -63,24 +63,31 @@ func deleteKey (ec2session *ec2.EC2, keyId string) error {
 	return err
 }
 
-func DeleteExpiredKeys (ec2session *ec2.EC2, tagName string, dryRun bool) error {
+func DeleteExpiredKeys (ec2session *ec2.EC2, tagName string, dryRun bool) {
 	keys := getSshKeys(ec2session, tagName)
-	var expiredKeysCount int64
-
+	region := ec2session.Config.Region
+	var expiredKeys []KeyPair
 	for _, key := range keys {
 		if utils.CheckIfExpired(key.CreationDate, key.ttl) {
-			expiredKeysCount++
-
-			if !dryRun {
-				err := deleteKey(ec2session, key.KeyId)
-				if err != nil {
-					return err
-				}
-			}
+			expiredKeys = append(expiredKeys, key)
 		}
 	}
 
-	log.Infof("There is %d expired key(s) to delete", expiredKeysCount)
+	count, start:= utils.ElemToDeleteFormattedInfos("expired ELB load balancer", len(expiredKeys), *region)
 
-	return nil
+	log.Debug(count)
+
+	if dryRun || len(expiredKeys) == 0 {
+		return
+	}
+
+	log.Debug(start)
+
+	for _, key := range expiredKeys {
+		deletionErr := deleteKey(ec2session, key.KeyId)
+		if deletionErr != nil {
+			log.Errorf("Deletion EC2 key pair error %s/%s: %s",
+				key.KeyName, *region, deletionErr)
+		}
+	}
 }

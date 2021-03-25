@@ -1,7 +1,6 @@
 package ec2
 
 import (
-	"fmt"
 	"github.com/Qovery/pleco/utils"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -61,15 +60,7 @@ func TagVolumesFromEksClusterForDeletion(ec2Session ec2.EC2, tagKey string, clus
 	return nil
 }
 
-func deleteVolumes(ec2Session ec2.EC2, VolumesList []EBSVolume, dryRun bool) error {
-	if dryRun {
-		return nil
-	}
-
-	if len(VolumesList) == 0 {
-		return nil
-	}
-
+func deleteVolumes(ec2Session ec2.EC2, VolumesList []EBSVolume) error {
 	for _, volume := range VolumesList {
 		switch volume.Status {
 		case "deleting":
@@ -97,9 +88,7 @@ func deleteVolumes(ec2Session ec2.EC2, VolumesList []EBSVolume, dryRun bool) err
 
 func listTaggedVolumes(ec2Session ec2.EC2, tagName string) ([]EBSVolume, error) {
 	var taggedVolumes []EBSVolume
-	region := *ec2Session.Config.Region
 
-	log.Debugf("Listing all volumes in region %s", region)
 	input := &ec2.DescribeVolumesInput{
 		//Filters: []*ec2.Filter{
 		//	{
@@ -114,7 +103,6 @@ func listTaggedVolumes(ec2Session ec2.EC2, tagName string) ([]EBSVolume, error) 
 	}
 
 	if len(result.Volumes) == 0 {
-		log.Debugf("No volumes were found in region %s", region)
 		return nil, nil
 	}
 
@@ -147,25 +135,35 @@ func listTaggedVolumes(ec2Session ec2.EC2, tagName string) ([]EBSVolume, error) 
 	return taggedVolumes, nil
 }
 
-func DeleteExpiredVolumes(ec2Session ec2.EC2, tagName string, dryRun bool) error {
+func DeleteExpiredVolumes(ec2Session ec2.EC2, tagName string, dryRun bool) {
 	volumes, err := listTaggedVolumes(ec2Session, tagName)
+	region := ec2Session.Config.Region
 	if err != nil {
-		return fmt.Errorf("Can't list volumes: %s\n", err)
+		log.Errorf("Can't list volumes: %s\n", err)
+		return
 	}
 
+	var expiredVolumes []EBSVolume
 	for _, volume := range volumes {
 		if utils.CheckIfExpired(volume.CreatedTime, volume.TTL) {
-			err := deleteVolumes(ec2Session, volumes, dryRun)
-			if err != nil {
-				log.Errorf("Deletion EBS %s (%s) error: %s",
-					volume.VolumeId, *ec2Session.Config.Region, err)
-				continue
-			}
-		} else {
-			log.Debugf("EBS %s in %s, has not yet expired",
-				volume.VolumeId, *ec2Session.Config.Region)
+			expiredVolumes = append(expiredVolumes, volume)
 		}
 	}
 
-	return nil
+	count, start:= utils.ElemToDeleteFormattedInfos("expired EBS volume", len(expiredVolumes), *region)
+
+	log.Debug(count)
+
+	if dryRun || len(expiredVolumes) == 0 {
+		return
+	}
+
+	log.Debug(start)
+	for _, volume := range volumes {
+		deletionErr := deleteVolumes(ec2Session, volumes)
+			if deletionErr != nil {
+				log.Errorf("Deletion EBS %s (%s) error: %s",
+					volume.VolumeId, *ec2Session.Config.Region, err)
+			}
+	}
 }
