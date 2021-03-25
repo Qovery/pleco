@@ -39,7 +39,8 @@ func checkEnvVars(cmd *cobra.Command) {
 		isAwsUsed(cmd, "cloudwatch-logs") ||
 		isAwsUsed(cmd, "kms") ||
 		isAwsUsed(cmd, "iam") ||
-		isAwsUsed(cmd, "ssh"){
+		isAwsUsed(cmd, "ssh") ||
+		isAwsUsed(cmd, "ecr") {
 		requiredEnvVars = append(requiredEnvVars, awsEnvVars...)
 	}
 

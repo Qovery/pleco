@@ -9,6 +9,7 @@ import (
 	"github.com/Qovery/pleco/providers/aws/vpc"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	"github.com/aws/aws-sdk-go/service/elbv2"
@@ -42,6 +43,7 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 	var currentCloudwatchLogsSession *cloudwatchlogs.CloudWatchLogs
 	var currentKMSSession *kms.KMS
 	var currentIAMSession *iam.IAM
+	var currentECRSession *ecr.ECR
 	elbEnabled := false
 	ebsEnabled := false
 	vpcEnabled := false
@@ -126,6 +128,12 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 	sshEnabled, _ := cmd.Flags().GetBool("enable-ssh")
 	if sshEnabled {
 		currentEC2Session = ec2.New(currentSession)
+	}
+
+	// ECR
+	ecrEnabled, _ := cmd.Flags().GetBool("enable-ecr")
+	if ecrEnabled {
+		currentECRSession = ecr.New(currentSession)
 	}
 
 	for {
@@ -220,6 +228,11 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 			if err != nil {
 				logrus.Error(err)
 			}
+		}
+
+		// check ECR
+		if ecrEnabled {
+			eks2.DeleteEmptyRepositories(currentECRSession, dryRun)
 		}
 
 		time.Sleep(time.Duration(interval) * time.Second)
