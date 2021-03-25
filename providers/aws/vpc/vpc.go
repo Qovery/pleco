@@ -5,8 +5,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	log "github.com/sirupsen/logrus"
-	"strconv"
-	"strings"
 	"sync"
 	"time"
 )
@@ -22,6 +20,7 @@ type VpcInfo struct {
 	Status string
 	TTL int64
 	Tag string
+	CreationDate time.Time
 }
 
 func GetVpcsIdsByClusterNameTag (ec2Session ec2.EC2, clusterName string) []*string {
@@ -77,9 +76,12 @@ func listTaggedVPC(ec2Session ec2.EC2, tagName string) ([]VpcInfo, error) {
 	var VPCs = getVPCs(ec2Session, tagName)
 
 	for _, vpc := range VPCs {
+		creationDate, ttl := utils.GetTimeInfos(vpc.Tags)
 		taggedVpc := VpcInfo{
 			VpcId:      vpc.VpcId,
 			Status:     *vpc.State,
+			CreationDate: creationDate,
+			TTL: ttl,
 		}
 
 		if *vpc.State != "available" {
@@ -90,19 +92,9 @@ func listTaggedVPC(ec2Session ec2.EC2, tagName string) ([]VpcInfo, error) {
 		}
 
 		for _, tag := range vpc.Tags {
-			if strings.EqualFold(*tag.Key, "ttl") {
-				ttl, err := strconv.Atoi(*tag.Value)
-				if err != nil {
-					log.Errorf("Error while trying to convert tag value (%s) to integer on VPC %s in %v",
-						*tag.Value, *vpc.VpcId, ec2Session.Config.Region)
-				} else {
-					taggedVpc.TTL = int64(ttl)
-				}
-			}
-
 			if *tag.Key == tagName {
-				if *tag.Key == "" {
-					log.Warnf("Tag %s was empty and it wasn't expected, skipping", *tag.Key)
+				if *tag.Value == "" {
+					log.Warnf("Tag %s was empty and it wasn't expected, skipping", *tag.Value)
 					continue
 				}
 
@@ -111,8 +103,12 @@ func listTaggedVPC(ec2Session ec2.EC2, tagName string) ([]VpcInfo, error) {
 
 			getCompleteVpc(ec2Session, &taggedVpc)
 
+		}
+
+		if taggedVpc.CreationDate != time.Date(0001, 01, 01, 00, 00, 00, 0000, time.UTC) && utils.CheckIfExpired(taggedVpc.CreationDate, taggedVpc.TTL){
 			taggedVPCs = append(taggedVPCs, taggedVpc)
 		}
+
 	}
 
 	return taggedVPCs, nil

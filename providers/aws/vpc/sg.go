@@ -76,7 +76,7 @@ func SetSecurityGroupsIdsByVpcId (ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *s
 
 func DeleteSecurityGroupsByIds (ec2Session ec2.EC2, securityGroups []SecurityGroup) {
 	for _, securityGroup := range securityGroups {
-		if utils.CheckIfExpired(securityGroup.CreationDate, securityGroup.ttl){
+		if utils.CheckIfExpired(securityGroup.CreationDate, securityGroup.ttl) {
 			deleteIpPermissions(ec2Session, securityGroup.Id)
 
 			_, err := ec2Session.DeleteSecurityGroup(
@@ -89,7 +89,6 @@ func DeleteSecurityGroupsByIds (ec2Session ec2.EC2, securityGroups []SecurityGro
 				log.Error(err)
 			}
 		}
-
 	}
 }
 
@@ -117,6 +116,7 @@ func deleteIpPermissions (ec2Session ec2.EC2, securityGroupId string) {
 	if egressErr != nil {
 		log.Warn("Egress Perms : " + egressErr.Error())
 	}
+
 }
 
 func AddCreationDateTagToSG (ec2Session ec2.EC2, vpcsId []*string, creationDate time.Time, ttl int64) error {

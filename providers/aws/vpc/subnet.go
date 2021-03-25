@@ -73,7 +73,7 @@ func SetSubnetsIdsByVpcId (ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.Wai
 
 func DeleteSubnetsByIds (ec2Session ec2.EC2, subnets []Subnet) {
 	for _, subnet := range subnets {
-		if utils.CheckIfExpired(subnet.CreationDate, subnet.ttl){
+		if utils.CheckIfExpired(subnet.CreationDate, subnet.ttl) {
 			_, err := ec2Session.DeleteSubnet(
 				&ec2.DeleteSubnetInput{
 					SubnetId: aws.String(subnet.Id),
@@ -84,7 +84,6 @@ func DeleteSubnetsByIds (ec2Session ec2.EC2, subnets []Subnet) {
 				log.Error(err)
 			}
 		}
-
 	}
 }
 

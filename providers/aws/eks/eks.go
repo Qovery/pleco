@@ -109,7 +109,7 @@ func listTaggedEKSClusters(svc eks.EKS, tagName string) ([]eksCluster, error) {
 				ClusterCreateTime: *clusterInfo.Cluster.CreatedAt,
 				ClusterNodeGroupsName: nodeGroups.Nodegroups,
 				ClusterName:       clusterName,
-				ClusterId:			clusterInfo.Cluster.Identity.String(),
+				ClusterId:			utils.AwsStringChecker(clusterInfo.Cluster.Identity),
 				Status:            *clusterInfo.Cluster.Status,
 				TTL:               int64(ttl),
 			})

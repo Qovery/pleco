@@ -10,7 +10,7 @@ import (
 
 
 func GetTimeInfos(tags []*ec2.Tag) (time.Time, int64) {
-	var creationDate = time.Now()
+	var creationDate = time.Time{}
 	var ttl int64
 
 	for i := range tags {
@@ -68,4 +68,13 @@ func ElemToDeleteFormattedInfos(elemName string, arraySize int, region string) (
 
 
 	return count, start
+}
+
+
+func AwsStringChecker(elem interface{ String() string }) string {
+	if elem != nil {
+		return elem.String()
+	} else {
+		return ""
+	}
 }
