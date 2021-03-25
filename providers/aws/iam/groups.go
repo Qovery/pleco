@@ -21,12 +21,12 @@ func getGroups(iamSession *iam.IAM) []*iam.Group {
 	return result.Groups
 }
 
-func DeleteGroups(iamSession *iam.IAM, dryRun bool) error{
+func DeleteGroups(iamSession *iam.IAM, dryRun bool) {
 	groups := getGroups(iamSession)
 	log.Info("There is " + strconv.FormatInt(int64(len(groups)), 10) + " expired roles to delete.")
 
 	if dryRun {
-		return nil
+		return
 	}
 
 	for _, group := range groups {
@@ -36,10 +36,9 @@ func DeleteGroups(iamSession *iam.IAM, dryRun bool) error{
 				})
 
 		if err != nil {
-			return err
+			log.Errorf("Can't delete group %s : %s", *group.GroupName, err)
 		}
 	}
 
-	return nil
 }
 

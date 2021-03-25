@@ -70,7 +70,46 @@ func getUserRoles(iamSession *iam.IAM, roleName string) []*iam.Tag {
 	return tags.Tags
 }
 
-func DeleteExpiredUsers(iamSession *iam.IAM, tagName string, dryRun bool) error {
+func getUserAccessKeysIds(iamSession *iam.IAM, userName string) []*string {
+	result, err := iamSession.ListAccessKeys(
+		&iam.ListAccessKeysInput{
+			UserName: aws.String(userName),
+		})
+
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+
+	var accessKeysIds []*string
+	for _, accessKey := range result.AccessKeyMetadata {
+		accessKeysIds = append(accessKeysIds, accessKey.AccessKeyId)
+	}
+
+	return accessKeysIds
+}
+
+func deleteUserAccessKey(iamSession *iam.IAM, userName string, accessKeyId string) {
+	_, err := iamSession.DeleteAccessKey(
+		&iam.DeleteAccessKeyInput{
+			UserName: aws.String(userName),
+			AccessKeyId: aws.String(accessKeyId),
+		})
+
+	if err != nil {
+		log.Errorf("Can't delete access key %s : %s", accessKeyId, err.Error())
+	}
+}
+
+func deleteExpiredUserAccessKeys(iamSession *iam.IAM, userName string) {
+	accessKeysIds := getUserAccessKeysIds(iamSession, userName)
+
+	for _, accessKeyId := range accessKeysIds {
+		deleteUserAccessKey(iamSession, userName, *accessKeyId)
+	}
+}
+
+func DeleteExpiredUsers(iamSession *iam.IAM, tagName string, dryRun bool) {
 	users := getUsers(iamSession, tagName)
 	var expiredUsers []User
 
@@ -83,18 +122,21 @@ func DeleteExpiredUsers(iamSession *iam.IAM, tagName string, dryRun bool) error 
 	log.Info("There is " + strconv.FormatInt(int64(len(expiredUsers)), 10) + " expired user(s) to delete.")
 
 	if dryRun {
-		return nil
+		return
 	}
 
+	log.Info("Starting expired users deletion.")
+
 	for _, user := range expiredUsers {
-		_, err := iamSession.DeleteUser(
+		HandleUserPolicies(iamSession, user.UserName)
+		deleteExpiredUserAccessKeys(iamSession, user.UserName)
+
+		_, userErr := iamSession.DeleteUser(
 			&iam.DeleteUserInput{
 				UserName: aws.String(user.UserName),
 			})
-		if err != nil {
-			return err
+		if userErr != nil {
+			log.Errorf("Can't delete user %s : %s", user.UserName, userErr.Error())
 		}
 	}
-
-	return nil
 }
