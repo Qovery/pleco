@@ -23,7 +23,6 @@ func listTaggedDocumentDBClusters(svc rds.RDS, tagName string) ([]documentDBClus
 	var taggedClusters []documentDBCluster
 	var instances []string
 
-	log.Debugf("Listing all DocumentDB clusters")
 	// unfortunately AWS doesn't support tag filtering for RDS
 	result, err := svc.DescribeDBClusters(nil)
 	if err != nil {
@@ -31,7 +30,6 @@ func listTaggedDocumentDBClusters(svc rds.RDS, tagName string) ([]documentDBClus
 	}
 
 	if len(result.DBClusters) == 0 {
-		log.Debug("No DocumentDB clusters were found")
 		return nil, nil
 	}
 
@@ -64,7 +62,6 @@ func listTaggedDocumentDBClusters(svc rds.RDS, tagName string) ([]documentDBClus
 			}
 		}
 	}
-	log.Debugf("Found %d DocumentDB cluster(s) in ready status with ttl tag", len(taggedClusters))
 
 	return taggedClusters, nil
 }
@@ -90,7 +87,11 @@ func deleteDocumentDBCluster(svc rds.RDS, cluster documentDBCluster, dryRun bool
 			continue
 		}
 
-		err = DeleteRDSDatabase(svc, rdsInstanceInfo, dryRun)
+		if dryRun {
+			continue
+		}
+
+		err = DeleteRDSDatabase(svc, rdsInstanceInfo)
 		if err != nil {
 			log.Errorf("Deletion error on DocumentDB instance %s/%s/%s: %s",
 				instance, cluster.DBClusterIdentifier, *svc.Config.Region, err)
@@ -121,27 +122,40 @@ func deleteDocumentDBCluster(svc rds.RDS, cluster documentDBCluster, dryRun bool
 	return nil
 }
 
-func DeleteExpiredDocumentDBClusters(svc rds.RDS, tagName string, dryRun bool) error {
+func DeleteExpiredDocumentDBClusters(svc rds.RDS, tagName string, dryRun bool) {
 	clusters, err := listTaggedDocumentDBClusters(svc, tagName)
+	region := svc.Config.Region
 	if err != nil {
-		return fmt.Errorf("can't list DocumentDB databases: %s\n", err)
+		log.Errorf("can't list DocumentDB databases: %s\n", err)
+		return
 	}
 
+	var expiredClusters []documentDBCluster
 	for _, cluster := range clusters {
 		if utils.CheckIfExpired(cluster.ClusterCreateTime, cluster.TTL) {
-			err := deleteDocumentDBCluster(svc, cluster, dryRun)
-			if err != nil {
-				log.Errorf("Deletion DocumentDB cluster error %s/%s: %s",
-					cluster.DBClusterIdentifier, *svc.Config.Region, err)
-				continue
-			}
-		} else {
-			log.Debugf("DocumentDB cluster %s in %s, has not yet expired",
-				cluster.DBClusterIdentifier, *svc.Config.Region)
+			expiredClusters = append(expiredClusters, cluster)
 		}
 	}
 
-	return nil
+	count, start:= utils.ElemToDeleteFormattedInfos("expired DocumentDB database", len(expiredClusters), *region)
+
+	log.Debug(count)
+
+	if dryRun || len(expiredClusters) == 0 {
+		return
+	}
+
+	log.Debug(start)
+
+
+	for _, cluster := range expiredClusters {
+		deletionErr := deleteDocumentDBCluster(svc, cluster, dryRun)
+		if deletionErr != nil {
+			log.Errorf("Deletion DocumentDB cluster error %s/%s: %s",
+				cluster.DBClusterIdentifier, *svc.Config.Region, err)
+		}
+	}
+
 }
 
 // Todo: add subnet group delete support

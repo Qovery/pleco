@@ -1,6 +1,7 @@
 package eks
 
 import (
+	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ecr"
 	log "github.com/sirupsen/logrus"
@@ -34,9 +35,8 @@ func getRepositoryImages(ecrSession *ecr.ECR, repositoryName string) []*ecr.Imag
 }
 
 func DeleteEmptyRepositories(ecrSession *ecr.ECR, drynRun bool) {
-	log.Info("Starting ECR scan.")
 	repositories := getRepositories(ecrSession)
-
+	region := ecrSession.Config.Region
 	var emptyRepositoryNames []string
 	for _, repository := range repositories {
 		images := getRepositoryImages(ecrSession, *repository.RepositoryName)
@@ -45,18 +45,21 @@ func DeleteEmptyRepositories(ecrSession *ecr.ECR, drynRun bool) {
 		}
 	}
 
-	s := "repository"
+	s := fmt.Sprintf("There is no empty ECR repository to delete in region %s.", *region)
+	if len(emptyRepositoryNames) == 1 {
+		s = fmt.Sprintf("There is 1 empty ECR repository to delete in region %s.", *region)
+	}
 	if len(emptyRepositoryNames) > 1 {
-		s = "repositories"
+		s = fmt.Sprintf("There are %d empty ECR repositories to delete in region %s.", len(emptyRepositoryNames), *region)
 	}
 
-	log.Infof("There is %d empty %s to delete.", len(emptyRepositoryNames), s)
+	log.Debug(s)
 
-	if drynRun {
+	if drynRun || len(emptyRepositoryNames) == 0 {
 		return
 	}
 
-	log.Info("Starting ECR deletion.")
+	log.Debugf("Starting ECR repositories deletion for region %s.", *region)
 
 	for _, repositoryName := range emptyRepositoryNames {
 		_, err := ecrSession.DeleteRepository(
@@ -65,8 +68,8 @@ func DeleteEmptyRepositories(ecrSession *ecr.ECR, drynRun bool) {
 			})
 
 		if err != nil {
-			log.Error(err)
+			log.Errorf("Deletion ECR repository error %s/%s: %s",
+				repositoryName, *region, err)
 		}
 	}
-
 }

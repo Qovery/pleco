@@ -20,7 +20,6 @@ func listTaggedBuckets(s3Session s3.S3, tagName string) ([]s3Bucket, error) {
 	var taggedS3Buckets []s3Bucket
 	currentRegion := s3Session.Config.Region
 
-	log.Debugf("Listing all S3 buckets in %s", *s3Session.Config.Region)
 	input := &s3.ListBucketsInput{}
 
 	result, err := s3Session.ListBuckets(input)
@@ -29,7 +28,6 @@ func listTaggedBuckets(s3Session s3.S3, tagName string) ([]s3Bucket, error) {
 	}
 
 	if len(result.Buckets) == 0 {
-		log.Debug("No S3 were found")
 		return nil, nil
 	}
 
@@ -78,8 +76,6 @@ func listTaggedBuckets(s3Session s3.S3, tagName string) ([]s3Bucket, error) {
 		}
 
 	}
-
-	log.Debugf("Found %d S3 buckets in %s with %s tag", len(taggedS3Buckets), *s3Session.Config.Region, tagName)
 
 	return taggedS3Buckets, nil
 }
@@ -190,11 +186,7 @@ func deleteAllS3Objects(s3session s3.S3, bucket string) error {
 	return nil
 }
 
-func deleteS3Buckets(s3session s3.S3, bucket string, dryRun bool) error {
-	if dryRun {
-		return nil
-	}
-
+func deleteS3Buckets(s3session s3.S3, bucket string) error {
 	log.Infof("Deleting bucket %s in %s", bucket, *s3session.Config.Region)
 
 	// delete objects versions
@@ -223,25 +215,41 @@ func deleteS3Buckets(s3session s3.S3, bucket string, dryRun bool) error {
 	return nil
 }
 
-func DeleteExpiredBuckets(s3session s3.S3, tagName string, dryRun bool) error {
+func DeleteExpiredBuckets(s3session s3.S3, tagName string, dryRun bool) {
 	buckets, err := listTaggedBuckets(s3session, tagName)
+	region := s3session.Config.Region
 	if err != nil {
-		return fmt.Errorf("can't list S3 buckets: %s\n", err)
+		log.Errorf("can't list S3 buckets: %s\n", err)
+		return
 	}
-
+	var expiredBuckets []s3Bucket
 	for _, bucket := range buckets {
 		if utils.CheckIfExpired(bucket.CreateTime, bucket.TTL) {
-			err := deleteS3Buckets(s3session, bucket.Name, dryRun)
-			if err != nil {
-				log.Errorf("Deletion S3 Bucket %s/%s error: %s",
-					bucket.Name, *s3session.Config.Region, err)
-				continue
-			}
-		} else {
-			log.Debugf("S3 bucket %s in %s, has not yet expired",
-				bucket.Name, *s3session.Config.Region)
+			expiredBuckets = append(expiredBuckets, bucket)
 		}
 	}
 
-	return nil
+	s := "There is no expired S3 bucket to delete."
+	if len(expiredBuckets) == 1 {
+		s = "There is 1 expired S3 bucket to delete."
+	}
+	if len(expiredBuckets) > 1 {
+		s = fmt.Sprintf("There are %d expired S3 buckets to delete.", len(expiredBuckets))
+	}
+
+	log.Debug(s)
+
+	if dryRun || len(expiredBuckets) == 0 {
+		return
+	}
+
+	log.Debug("Starting expired S3 buckets deletion.")
+
+	for _, bucket := range buckets {
+		deletionErr := deleteS3Buckets(s3session, bucket.Name)
+		if deletionErr != nil {
+			log.Errorf("Deletion S3 Bucket %s/%s error: %s",
+					bucket.Name, *region, err)
+		}
+	}
 }

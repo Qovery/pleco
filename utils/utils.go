@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"strconv"
@@ -52,4 +53,19 @@ func AddCreationDateTag (ec2Session ec2.EC2, idsToTag []*string, creationDate ti
 	}
 
 	return nil
+}
+
+func ElemToDeleteFormattedInfos(elemName string, arraySize int, region string) (string,string) {
+	count := fmt.Sprintf("There is no %s to delete in region %s.", elemName,region)
+	if arraySize == 1 {
+		count = fmt.Sprintf("There is no %s to delete in region %s.", elemName,region)
+	}
+	if arraySize > 1 {
+		count = fmt.Sprintf("There are %d %ss to delete in region %s.", arraySize, elemName,region)
+	}
+
+	start := fmt.Sprintf("Starting %s deletion for region %s.", elemName,region)
+
+
+	return count, start
 }

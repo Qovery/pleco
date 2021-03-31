@@ -53,9 +53,9 @@ func getCompleteKey(svc kms.KMS, keyId *string, tagName string) CompleteKey {
 	return completeKey
 }
 
-func deleteKey(svc kms.KMS,keyId *string) (*kms.ScheduleKeyDeletionOutput,error){
+func deleteKey(svc kms.KMS, keyId string) (*kms.ScheduleKeyDeletionOutput,error){
 	input := &kms.ScheduleKeyDeletionInput{
-		KeyId:               aws.String(*keyId),
+		KeyId:               aws.String(keyId),
 		PendingWindowInDays: aws.Int64(7),
 	}
 
@@ -109,10 +109,10 @@ func handleKMSError (error error) {
 	}
 }
 
-func deleteExpiredKeys(svc kms.KMS, tagName string, dryRun bool) error{
+func DeleteExpiredKeys(svc kms.KMS, tagName string, dryRun bool) {
 	keys := getKeys(svc)
-	var numberOfKeysToDelete int64
-
+	region := svc.Config.Region
+	var expiredKeys []CompleteKey
 	for _, key := range keys {
 		completeKey := getCompleteKey(svc, key.KeyId, tagName)
 
@@ -120,19 +120,26 @@ func deleteExpiredKeys(svc kms.KMS, tagName string, dryRun bool) error{
 			completeKey.TTL != 0 &&
 			utils.CheckIfExpired(completeKey.CreationDate,  completeKey.TTL) {
 			if completeKey.Tag == tagName || tagName == "ttl"{
-				if !dryRun {
-					_, err := deleteKey(svc, key.KeyId)
-					if err != nil {
-						return err
-					}
-				}
-
-				numberOfKeysToDelete += 1
+				expiredKeys = append(expiredKeys, completeKey)
 			}
 		}
 	}
 
-	log.Info("There is ", numberOfKeysToDelete, " expired keys to delete")
+	count, start := utils.ElemToDeleteFormattedInfos("expired KMS key", len(expiredKeys), *region)
 
-	return nil
+	log.Debug(count)
+
+	if dryRun || len(expiredKeys) == 0 {
+		return
+	}
+
+	log.Debug(start)
+
+	for _, key := range expiredKeys {
+		_, deletionErr := deleteKey(svc, key.KeyId)
+		if deletionErr != nil {
+			log.Errorf("Deletion KMS key error %s/%s: %s",
+				key.KeyId, *region, deletionErr)
+		}
+	}
 }

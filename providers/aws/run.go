@@ -7,6 +7,7 @@ import (
 	iam2 "github.com/Qovery/pleco/providers/aws/iam"
 	"github.com/Qovery/pleco/providers/aws/logs"
 	"github.com/Qovery/pleco/providers/aws/vpc"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecr"
@@ -25,13 +26,29 @@ import (
 
 
 func RunPlecoAWS(cmd *cobra.Command, regions []string, interval int64, dryRun bool, wg *sync.WaitGroup) {
+	tagName, _ := cmd.Flags().GetString("tag-name")
+
 	for _, region := range regions {
+		// AWS session
+		currentSession, err := CreateSession(region)
+		if err != nil {
+			logrus.Errorf("AWS session error: %s", err)
+		}
+
 		wg.Add(1)
-		go runPlecoInRegion(cmd, region, interval, dryRun, wg)
+		go runPlecoInRegion(cmd, region, interval, dryRun, wg, currentSession, tagName)
 	}
+
+	// AWS session
+	currentSession, err := CreateSession(regions[0])
+	if err != nil {
+		logrus.Errorf("AWS session error: %s", err)
+	}
+	wg.Add(1)
+	go runPlecoInGlobal(cmd, interval, dryRun, wg, currentSession, tagName)
 }
 
-func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun bool, wg *sync.WaitGroup) {
+func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun bool, wg *sync.WaitGroup, currentSession *session.Session, tagName string) {
 	defer wg.Done()
 
 	var currentRdsSession *rds.RDS
@@ -39,22 +56,11 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 	var currentEKSSession *eks.EKS
 	var currentElbSession *elbv2.ELBV2
 	var currentEC2Session *ec2.EC2
-	var currentS3Session *s3.S3
 	var currentCloudwatchLogsSession *cloudwatchlogs.CloudWatchLogs
 	var currentKMSSession *kms.KMS
-	var currentIAMSession *iam.IAM
 	var currentECRSession *ecr.ECR
 	elbEnabled := false
 	ebsEnabled := false
-	vpcEnabled := false
-
-	tagName, _ := cmd.Flags().GetString("tag-name")
-
-	// AWS session
-	currentSession, err := CreateSession(region)
-	if err != nil {
-		logrus.Errorf("AWS session error: %s", err)
-	}
 
 	// RDS + DocumentDB connection
 	rdsEnabled, _ := cmd.Flags().GetBool("enable-rds")
@@ -95,15 +101,9 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 	}
 
 	// VPC
-	vpcEnabled, _ = cmd.Flags().GetBool("enable-vpc")
+	vpcEnabled, _ := cmd.Flags().GetBool("enable-vpc")
 	if vpcEnabled {
 		currentEC2Session = ec2.New(currentSession)
-	}
-
-	// S3
-	s3Enabled, _ := cmd.Flags().GetBool("enable-s3")
-	if s3Enabled {
-		currentS3Session = s3.New(currentSession)
 	}
 
 	// Cloudwatch
@@ -116,12 +116,6 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 	kmsEnabled, _ := cmd.Flags().GetBool("enable-kms")
 	if kmsEnabled {
 		currentKMSSession = kms.New(currentSession)
-	}
-
-	// IAM
-	iamEnabled, _ := cmd.Flags().GetBool("enable-iam")
-	if iamEnabled {
-		currentIAMSession = iam.New(currentSession)
 	}
 
 	// SSH
@@ -139,103 +133,106 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 	for {
 		// check RDS
 		if rdsEnabled {
-			err = database.DeleteExpiredRDSDatabases(*currentRdsSession, tagName, dryRun)
-			if err != nil {
-				logrus.Error(err)
-			}
+			logrus.Debugf("Listing all RDS databases in region %s.", *currentRdsSession.Config.Region)
+			database.DeleteExpiredRDSDatabases(*currentRdsSession, tagName, dryRun)
 		}
 
 		// check DocumentDB
 		if documentdbEnabled {
-			err = database.DeleteExpiredDocumentDBClusters(*currentRdsSession, tagName, dryRun)
-			if err != nil {
-				logrus.Error(err)
-			}
+			logrus.Debugf("Listing all DocumentDB databases in region %s.", *currentRdsSession.Config.Region)
+			database.DeleteExpiredDocumentDBClusters(*currentRdsSession, tagName, dryRun)
 		}
 
 		// check Elasticache
 		if elasticacheEnabled {
-			err = database.DeleteExpiredElasticacheDatabases(*currentElasticacheSession, tagName, dryRun)
-			if err != nil {
-				logrus.Error(err)
-			}
+			logrus.Debugf("Listing all Elasticache databases in region %s.", *currentElasticacheSession.Config.Region)
+			database.DeleteExpiredElasticacheDatabases(*currentElasticacheSession, tagName, dryRun)
 		}
 
 		// check EKS
 		if eksEnabled {
-			err = eks2.DeleteExpiredEKSClusters(*currentEKSSession, *currentEC2Session, *currentElbSession, *currentCloudwatchLogsSession, tagName, dryRun)
-			if err != nil {
-				logrus.Error(err)
-			}
+			logrus.Debugf("Listing all EKS clusters in region %s.", *currentEKSSession.Config.Region)
+			eks2.DeleteExpiredEKSClusters(*currentEKSSession, *currentEC2Session, *currentElbSession, *currentCloudwatchLogsSession, tagName, dryRun)
 		}
 
 		// check load balancers
 		if elbEnabled {
-			err = ec22.DeleteExpiredLoadBalancers(*currentElbSession, tagName, dryRun)
-			if err != nil {
-				logrus.Error(err)
-			}
+			logrus.Debugf("Listing all ELB load balancers in region %s.", *currentElbSession.Config.Region)
+			ec22.DeleteExpiredLoadBalancers(*currentElbSession, tagName, dryRun)
 		}
 
 		// check EBS volumes
 		if ebsEnabled {
-			err = ec22.DeleteExpiredVolumes(*currentEC2Session, tagName, dryRun)
-			if err != nil {
-				logrus.Error(err)
-			}
+			logrus.Debugf("Listing all EBS volumes in region %s.", *currentEC2Session.Config.Region)
+			ec22.DeleteExpiredVolumes(*currentEC2Session, tagName, dryRun)
 		}
 
 		// check VPC
 		if vpcEnabled {
-			err = vpc.DeleteExpiredVPC(*currentEC2Session, tagName, dryRun)
-			if err != nil {
-				logrus.Error(err)
-			}
-		}
-
-		// check s3
-		if s3Enabled {
-			err = DeleteExpiredBuckets(*currentS3Session, tagName, dryRun)
-			if err != nil {
-				logrus.Error(err)
-			}
+			logrus.Debugf("Listing all VPC resources in region %s.", *currentEC2Session.Config.Region)
+			vpc.DeleteExpiredVPC(*currentEC2Session, tagName, dryRun)
 		}
 
 		//check Cloudwatch
 		if cloudwatchLogsEnabled {
-			err = logs.DeleteExpiredLogs(*currentCloudwatchLogsSession, tagName, dryRun)
-			if err != nil {
-				logrus.Error(err)
-			}
+			logrus.Debugf("Listing all Cloudwatch logs in region %s.", *currentCloudwatchLogsSession.Config.Region)
+			logs.DeleteExpiredLogs(*currentCloudwatchLogsSession, tagName, dryRun)
 		}
 
 		// check KMS
 		if kmsEnabled {
-			err = deleteExpiredKeys(*currentKMSSession, tagName, dryRun)
-			if err != nil {
-				logrus.Error(err)
-			}
-		}
-
-		// check IAM
-		if iamEnabled {
-			iam2.DeleteExpiredIAM(currentIAMSession, tagName, dryRun)
+			logrus.Debugf("Listing all KMS keys in region %s.", *currentKMSSession.Config.Region)
+			DeleteExpiredKeys(*currentKMSSession, tagName, dryRun)
 		}
 
 		// check SSH
 		if sshEnabled {
-			err = ec22.DeleteExpiredKeys(currentEC2Session, tagName, dryRun)
-			if err != nil {
-				logrus.Error(err)
-			}
+			logrus.Debugf("Listing all EC2 key pairs in region %s.", *currentEC2Session.Config.Region)
+			ec22.DeleteExpiredKeys(currentEC2Session, tagName, dryRun)
 		}
 
 		// check ECR
 		if ecrEnabled {
+			logrus.Debugf("Listing all ECR repositoriesin region %s.", *currentECRSession.Config.Region)
 			eks2.DeleteEmptyRepositories(currentECRSession, dryRun)
 		}
 
 		time.Sleep(time.Duration(interval) * time.Second)
 	}
 
+}
+
+func runPlecoInGlobal(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGroup, currentSession *session.Session, tagName string) {
+	defer wg.Done()
+
+	var currentS3Session *s3.S3
+	var currentIAMSession *iam.IAM
+
+	// S3
+	s3Enabled, _ := cmd.Flags().GetBool("enable-s3")
+	if s3Enabled {
+		currentS3Session = s3.New(currentSession)
+	}
+
+	// IAM
+	iamEnabled, _ := cmd.Flags().GetBool("enable-iam")
+	if iamEnabled {
+		currentIAMSession = iam.New(currentSession)
+	}
+
+	for {
+		// check s3
+		if s3Enabled {
+			logrus.Debugf("Listing all S3 buckets in region %s.", *currentS3Session.Config.Region)
+			DeleteExpiredBuckets(*currentS3Session, tagName, dryRun)
+		}
+
+		// check IAM
+		if iamEnabled {
+			logrus.Debug("Listing all IAM access.")
+			iam2.DeleteExpiredIAM(currentIAMSession, tagName, dryRun)
+		}
+
+		time.Sleep(time.Duration(interval) * time.Second)
+	}
 }

@@ -101,29 +101,37 @@ func handleCloudwatchLogsError(err error){
 	}
 }
 
-func DeleteExpiredLogs(svc cloudwatchlogs.CloudWatchLogs, tagName string, dryRun bool) error {
+func DeleteExpiredLogs(svc cloudwatchlogs.CloudWatchLogs, tagName string, dryRun bool) {
 	logs := getCloudwatchLogs(svc)
-	var numberOfLogsToDelete int64
-
+	region := svc.Config.Region
+	var expiredLogs []CompleteLogGroup
 	for _, log := range logs {
 		completeLogGroup := getCompleteLogGroup(svc, *log, tagName)
-
 		if completeLogGroup.ttl != 0 && utils.CheckIfExpired(completeLogGroup.creationDate, completeLogGroup.ttl) {
-			if !dryRun {
-				_, err := deleteCloudwatchLog(svc, completeLogGroup.logGroupName)
-				if err != nil {
-					return err
-				}
-			}
-
-			numberOfLogsToDelete++
+			expiredLogs = append(expiredLogs, completeLogGroup)
 		}
 	}
 
-	log.Info("There is ", numberOfLogsToDelete, " expired log(s) to delete.")
+	count, start:= utils.ElemToDeleteFormattedInfos("expired Cloudwatch log", len(expiredLogs), *region)
 
-	return nil
+	log.Debug(count)
+
+	if dryRun || len(expiredLogs) == 0 {
+		return
+	}
+
+	log.Debug(start)
+
+	for _, completeLog := range expiredLogs {
+		_, deletionErr := deleteCloudwatchLog(svc, completeLog.logGroupName)
+		if deletionErr != nil {
+			log.Errorf("Deletion Cloudwatch error %s/%s: %s",
+				completeLog.logGroupName, *svc.Config.Region, deletionErr)
+		}
+	}
+
 }
+
 func addTtlToLogGroup(svc cloudwatchlogs.CloudWatchLogs, logGroupName string) (string,error) {
 	input := &cloudwatchlogs.TagLogGroupInput{
 		LogGroupName: aws.String(logGroupName),

@@ -1,6 +1,7 @@
 package iam
 
 import (
+	"fmt"
 	"github.com/Qovery/pleco/utils"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
@@ -82,13 +83,21 @@ func DeleteExpiredRoles(iamSession *iam.IAM, tagName string, dryRun bool) {
 		}
 	}
 
-	log.Info("There is " + strconv.FormatInt(int64(len(expiredRoles)), 10) + " expired role(s) to delete.")
+	s := "There is no expired IAM role to delete."
+	if len(expiredRoles) == 1 {
+		s = "There is 1 expired IAM role to delete."
+	}
+	if len(expiredRoles) > 1 {
+		s = fmt.Sprintf("There are %d expired IAM roles to delete.", len(expiredRoles))
+	}
 
-	if dryRun {
+	log.Debug(s)
+
+	if dryRun || len(expiredRoles) == 0 {
 		return
 	}
 
-	log.Info("Starting expired roles deletion.")
+	log.Debug("Starting expired IAM roles deletion.")
 
 
 	for _, role := range expiredRoles {

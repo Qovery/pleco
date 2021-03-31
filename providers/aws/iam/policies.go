@@ -1,10 +1,10 @@
 package iam
 
 import (
+	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
 	log "github.com/sirupsen/logrus"
-	"strconv"
 )
 
 type Policy struct {
@@ -36,13 +36,21 @@ func DeleteDetachedPolicies(iamSession *iam.IAM, dryRun bool) {
 		}
 	}
 
-	log.Info("There is " + strconv.FormatInt(int64(len(detachedPolicies)),10) + " detached policies to delete.")
+	s := "There is no detached IAM policy to delete."
+	if len(detachedPolicies) == 1 {
+		s = "There is 1 detached IAM policy to delete."
+	}
+	if len(detachedPolicies) > 1 {
+		s = fmt.Sprintf("There are %d detached IAM policies to delete.", len(detachedPolicies))
+	}
 
-	if dryRun {
+	log.Debug(s)
+
+	if dryRun || len(detachedPolicies) == 0 {
 		return
 	}
 
-	log.Info("Starting detached policies deletion.")
+	log.Debug("Starting detached policies deletion.")
 
 	for _, expiredPolicy := range detachedPolicies {
 		_, err := iamSession.DeletePolicy(
