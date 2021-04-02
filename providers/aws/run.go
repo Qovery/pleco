@@ -51,6 +51,9 @@ func RunPlecoAWS(cmd *cobra.Command, regions []string, interval int64, dryRun bo
 func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun bool, wg *sync.WaitGroup, currentSession *session.Session, tagName string) {
 	defer wg.Done()
 
+	logrus.Infof("Starting to check expired resources in region %s." , *currentSession.Config.Region)
+
+
 	var currentRdsSession *rds.RDS
 	var currentElasticacheSession *elasticache.ElastiCache
 	var currentEKSSession *eks.EKS
@@ -119,8 +122,8 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 	}
 
 	// SSH
-	sshEnabled, _ := cmd.Flags().GetBool("enable-ssh")
-	if sshEnabled {
+	sshKeysEnabled, _ := cmd.Flags().GetBool("enable-ssh-keys")
+	if sshKeysEnabled {
 		currentEC2Session = ec2.New(currentSession)
 	}
 
@@ -186,14 +189,14 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 		}
 
 		// check SSH
-		if sshEnabled {
+		if sshKeysEnabled {
 			logrus.Debugf("Listing all EC2 key pairs in region %s.", *currentEC2Session.Config.Region)
 			ec22.DeleteExpiredKeys(currentEC2Session, tagName, dryRun)
 		}
 
 		// check ECR
 		if ecrEnabled {
-			logrus.Debugf("Listing all ECR repositoriesin region %s.", *currentECRSession.Config.Region)
+			logrus.Debugf("Listing all ECR repositories in region %s.", *currentECRSession.Config.Region)
 			eks2.DeleteEmptyRepositories(currentECRSession, dryRun)
 		}
 
@@ -204,6 +207,8 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 
 func runPlecoInGlobal(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGroup, currentSession *session.Session, tagName string) {
 	defer wg.Done()
+
+	logrus.Info("Starting to check global expired resources.")
 
 	var currentS3Session *s3.S3
 	var currentIAMSession *iam.IAM

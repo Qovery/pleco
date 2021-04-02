@@ -160,7 +160,5 @@ func TagLogsForDeletion(svc cloudwatchlogs.CloudWatchLogs, tagName string, clust
 		}
 	}
 
-	log.Info("There is ", numberOfLogsToTag, " log(s) to tag with ttl.")
-
 	return nil
 }

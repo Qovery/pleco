@@ -74,7 +74,7 @@ func SetInternetGatewaysIdsByVpcId (ec2Session ec2.EC2, vpc *VpcInfo, waitGroup 
 
 func DeleteInternetGatewaysByIds (ec2Session ec2.EC2, internetGateways []InternetGateway) {
 	for _, internetGateway := range internetGateways {
-		if utils.CheckIfExpired(internetGateway.CreationDate, internetGateway.ttl){
+		if utils.CheckIfExpired(internetGateway.CreationDate, internetGateway.ttl) {
 			_, err := ec2Session.DeleteInternetGateway(
 				&ec2.DeleteInternetGatewayInput{
 					InternetGatewayId: aws.String(internetGateway.Id),
@@ -85,7 +85,6 @@ func DeleteInternetGatewaysByIds (ec2Session ec2.EC2, internetGateways []Interne
 				log.Error(err)
 			}
 		}
-
 	}
 }
 

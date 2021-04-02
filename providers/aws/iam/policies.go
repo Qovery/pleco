@@ -5,6 +5,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
 	log "github.com/sirupsen/logrus"
+	"strings"
 )
 
 type Policy struct {
@@ -26,13 +27,47 @@ func getPolicies(iamSession *iam.IAM) []*iam.Policy {
 	return result.Policies
 }
 
+func getPolicyVersions(iamSession *iam.IAM, policy iam.Policy) []*iam.PolicyVersion {
+	result, err := iamSession.ListPolicyVersions(
+		&iam.ListPolicyVersionsInput{
+			MaxItems: aws.Int64(1000),
+			PolicyArn: aws.String(*policy.Arn),
+		})
+
+	if err != nil {
+		log.Errorf("Can't get versions of policy %s : %s", *policy.PolicyName, err.Error())
+	}
+
+	return result.Versions
+
+}
+
+func deletePolicyVersions(iamSession *iam.IAM, policy iam.Policy) {
+	versions := getPolicyVersions(iamSession, policy)
+
+	for _, version := range versions {
+		if !*version.IsDefaultVersion {
+			_, err := iamSession.DeletePolicyVersion(
+				&iam.DeletePolicyVersionInput{
+					PolicyArn: aws.String(*policy.Arn),
+					VersionId: aws.String(*version.VersionId),
+				})
+
+			if err != nil {
+				log.Errorf("Can't delete versions of policy %s : %s", *policy.PolicyName, err.Error())
+			}
+		}
+	}
+}
+
 func DeleteDetachedPolicies(iamSession *iam.IAM, dryRun bool) {
 	policies := getPolicies(iamSession)
-	var detachedPolicies []*iam.Policy
+	var detachedPolicies []iam.Policy
 
 	for _, policy := range policies {
-		if *policy.AttachmentCount == 0 {
-			detachedPolicies = append(detachedPolicies, policy)
+		arn := *policy.Arn
+		if *policy.AttachmentCount == 0 && !strings.Contains(arn, ":aws:policy"){
+			detachedPolicies = append(detachedPolicies, *policy)
 		}
 	}
 
@@ -53,6 +88,8 @@ func DeleteDetachedPolicies(iamSession *iam.IAM, dryRun bool) {
 	log.Debug("Starting detached policies deletion.")
 
 	for _, expiredPolicy := range detachedPolicies {
+		deletePolicyVersions(iamSession, expiredPolicy)
+
 		_, err := iamSession.DeletePolicy(
 			&iam.DeletePolicyInput{
 				PolicyArn: aws.String(*expiredPolicy.Arn),
@@ -104,7 +141,6 @@ func getUserPolicies(iamSession *iam.IAM, userName string) []Policy {
 		userPolicies = append(userPolicies, userPolicy)
 	}
 
-
 	return userPolicies
 }
 
@@ -118,24 +154,24 @@ func detachUserPolicies(iamSession *iam.IAM, userName string, policies []Policy)
 				})
 
 			if err != nil {
-				continue
+				log.Errorf("Can not detach policiy %s for user %s : %s", policy.Name, userName, err.Error())
 			}
 		}
-
-
 	}
 }
 
 func deleteUserPolicies(iamSession *iam.IAM, userName string, policies []Policy) {
 	for _, policy := range policies {
-		_, err := iamSession.DeleteUserPolicy(
-			&iam.DeleteUserPolicyInput{
-				UserName: aws.String(userName),
-				PolicyName: aws.String(policy.Name),
-			})
+		if !strings.Contains(policy.Arn, ":aws:policy") {
+			_, err := iamSession.DeleteUserPolicy(
+				&iam.DeleteUserPolicyInput{
+					UserName:   aws.String(userName),
+					PolicyName: aws.String(policy.Name),
+				})
 
-		if err != nil {
-			continue
+			if err != nil {
+				log.Errorf("Can not delete policiy %s for user %s : %s", policy.Name, userName, err.Error())
+			}
 		}
 	}
 }
@@ -199,7 +235,7 @@ func detachRolePolicies(iamSession *iam.IAM, roleName string, policies []Policy)
 					 PolicyArn: aws.String(policy.Arn),
 				 })
 			if err != nil {
-				continue
+				log.Errorf("Can not delete policiy %s for role %s", policy.Name, roleName)
 			}
 		 }
 	}
@@ -207,13 +243,15 @@ func detachRolePolicies(iamSession *iam.IAM, roleName string, policies []Policy)
 
 func deleteRolePolicies(iamSession *iam.IAM, roleName string, policies []Policy) {
 	for _, policy := range policies {
-		_, err := iamSession.DeleteRolePolicy(
-			&iam.DeleteRolePolicyInput{
-				RoleName: aws.String(roleName),
-				PolicyName: aws.String(policy.Name),
-			})
-		if err != nil {
-			continue
+		if !strings.Contains(policy.Arn, ":aws:policy") {
+			_, err := iamSession.DeleteRolePolicy(
+				&iam.DeleteRolePolicyInput{
+					RoleName: aws.String(roleName),
+					PolicyName: aws.String(policy.Name),
+				})
+			if err != nil {
+				log.Errorf("Can not delete policiy %s for role %s", policy.Name, roleName)
+			}
 		}
 	}
 }
