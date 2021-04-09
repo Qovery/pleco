@@ -261,7 +261,7 @@ func DeleteExpiredEKSClusters(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.
 		deletionErr := deleteEKSCluster(svc, ec2Session, elbSession,cloudwatchLogsSession, cluster, tagName, dryRun)
 		if deletionErr != nil {
 			log.Errorf("Deletion EKS cluster error %s/%s: %s",
-					cluster.ClusterName, *region, err)
+					cluster.ClusterName, *region, deletionErr)
 		}
 
 	}

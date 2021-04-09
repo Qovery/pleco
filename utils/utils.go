@@ -33,24 +33,27 @@ func CheckIfExpired(creationTime time.Time, ttl int64) bool {
 }
 
 func AddCreationDateTag (ec2Session ec2.EC2, idsToTag []*string, creationDate time.Time, ttl int64) error {
-	_, err := ec2Session.CreateTags(
-		&ec2.CreateTagsInput{
-			Resources: 	idsToTag,
-			Tags: []*ec2.Tag{
-				{
-					Key: aws.String("creationDate"),
-					Value: aws.String(creationDate.String()),
+	if idsToTag != nil {
+		_, err := ec2Session.CreateTags(
+			&ec2.CreateTagsInput{
+				Resources: 	idsToTag,
+				Tags: []*ec2.Tag{
+					{
+						Key: aws.String("creationDate"),
+						Value: aws.String(creationDate.String()),
+					},
+					{
+						Key: aws.String("ttl"),
+						Value: aws.String(strconv.FormatInt(ttl,10)),
+					},
 				},
-				{
-					Key: aws.String("ttl"),
-					Value: aws.String(strconv.FormatInt(ttl,10)),
-				},
-			},
-		})
+			})
 
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
 	}
+
 
 	return nil
 }
