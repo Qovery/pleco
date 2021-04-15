@@ -50,7 +50,7 @@ func AddCreationDateTag (ec2Session ec2.EC2, idsToTag []*string, creationDate ti
 			})
 
 		if err != nil {
-			return err
+			return fmt.Errorf("Can't add tags to %p in region %s: %s", idsToTag, *ec2Session.Config.Region, err.Error())
 		}
 	}
 
