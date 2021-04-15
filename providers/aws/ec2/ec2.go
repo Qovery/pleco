@@ -1,6 +1,7 @@
 package ec2
 
 import (
+	"fmt"
 	"github.com/Qovery/pleco/utils"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -32,10 +33,11 @@ func TagVolumesFromEksClusterForDeletion(ec2Session ec2.EC2, tagKey string, clus
 
 	result, err := ec2Session.DescribeVolumes(input)
 	if err != nil {
-		return err
+		return fmt.Errorf("Can't get volumes for cluster %s in region %s: %s", clusterName, *ec2Session.Config.Region, err.Error())
 	}
 
 	if len(result.Volumes) == 0 {
+		log.Debugf("No volume to tag for cluster %s", clusterName)
 		return nil
 	}
 
@@ -54,7 +56,7 @@ func TagVolumesFromEksClusterForDeletion(ec2Session ec2.EC2, tagKey string, clus
 			},
 		})
 	if err != nil {
-		return err
+		return fmt.Errorf("Can't tag volumes for cluster %s in region %s: %s", clusterName, *ec2Session.Config.Region, err.Error())
 	}
 
 	return nil

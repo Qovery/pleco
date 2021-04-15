@@ -1,6 +1,7 @@
 package vpc
 
 import (
+	"fmt"
 	"github.com/Qovery/pleco/utils"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -189,27 +190,27 @@ func getCompleteVpc(ec2Session ec2.EC2, vpc *VpcInfo){
 	waitGroup.Wait()
 }
 
-func TagVPCsForDeletion(ec2Session ec2.EC2, tagName string, clusterId string, clusterCreationTime time.Time, clusterTtl int64) error {
+func TagVPCsForDeletion(ec2Session ec2.EC2, clusterId string, clusterCreationTime time.Time, clusterTtl int64) error {
 	vpcsIds := GetVpcsIdsByClusterNameTag(ec2Session, clusterId)
 
 	err := AddCreationDateTagToSG(ec2Session, vpcsIds, clusterCreationTime, clusterTtl)
 	if err != nil {
-		return err
+		return fmt.Errorf("Can't tag security groups for cluster %s in region %s: %s", clusterId, * ec2Session.Config.Region, err.Error())
 	}
 
  	err = AddCreationDateTagToIGW(ec2Session, vpcsIds, clusterCreationTime, clusterTtl)
 	if err != nil {
-		return err
+		return fmt.Errorf("Can't tag internet gateways for cluster %s in region %s: %s", clusterId, * ec2Session.Config.Region, err.Error())
 	}
 
 	err = AddCreationDateTagToSubnets(ec2Session, vpcsIds, clusterCreationTime, clusterTtl)
 	if err != nil {
-		return err
+		return fmt.Errorf("Can't tag subnets for cluster %s in region %s: %s", clusterId, * ec2Session.Config.Region, err.Error())
 	}
 
 	err = AddCreationDateTagToRTB(ec2Session, vpcsIds, clusterCreationTime, clusterTtl)
 	if err != nil {
-		return err
+		return fmt.Errorf("Can't tag route tables for cluster %s in region %s: %s", clusterId, * ec2Session.Config.Region, err.Error())
 	}
 
 	return nil
