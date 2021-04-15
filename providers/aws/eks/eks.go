@@ -168,7 +168,7 @@ func deleteEKSCluster(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.ELBV2, c
 	if err != nil {
 		return err
 	}
-	err = ec22.TagLoadBalancersForDeletion(elbSession, tagName, lbsAssociatedToThisEksCluster)
+	err = ec22.TagLoadBalancersForDeletion(elbSession, tagName, lbsAssociatedToThisEksCluster, cluster.ClusterName)
 	if err != nil {
 		return err
 	}
@@ -186,7 +186,7 @@ func deleteEKSCluster(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.ELBV2, c
 	}
 
 	// add cluster creation date vpc for deletion
-	err = vpc.TagVPCsForDeletion(ec2Session, tagName, cluster.ClusterName, cluster.ClusterCreateTime, cluster.TTL)
+	err = vpc.TagVPCsForDeletion(ec2Session, cluster.ClusterName, cluster.ClusterCreateTime, cluster.TTL)
 	if err != nil {
 		return err
 	}

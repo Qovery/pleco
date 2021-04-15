@@ -19,7 +19,7 @@ type ElasticLoadBalancer struct {
 	TTL int64
 }
 
-func TagLoadBalancersForDeletion(lbSession elbv2.ELBV2, tagKey string, loadBalancersList []ElasticLoadBalancer) error {
+func TagLoadBalancersForDeletion(lbSession elbv2.ELBV2, tagKey string, loadBalancersList []ElasticLoadBalancer, clusterName string) error {
 	var lbArns []*string
 
 	if len(loadBalancersList) == 0 {
@@ -46,7 +46,7 @@ func TagLoadBalancersForDeletion(lbSession elbv2.ELBV2, tagKey string, loadBalan
 		},
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("Can't tag load balancers for cluster %s in region %s: %s", clusterName, *lbSession.Config.Region, err.Error())
 	}
 
 	return nil
