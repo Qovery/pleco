@@ -34,20 +34,23 @@ func TagLoadBalancersForDeletion(lbSession elbv2.ELBV2, tagKey string, loadBalan
 		return nil
 	}
 
-	_, err := lbSession.AddTags(
-		&elbv2.AddTagsInput{
-			ResourceArns: lbArns,
-			Tags:         []*elbv2.Tag{
-				{
-					Key: aws.String(tagKey),
-					Value: aws.String("1"),
+	for _, lbArn := range lbArns {
+		_, err := lbSession.AddTags(
+			&elbv2.AddTagsInput{
+				ResourceArns: aws.StringSlice([]string{*lbArn}),
+				Tags:         []*elbv2.Tag{
+					{
+						Key: aws.String(tagKey),
+						Value: aws.String("1"),
+					},
 				},
 			},
-		},
-	)
-	if err != nil {
-		return fmt.Errorf("Can't tag load balancers for cluster %s in region %s: %s", clusterName, *lbSession.Config.Region, err.Error())
+		)
+		if err != nil {
+			return fmt.Errorf("Can't tag load balancer %s for cluster %s in region %s: %s", *lbArn, clusterName, *lbSession.Config.Region, err.Error())
+		}
 	}
+
 
 	return nil
 }
