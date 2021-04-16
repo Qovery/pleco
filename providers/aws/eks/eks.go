@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/elbv2"
+	"github.com/aws/aws-sdk-go/service/rds"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -119,7 +120,7 @@ func listTaggedEKSClusters(svc eks.EKS, tagName string) ([]eksCluster, error) {
 	return taggedClusters, nil
 }
 
-func deleteEKSCluster(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.ELBV2, cloudwatchLogsSession cloudwatchlogs.CloudWatchLogs, cluster eksCluster, tagName string, dryRun bool) error {
+func deleteEKSCluster(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.ELBV2, cloudwatchLogsSession cloudwatchlogs.CloudWatchLogs, rdsSession rds.RDS, cluster eksCluster, tagName string, dryRun bool) error {
 	if cluster.Status == "DELETING" {
 		log.Infof("EKS cluster %s (%s) is already in deletion process, skipping...", cluster.ClusterName, *svc.Config.Region)
 		return nil
@@ -186,7 +187,7 @@ func deleteEKSCluster(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.ELBV2, c
 	}
 
 	// add cluster creation date vpc for deletion
-	err = vpc.TagVPCsForDeletion(ec2Session, cluster.ClusterName, cluster.ClusterCreateTime, cluster.TTL)
+	err = vpc.TagVPCsForDeletion(ec2Session, rdsSession, cluster.ClusterName, cluster.ClusterCreateTime, cluster.TTL)
 	if err != nil {
 		return err
 	}
@@ -232,7 +233,7 @@ func deleteNodeGroupStatus(svc eks.EKS, cluster eksCluster, nodeGroupName string
 	return nil
 }
 
-func DeleteExpiredEKSClusters(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.ELBV2, cloudwatchLogsSession cloudwatchlogs.CloudWatchLogs, tagName string, dryRun bool) {
+func DeleteExpiredEKSClusters(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.ELBV2, cloudwatchLogsSession cloudwatchlogs.CloudWatchLogs, rdsSession rds.RDS, tagName string, dryRun bool) {
 	clusters, err := listTaggedEKSClusters(svc, tagName)
 	region := svc.Config.Region
 	if err != nil {
@@ -258,7 +259,7 @@ func DeleteExpiredEKSClusters(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.
 	log.Debug(start)
 
 	for _, cluster := range clusters {
-		deletionErr := deleteEKSCluster(svc, ec2Session, elbSession,cloudwatchLogsSession, cluster, tagName, dryRun)
+		deletionErr := deleteEKSCluster(svc, ec2Session, elbSession,cloudwatchLogsSession, rdsSession, cluster, tagName, dryRun)
 		if deletionErr != nil {
 			log.Errorf("Deletion EKS cluster error %s/%s: %s",
 					cluster.ClusterName, *region, deletionErr)

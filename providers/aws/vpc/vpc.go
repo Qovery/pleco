@@ -2,9 +2,11 @@ package vpc
 
 import (
 	"fmt"
+	"github.com/Qovery/pleco/providers/aws/database"
 	"github.com/Qovery/pleco/utils"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/rds"
 	log "github.com/sirupsen/logrus"
 	"sync"
 	"time"
@@ -190,7 +192,7 @@ func getCompleteVpc(ec2Session ec2.EC2, vpc *VpcInfo){
 	waitGroup.Wait()
 }
 
-func TagVPCsForDeletion(ec2Session ec2.EC2, clusterId string, clusterCreationTime time.Time, clusterTtl int64) error {
+func TagVPCsForDeletion(ec2Session ec2.EC2, rdsSession rds.RDS, clusterId string, clusterCreationTime time.Time, clusterTtl int64) error {
 	vpcsIds := GetVpcsIdsByClusterNameTag(ec2Session, clusterId)
 
 	err := AddCreationDateTagToSG(ec2Session, vpcsIds, clusterCreationTime, clusterTtl)
@@ -211,6 +213,11 @@ func TagVPCsForDeletion(ec2Session ec2.EC2, clusterId string, clusterCreationTim
 	err = AddCreationDateTagToRTB(ec2Session, vpcsIds, clusterCreationTime, clusterTtl)
 	if err != nil {
 		return fmt.Errorf("Can't tag route tables for cluster %s in region %s: %s", clusterId, * ec2Session.Config.Region, err.Error())
+	}
+
+	err = database.AddCreationDateTagToRdsSubnetGroups(rdsSession, vpcsIds, clusterCreationTime, clusterTtl)
+	if err != nil {
+		return fmt.Errorf("Can't tag RDS subnet groups for cluster %s in region %s: %s", clusterId, * rdsSession.Config.Region, err.Error())
 	}
 
 	return nil

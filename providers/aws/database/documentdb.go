@@ -157,5 +157,3 @@ func DeleteExpiredDocumentDBClusters(svc rds.RDS, tagName string, dryRun bool) {
 	}
 
 }
-
-// Todo: add subnet group delete support
