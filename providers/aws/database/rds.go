@@ -185,14 +185,14 @@ func getRDSIdsByVpcIds(svc rds.RDS, VpcIds []*string) []*string {
 	return RDSIds
 }
 
-func getRDSSubnetGroupsTags(svc rds.RDS, dbSubnetGroupName string) []*rds.Tag {
+func getRDSSubnetGroupsTags(svc rds.RDS, dbSubnetGroupArn string) []*rds.Tag {
 	result, err := svc.ListTagsForResource(
 		&rds.ListTagsForResourceInput{
-			ResourceName: aws.String(dbSubnetGroupName),
+			ResourceName: aws.String(dbSubnetGroupArn),
 		})
 
 	if err != nil {
-		log.Errorf("Can't get tags for %s in region %s: %s", dbSubnetGroupName, *svc.Config.Region, err.Error())
+		log.Errorf("Can't get tags for %s in region %s: %s", dbSubnetGroupArn, *svc.Config.Region, err.Error())
 		return []*rds.Tag{}
 	}
 
@@ -204,7 +204,7 @@ func getExpiredRDSSubnetGroups(svc rds.RDS) []*rds.DBSubnetGroup {
 	var expiredRDSSubnetGroups []*rds.DBSubnetGroup
 
 	for _, RDSSubnetGroup := range RDSSubnetGroups {
-		tags := getRDSSubnetGroupsTags(svc, *RDSSubnetGroup.DBSubnetGroupName)
+		tags := getRDSSubnetGroupsTags(svc, *RDSSubnetGroup.DBSubnetGroupArn)
 
 		creationDate, ttl := utils.GetRDSTimeInfos(tags)
 		if utils.CheckIfExpired(creationDate,ttl) {
