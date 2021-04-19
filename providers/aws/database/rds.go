@@ -1,6 +1,7 @@
 package database
 
 import (
+	"fmt"
 	"github.com/Qovery/pleco/utils"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -146,5 +147,104 @@ func DeleteExpiredRDSDatabases(svc rds.RDS, tagName string, dryRun bool) {
 				log.Errorf("Deletion RDS database error %s/%s: %s",
 					database.DBInstanceIdentifier, *svc.Config.Region, err)
 			}
+	}
+}
+
+func AddCreationDateTagToRdsSubnetGroups(svc rds.RDS, vpcIds []*string, creationDate time.Time, ttl int64) error {
+	RDSIds := getRDSIdsByVpcIds(svc, vpcIds)
+
+	return utils.AddCreationDateTag(svc, RDSIds, creationDate, ttl)
+}
+
+func getRDSSubnetGroups(svc rds.RDS) []*rds.DBSubnetGroup {
+	result, err := svc.DescribeDBSubnetGroups(
+		&rds.DescribeDBSubnetGroupsInput{
+			MaxRecords: aws.Int64(100),
+		})
+
+	if err != nil {
+		log.Errorf("Can't get DocumentDB subnet groups in region %s: %s", *svc.Config.Region, err.Error())
+	}
+
+	return result.DBSubnetGroups
+}
+
+func getRDSIdsByVpcIds(svc rds.RDS, VpcIds []*string) []*string {
+	RDSSubnetGroups := getRDSSubnetGroups(svc)
+
+	var RDSIds []*string
+
+	for _, rdsSubnetGroup := range RDSSubnetGroups {
+		for _, vpcId := range VpcIds {
+			if rdsSubnetGroup.VpcId == vpcId {
+				RDSIds = append(RDSIds, rdsSubnetGroup.DBSubnetGroupArn)
+			}
+		}
+	}
+
+	return RDSIds
+}
+
+func getRDSSubnetGroupsTags(svc rds.RDS, dbSubnetGroupName string) []*rds.Tag {
+	result, err := svc.ListTagsForResource(
+		&rds.ListTagsForResourceInput{
+			ResourceName: aws.String(dbSubnetGroupName),
+		})
+
+	if err != nil {
+		log.Errorf("Can't get tags for %s in region %s: %s", dbSubnetGroupName, *svc.Config.Region, err.Error())
+		return []*rds.Tag{}
+	}
+
+	return result.TagList
+}
+
+func getExpiredRDSSubnetGroups(svc rds.RDS) []*rds.DBSubnetGroup {
+	RDSSubnetGroups := getRDSSubnetGroups(svc)
+	var expiredRDSSubnetGroups []*rds.DBSubnetGroup
+
+	for _, RDSSubnetGroup := range RDSSubnetGroups {
+		tags := getRDSSubnetGroupsTags(svc, *RDSSubnetGroup.DBSubnetGroupName)
+
+		creationDate, ttl := utils.GetRDSTimeInfos(tags)
+		if utils.CheckIfExpired(creationDate,ttl) {
+			expiredRDSSubnetGroups = append(expiredRDSSubnetGroups, RDSSubnetGroup)
+		}
+	}
+
+	return expiredRDSSubnetGroups
+}
+
+func deleteRDSSubnetGroup(svc rds.RDS, dbSubnetGroupName string) error {
+	_, err := svc.DeleteDBSubnetGroup(
+		&rds.DeleteDBSubnetGroupInput{
+			DBSubnetGroupName: aws.String(dbSubnetGroupName),
+		})
+
+	if err != nil {
+		return fmt.Errorf("Can't delete DocumentDB %s in region %s: %s", dbSubnetGroupName, *svc.Config.Region, err.Error())
+	}
+
+	return nil
+}
+
+func DeleteExpiredRDSSubnetGroups(svc rds.RDS, tagname string ,dryRun bool) {
+	expiredRDSSubnetGroups :=  getExpiredRDSSubnetGroups(svc)
+
+	count, start:= utils.ElemToDeleteFormattedInfos("expired RDS subnet group", len(expiredRDSSubnetGroups), *svc.Config.Region)
+
+	log.Debug(count)
+
+	if dryRun || len(expiredRDSSubnetGroups) == 0 {
+		return
+	}
+
+	log.Debug(start)
+
+	for _, expiredRDSSubnetGroup := range expiredRDSSubnetGroups {
+		err := deleteRDSSubnetGroup(svc, *expiredRDSSubnetGroup.DBSubnetGroupName)
+		if err != nil {
+			log.Errorf("Deletion RDS subnet group error %s/%s: %s", *expiredRDSSubnetGroup.DBSubnetGroupName, *svc.Config.Region, err)
+		}
 	}
 }

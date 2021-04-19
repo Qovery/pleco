@@ -107,6 +107,7 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 	vpcEnabled, _ := cmd.Flags().GetBool("enable-vpc")
 	if vpcEnabled {
 		currentEC2Session = ec2.New(currentSession)
+		currentRdsSession = rds.New(currentSession)
 	}
 
 	// Cloudwatch
@@ -155,7 +156,7 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 		// check EKS
 		if eksEnabled {
 			logrus.Debugf("Listing all EKS clusters in region %s.", *currentEKSSession.Config.Region)
-			eks2.DeleteExpiredEKSClusters(*currentEKSSession, *currentEC2Session, *currentElbSession, *currentCloudwatchLogsSession, tagName, dryRun)
+			eks2.DeleteExpiredEKSClusters(*currentEKSSession, *currentEC2Session, *currentElbSession, *currentCloudwatchLogsSession, *currentRdsSession, tagName, dryRun)
 		}
 
 		// check load balancers
@@ -174,6 +175,7 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 		if vpcEnabled {
 			logrus.Debugf("Listing all VPC resources in region %s.", *currentEC2Session.Config.Region)
 			vpc.DeleteExpiredVPC(*currentEC2Session, tagName, dryRun)
+			database.DeleteExpiredRDSSubnetGroups(*currentRdsSession, tagName, dryRun)
 		}
 
 		//check Cloudwatch
