@@ -75,7 +75,6 @@ func getVPCs(ec2Session ec2.EC2, tagName string) []*ec2.Vpc {
 
 func listTaggedVPC(ec2Session ec2.EC2, tagName string) ([]VpcInfo, error) {
 	var taggedVPCs []VpcInfo
-
 	var VPCs = getVPCs(ec2Session, tagName)
 
 	for _, vpc := range VPCs {
@@ -105,10 +104,9 @@ func listTaggedVPC(ec2Session ec2.EC2, tagName string) ([]VpcInfo, error) {
 			}
 
 			getCompleteVpc(ec2Session, &taggedVpc)
-
 		}
 
-		if taggedVpc.CreationDate != time.Date(0001, 01, 01, 00, 00, 00, 0000, time.UTC) && utils.CheckIfExpired(taggedVpc.CreationDate, taggedVpc.TTL){
+		if utils.CheckIfExpired(taggedVpc.CreationDate, taggedVpc.TTL){
 			taggedVPCs = append(taggedVPCs, taggedVpc)
 		}
 
@@ -192,6 +190,10 @@ func getCompleteVpc(ec2Session ec2.EC2, vpc *VpcInfo){
 	waitGroup.Wait()
 }
 
+func addCreationDateToVpcs(ec2Session ec2.EC2, vpcsIds []*string, clusterCreationTime time.Time, clusterTtl int64) error {
+	return utils.AddCreationDateTag(ec2Session, vpcsIds, clusterCreationTime, clusterTtl)
+}
+
 func TagVPCsForDeletion(ec2Session ec2.EC2, rdsSession rds.RDS, clusterId string, clusterCreationTime time.Time, clusterTtl int64) error {
 	vpcsIds := GetVpcsIdsByClusterNameTag(ec2Session, clusterId)
 
@@ -220,5 +222,9 @@ func TagVPCsForDeletion(ec2Session ec2.EC2, rdsSession rds.RDS, clusterId string
 		return fmt.Errorf("Can't tag RDS subnet groups for cluster %s in region %s: %s", clusterId, * rdsSession.Config.Region, err.Error())
 	}
 
+	err = addCreationDateToVpcs(ec2Session, vpcsIds, clusterCreationTime, clusterTtl)
+	if err != nil {
+		return fmt.Errorf("Can't tag VPC for cluster %s in region %s: %s", clusterId, * rdsSession.Config.Region, err.Error())
+	}
 	return nil
 }

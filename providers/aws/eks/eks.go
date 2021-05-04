@@ -267,3 +267,32 @@ func DeleteExpiredEKSClusters(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.
 
 	}
 }
+
+func TagClustersResources(svc eks.EKS, ec2Session ec2.EC2, rdsSession rds.RDS, tagName string) error {
+	clusters, err := listTaggedEKSClusters(svc, tagName)
+	if err != nil {
+		return fmt.Errorf("can't list EKS clusters: %s\n", err)
+	}
+
+	var tagErrs error
+	for _, cluster := range clusters {
+		tagErr := vpc.TagVPCsForDeletion(ec2Session, rdsSession, cluster.ClusterName, cluster.ClusterCreateTime, cluster.TTL)
+		if tagErr != nil {
+			tagErrs = fmt.Errorf("%s ; %s", tagErrs, tagErr)
+		}
+
+
+
+		//TODO : find why tagging key pair make them disappear
+		//tagErr = ec22.TagSshKeys(ec2Session, cluster.ClusterName, cluster.ClusterCreateTime, cluster.TTL, doNotDelete)
+		//if tagErr != nil {
+		//	tagErrs = fmt.Errorf("%s ; %s", tagErrs, tagErr)
+		//}
+	}
+
+	if tagErrs != nil {
+		return tagErrs
+	}
+
+	return nil
+}

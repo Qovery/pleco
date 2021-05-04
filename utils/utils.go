@@ -49,6 +49,9 @@ func GetRDSTimeInfos(tags []*rds.Tag) (time.Time, int64) {
 
 func CheckIfExpired(creationTime time.Time, ttl int64) bool {
 	expirationTime := creationTime.Add(time.Duration(ttl) * time.Second)
+	if ttl == 0  || creationTime == time.Date(0001, 01, 01, 00, 00, 00, 0000, time.UTC){
+		return false
+	}
 	return time.Now().After(expirationTime)
 }
 
