@@ -46,12 +46,22 @@ func getSshKeys (ec2session *ec2.EC2, tagName string) []KeyPair {
 			}
 		}
 
-		if newKey.ttl != 0 {
-			keys = append(keys, newKey)
-		}
+		keys = append(keys, newKey)
 	}
 
 	return keys
+}
+
+func TagSshKeys(ec2session ec2.EC2, clusterName string, clusterCreationTime time.Time, clusterTtl int64, doNotDelete bool) error {
+	keys := getSshKeys(&ec2session, "ttl")
+	var keysIds []*string
+	for _, key := range keys {
+		if key.KeyName == clusterName {
+			keysIds = append(keysIds, &key.KeyId)
+		}
+	}
+
+		return utils.AddCreationDateTag(ec2session, keysIds, clusterCreationTime, clusterTtl)
 }
 
 func deleteKey (ec2session *ec2.EC2, keyId string) error {

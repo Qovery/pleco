@@ -135,6 +135,15 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 	}
 
 	for {
+		//tag cluster resources
+		if eksEnabled && vpcEnabled{
+			logrus.Debugf("Tagging clusters resources in region %s.", *currentRdsSession.Config.Region)
+			 err := eks2.TagClustersResources(*currentEKSSession, *currentEC2Session, *currentRdsSession, tagName)
+			 if err != nil {
+			 	logrus.Error(err)
+			 }
+		}
+
 		// check RDS
 		if rdsEnabled {
 			logrus.Debugf("Listing all RDS databases in region %s.", *currentRdsSession.Config.Region)
