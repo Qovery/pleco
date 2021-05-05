@@ -7,15 +7,15 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/rds"
 	log "github.com/sirupsen/logrus"
-	"strconv"
 	"time"
 )
 
 type rdsDatabase struct {
 	DBInstanceIdentifier string
-	InstanceCreateTime time.Time
-	DBInstanceStatus string
-	TTL int64
+	InstanceCreateTime   time.Time
+	DBInstanceStatus     string
+	TTL                  int64
+	IsProtected          bool
 }
 
 func RdsSession(sess session.Session, region string) *rds.RDS {
@@ -36,33 +36,15 @@ func listTaggedRDSDatabases(svc rds.RDS, tagName string) ([]rdsDatabase, error) 
 	}
 
 	for _, instance := range result.DBInstances {
-		for _, tag := range instance.TagList {
-			if *tag.Key == tagName {
-				if *tag.Key == "" {
-					log.Warnf("Tag %s was empty and it wasn't expected, skipping", *tag.Key)
-					continue
-				}
+		_, ttl, isProtected, _, _ := utils.GetEssentialTags(instance.TagList,tagName)
 
-				ttl, err := strconv.Atoi(*tag.Value)
-				if err != nil {
-					log.Errorf("Error while trying to convert tag value (%s) to integer on instance %s in %s",
-						*tag.Value, *instance.DBInstanceIdentifier, *svc.Config.Region)
-					continue
-				}
-
-				// ignore if creation is in progress to avoid nil fields
-				if *instance.DBInstanceStatus == "creating" {
-					continue
-				}
-
-				taggedDatabases = append(taggedDatabases, rdsDatabase{
-					DBInstanceIdentifier: *instance.DBInstanceIdentifier,
-					InstanceCreateTime:   *instance.InstanceCreateTime,
-					DBInstanceStatus:     *instance.DBInstanceStatus,
-					TTL:                  int64(ttl),
-				})
-			}
-		}
+		taggedDatabases = append(taggedDatabases, rdsDatabase{
+			DBInstanceIdentifier: *instance.DBInstanceIdentifier,
+			InstanceCreateTime:   *instance.InstanceCreateTime,
+			DBInstanceStatus:     *instance.DBInstanceStatus,
+			TTL:                  int64(ttl),
+			IsProtected: isProtected,
+			})
 	}
 
 	return taggedDatabases, nil
@@ -199,15 +181,15 @@ func getRDSSubnetGroupsTags(svc rds.RDS, dbSubnetGroupArn string) []*rds.Tag {
 	return result.TagList
 }
 
-func getExpiredRDSSubnetGroups(svc rds.RDS) []*rds.DBSubnetGroup {
+func getExpiredRDSSubnetGroups(svc rds.RDS, tagName string) []*rds.DBSubnetGroup {
 	RDSSubnetGroups := getRDSSubnetGroups(svc)
 	var expiredRDSSubnetGroups []*rds.DBSubnetGroup
 
 	for _, RDSSubnetGroup := range RDSSubnetGroups {
 		tags := getRDSSubnetGroupsTags(svc, *RDSSubnetGroup.DBSubnetGroupArn)
+		creationDate, ttl, isProtected, _, _ := utils.GetEssentialTags(tags, tagName)
 
-		creationDate, ttl := utils.GetRDSTimeInfos(tags)
-		if utils.CheckIfExpired(creationDate,ttl) {
+		if utils.CheckIfExpired(creationDate,ttl) && !isProtected {
 			expiredRDSSubnetGroups = append(expiredRDSSubnetGroups, RDSSubnetGroup)
 		}
 	}
@@ -228,8 +210,8 @@ func deleteRDSSubnetGroup(svc rds.RDS, dbSubnetGroupName string) error {
 	return nil
 }
 
-func DeleteExpiredRDSSubnetGroups(svc rds.RDS, tagname string ,dryRun bool) {
-	expiredRDSSubnetGroups :=  getExpiredRDSSubnetGroups(svc)
+func DeleteExpiredRDSSubnetGroups(svc rds.RDS, tagName string ,dryRun bool) {
+	expiredRDSSubnetGroups :=  getExpiredRDSSubnetGroups(svc, tagName)
 
 	count, start:= utils.ElemToDeleteFormattedInfos("expired RDS subnet group", len(expiredRDSSubnetGroups), *svc.Config.Region)
 

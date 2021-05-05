@@ -6,16 +6,16 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	log "github.com/sirupsen/logrus"
-	"strconv"
 	"time"
 )
 
 type elasticacheCluster struct {
-	ClusterIdentifier string
+	ClusterIdentifier  string
 	ReplicationGroupId string
-	ClusterCreateTime time.Time
-	ClusterStatus string
-	TTL int64
+	ClusterCreateTime  time.Time
+	ClusterStatus      string
+	TTL                int64
+	IsProtected        bool
 }
 
 func ElasticacheSession(sess session.Session, region string) *elasticache.ElastiCache {
@@ -47,35 +47,23 @@ func listTaggedElasticacheDatabases(svc elasticache.ElastiCache, tagName string)
 			continue
 		}
 
-		for _, tag := range tags.TagList {
-			if *tag.Key == tagName {
-				if *tag.Key == "" {
-					log.Warnf("Tag %s was empty and it wasn't expected, skipping", *tag.Key)
-					continue
-				}
-
-				ttl, err := strconv.Atoi(*tag.Value)
-				if err != nil {
-					log.Errorf("Error while trying to convert tag value (%s) to integer on instance %s in %s",
-						*tag.Value, *cluster.CacheClusterId, *svc.Config.Region)
-					continue
-				}
-
-				// required for replicas deletion
-				replicationGroupId := ""
-				if cluster.ReplicationGroupId != nil {
-					replicationGroupId = *cluster.ReplicationGroupId
-				}
-
-				taggedClusters = append(taggedClusters, elasticacheCluster{
-					ClusterIdentifier:    *cluster.CacheClusterId,
-					ReplicationGroupId:	  replicationGroupId,
-					ClusterCreateTime:    *cluster.CacheClusterCreateTime,
-					ClusterStatus:        *cluster.CacheClusterStatus,
-					TTL:                  int64(ttl),
-				})
-			}
+		// required for replicas deletion
+		replicationGroupId := ""
+		if cluster.ReplicationGroupId != nil {
+			replicationGroupId = *cluster.ReplicationGroupId
 		}
+
+		_, ttl, isProtected, _, _ := utils.GetEssentialTags(tags, tagName)
+
+		taggedClusters = append(taggedClusters, elasticacheCluster{
+			ClusterIdentifier:    *cluster.CacheClusterId,
+			ReplicationGroupId:	  replicationGroupId,
+			ClusterCreateTime:    *cluster.CacheClusterCreateTime,
+			ClusterStatus:        *cluster.CacheClusterStatus,
+			TTL:                  ttl,
+			IsProtected: isProtected,
+		})
+
 	}
 
 	return taggedClusters, nil
@@ -125,7 +113,7 @@ func DeleteExpiredElasticacheDatabases(svc elasticache.ElastiCache, tagName stri
 
 	var expiredClusters []elasticacheCluster
 	for _, cluster := range clusters {
-		if utils.CheckIfExpired(cluster.ClusterCreateTime, cluster.TTL) {
+		if utils.CheckIfExpired(cluster.ClusterCreateTime, cluster.TTL) && !cluster.IsProtected{
 			expiredClusters = append(expiredClusters, cluster)
 		}
 	}

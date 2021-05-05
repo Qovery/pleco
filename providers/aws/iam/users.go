@@ -6,16 +6,15 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
 	log "github.com/sirupsen/logrus"
-	"strconv"
-	"strings"
 	"time"
 )
 
 type User struct {
-	UserName string
+	UserName     string
 	CreationDate time.Time
-	ttl int64
-	Tag string
+	ttl          int64
+	Tag          string
+	IsProtected  bool
 }
 
 func getUsers(iamSession *iam.IAM, tagName string) []User {
@@ -32,32 +31,23 @@ func getUsers(iamSession *iam.IAM, tagName string) []User {
 	var users []User
 
 	for _, user := range result.Users {
-		tags := getUserRoles(iamSession, *user.UserName)
+		tags := getUserTags(iamSession, *user.UserName)
+		_ , ttl, isProtected, _, _ := utils.GetEssentialTags(tags, tagName)
 		newUser := User{
 			UserName: *user.UserName,
 			CreationDate: *user.CreateDate,
+			ttl: ttl,
+			IsProtected: isProtected,
 		}
 
-		for _, tag := range tags {
-			if strings.EqualFold(*tag.Key, tagName) {
-				newUser.Tag = *tag.Value
-			}
+		users = append(users, newUser)
 
-			if strings.EqualFold(*tag.Key, "ttl") {
-				ttl, _ := strconv.ParseInt(*tag.Value, 10,64)
-				newUser.ttl = ttl
-			}
-		}
-
-		if newUser.ttl != 0 {
-			users = append(users, newUser)
-		}
 	}
 
 	return users
 }
 
-func getUserRoles(iamSession *iam.IAM, roleName string) []*iam.Tag {
+func getUserTags(iamSession *iam.IAM, roleName string) []*iam.Tag {
 	tags, err := iamSession.ListUserTags(
 		&iam.ListUserTagsInput{
 			UserName: aws.String(roleName),
@@ -115,7 +105,7 @@ func DeleteExpiredUsers(iamSession *iam.IAM, tagName string, dryRun bool) {
 	var expiredUsers []User
 
 	for _, user := range users {
-		if utils.CheckIfExpired(user.CreationDate, user.ttl) {
+		if utils.CheckIfExpired(user.CreationDate, user.ttl) && !user.IsProtected {
 			expiredUsers = append(expiredUsers, user)
 		}
 	}

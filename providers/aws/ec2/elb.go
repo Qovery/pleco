@@ -6,7 +6,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	log "github.com/sirupsen/logrus"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -17,6 +16,7 @@ type ElasticLoadBalancer struct {
 	CreatedTime time.Time
 	Status string
 	TTL int64
+	IsProtected bool
 }
 
 func TagLoadBalancersForDeletion(lbSession elbv2.ELBV2, tagKey string, loadBalancersList []ElasticLoadBalancer, clusterName string) error {
@@ -106,17 +106,12 @@ func listTaggedLoadBalancers(lbSession elbv2.ELBV2, tagName string) ([]ElasticLo
 			continue
 		}
 
-		for _, contentTag := range result.TagDescriptions[0].Tags {
-			if *contentTag.Key == tagName {
-				ttlInt, err := strconv.Atoi(*contentTag.Value)
-				if err != nil {
-					log.Errorf("Bad %s value on load balancer %s (%s), can't use it, it should be a number", tagName, currentLb.Name, region)
-					continue
-				}
-				currentLb.TTL = int64(ttlInt)
-				taggedLoadBalancers = append(taggedLoadBalancers, currentLb)
-			}
-		}
+		_, ttl, isProtected, _, _ := utils.GetEssentialTags(result.TagDescriptions[0].Tags, tagName)
+
+		currentLb.IsProtected = isProtected
+		currentLb.TTL = ttl
+
+		taggedLoadBalancers = append(taggedLoadBalancers, currentLb)
 	}
 
 	return taggedLoadBalancers, nil
@@ -181,7 +176,7 @@ func DeleteExpiredLoadBalancers(elbSession elbv2.ELBV2, tagName string, dryRun b
 
 	var expiredLoadBalancers []ElasticLoadBalancer
 	for _, lb := range lbs{
-		if utils.CheckIfExpired(lb.CreatedTime, lb.TTL) {
+		if utils.CheckIfExpired(lb.CreatedTime, lb.TTL) && !lb.IsProtected {
 			expiredLoadBalancers = append(expiredLoadBalancers, lb)
 		}
 	}

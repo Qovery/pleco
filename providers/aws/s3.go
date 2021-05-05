@@ -6,7 +6,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	log "github.com/sirupsen/logrus"
-	"strconv"
 	"time"
 )
 
@@ -14,6 +13,7 @@ type s3Bucket struct {
 	Name string
 	CreateTime time.Time
 	TTL int64
+	IsProtected bool
 }
 
 func listTaggedBuckets(s3Session s3.S3, tagName string) ([]s3Bucket, error) {
@@ -53,28 +53,14 @@ func listTaggedBuckets(s3Session s3.S3, tagName string) ([]s3Bucket, error) {
 			continue
 		}
 
-		for _, tag := range bucketTags.TagSet {
-			if *tag.Key == tagName {
-				if *tag.Key == "" {
-					log.Warnf("Tag %s was empty and it wasn't expected, skipping", *tag.Key)
-					continue
-				}
+		_, ttl, isProtected, _, _ := utils.GetEssentialTags(bucketTags.TagSet, tagName)
 
-				ttl, err := strconv.Atoi(*tag.Value)
-				if err != nil {
-					log.Errorf("Error while trying to convert tag value (%s) to integer on S3 Bucket %s in %v",
-						*tag.Value, *bucket.Name, s3Session.Config.Region)
-					continue
-				}
-
-				taggedS3Buckets = append(taggedS3Buckets, s3Bucket{
-					Name:   	*bucket.Name,
-					CreateTime: *bucket.CreationDate,
-					TTL:    	int64(ttl),
-				})
-			}
-		}
-
+		taggedS3Buckets = append(taggedS3Buckets, s3Bucket{
+			Name:   	*bucket.Name,
+			CreateTime: *bucket.CreationDate,
+			TTL:    	ttl,
+			IsProtected: isProtected,
+		})
 	}
 
 	return taggedS3Buckets, nil
