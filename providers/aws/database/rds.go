@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/rds"
 	log "github.com/sirupsen/logrus"
+	"strings"
 	"time"
 )
 
@@ -158,7 +159,7 @@ func getRDSIdsByVpcIds(svc rds.RDS, VpcIds []*string) []*string {
 
 	for _, rdsSubnetGroup := range RDSSubnetGroups {
 		for _, vpcId := range VpcIds {
-			if rdsSubnetGroup.VpcId == vpcId {
+			if strings.Contains(*rdsSubnetGroup.DBSubnetGroupName,*vpcId) {
 				RDSIds = append(RDSIds, rdsSubnetGroup.DBSubnetGroupArn)
 			}
 		}
