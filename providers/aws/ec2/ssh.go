@@ -5,17 +5,16 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	log "github.com/sirupsen/logrus"
-	"strconv"
-	"strings"
 	"time"
 )
 
 type KeyPair struct {
-	KeyName string
-	KeyId string
+	KeyName      string
+	KeyId        string
 	CreationDate time.Time
-	Tag string
-	ttl int64
+	Tag          string
+	ttl          int64
+	IsProtected  bool
 }
 
 func getSshKeys (ec2session *ec2.EC2, tagName string) []KeyPair {
@@ -31,19 +30,13 @@ func getSshKeys (ec2session *ec2.EC2, tagName string) []KeyPair {
 
 	var keys []KeyPair
 	for _, key := range result.KeyPairs {
+		creationTime, ttl, isProtected, _, _ := utils.GetEssentialTags(key.Tags, tagName)
 		newKey := KeyPair{
 			KeyName: *key.KeyName,
 			KeyId: *key.KeyPairId,
-		}
-
-		for _, tag := range key.Tags {
-			if strings.EqualFold(*tag.Key, tagName){
-				newKey.Tag = *tag.Value
-			}
-			if strings.EqualFold(*tag.Key, "ttl"){
-				ttl, _ := strconv.Atoi(*tag.Value)
-				newKey.ttl = int64(ttl)
-			}
+			CreationDate: creationTime,
+			ttl: ttl,
+			IsProtected: isProtected,
 		}
 
 		keys = append(keys, newKey)
@@ -52,7 +45,7 @@ func getSshKeys (ec2session *ec2.EC2, tagName string) []KeyPair {
 	return keys
 }
 
-func TagSshKeys(ec2session ec2.EC2, clusterName string, clusterCreationTime time.Time, clusterTtl int64, doNotDelete bool) error {
+func TagSshKeys(ec2session ec2.EC2, clusterName string, clusterCreationTime time.Time, clusterTtl int64) error {
 	keys := getSshKeys(&ec2session, "ttl")
 	var keysIds []*string
 	for _, key := range keys {
@@ -61,7 +54,7 @@ func TagSshKeys(ec2session ec2.EC2, clusterName string, clusterCreationTime time
 		}
 	}
 
-		return utils.AddCreationDateTag(ec2session, keysIds, clusterCreationTime, clusterTtl)
+	return utils.AddCreationDateTag(ec2session, keysIds, clusterCreationTime, clusterTtl)
 }
 
 func deleteKey (ec2session *ec2.EC2, keyId string) error {
@@ -78,7 +71,7 @@ func DeleteExpiredKeys (ec2session *ec2.EC2, tagName string, dryRun bool) {
 	region := ec2session.Config.Region
 	var expiredKeys []KeyPair
 	for _, key := range keys {
-		if utils.CheckIfExpired(key.CreationDate, key.ttl) {
+		if utils.CheckIfExpired(key.CreationDate, key.ttl) && !key.IsProtected {
 			expiredKeys = append(expiredKeys, key)
 		}
 	}

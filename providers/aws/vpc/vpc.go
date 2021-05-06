@@ -15,15 +15,16 @@ import (
 
 
 type VpcInfo struct {
-	VpcId *string
-	SecurityGroups []SecurityGroup
+	VpcId            *string
+	SecurityGroups   []SecurityGroup
 	InternetGateways []InternetGateway
-	Subnets []Subnet
-	RouteTables []RouteTable
-	Status string
-	TTL int64
-	Tag string
-	CreationDate time.Time
+	Subnets          []Subnet
+	RouteTables      []RouteTable
+	Status           string
+	TTL              int64
+	Tag              string
+	CreationDate     time.Time
+	IsProtected      bool
 }
 
 func GetVpcsIdsByClusterNameTag (ec2Session ec2.EC2, clusterName string) []*string {
@@ -78,12 +79,13 @@ func listTaggedVPC(ec2Session ec2.EC2, tagName string) ([]VpcInfo, error) {
 	var VPCs = getVPCs(ec2Session, tagName)
 
 	for _, vpc := range VPCs {
-		creationDate, ttl := utils.GetTimeInfos(vpc.Tags)
+		creationDate, ttl, isprotected, _, _ := utils.GetEssentialTags(vpc.Tags, tagName)
 		taggedVpc := VpcInfo{
 			VpcId:      vpc.VpcId,
 			Status:     *vpc.State,
 			CreationDate: creationDate,
 			TTL: ttl,
+			IsProtected: isprotected,
 		}
 
 		if *vpc.State != "available" {
@@ -103,10 +105,10 @@ func listTaggedVPC(ec2Session ec2.EC2, tagName string) ([]VpcInfo, error) {
 				taggedVpc.Tag = *tag.Value
 			}
 
-			getCompleteVpc(ec2Session, &taggedVpc)
+			getCompleteVpc(ec2Session, &taggedVpc, tagName)
 		}
 
-		if utils.CheckIfExpired(taggedVpc.CreationDate, taggedVpc.TTL){
+		if utils.CheckIfExpired(taggedVpc.CreationDate, taggedVpc.TTL) && !taggedVpc.IsProtected {
 			taggedVPCs = append(taggedVPCs, taggedVpc)
 		}
 
@@ -177,16 +179,16 @@ func DeleteExpiredVPC(ec2Session ec2.EC2, tagName string, dryRun bool) {
 
 }
 
-func getCompleteVpc(ec2Session ec2.EC2, vpc *VpcInfo){
+func getCompleteVpc(ec2Session ec2.EC2, vpc *VpcInfo, tagName string){
 	var waitGroup sync.WaitGroup
 	waitGroup.Add(1)
-	go SetSecurityGroupsIdsByVpcId(ec2Session, vpc, &waitGroup)
+	go SetSecurityGroupsIdsByVpcId(ec2Session, vpc, &waitGroup, tagName)
 	waitGroup.Add(1)
-	go SetInternetGatewaysIdsByVpcId(ec2Session, vpc, &waitGroup)
+	go SetInternetGatewaysIdsByVpcId(ec2Session, vpc, &waitGroup, tagName)
 	waitGroup.Add(1)
-	go SetSubnetsIdsByVpcId(ec2Session, vpc, &waitGroup)
+	go SetSubnetsIdsByVpcId(ec2Session, vpc, &waitGroup, tagName)
 	waitGroup.Add(1)
-	go SetRouteTablesIdsByVpcId(ec2Session, vpc, &waitGroup)
+	go SetRouteTablesIdsByVpcId(ec2Session, vpc, &waitGroup, tagName)
 	waitGroup.Wait()
 }
 

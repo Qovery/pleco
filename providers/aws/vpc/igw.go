@@ -10,9 +10,10 @@ import (
 )
 
 type InternetGateway struct {
-	Id string
+	Id           string
 	CreationDate time.Time
-	ttl int64
+	ttl          int64
+	IsProtected  bool
 }
 
 func getInternetGatewaysByVpcId (ec2Session ec2.EC2, vpcId string) []*ec2.InternetGateway{
@@ -51,19 +52,20 @@ func getInternetGatewaysByVpcsIds (ec2Session ec2.EC2, vpcsIds []*string) []*ec2
 	return result.InternetGateways
 }
 
-func SetInternetGatewaysIdsByVpcId (ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup) {
+func SetInternetGatewaysIdsByVpcId (ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup, tagName string) {
 	defer waitGroup.Done()
 	var internetGateways []InternetGateway
 
 	gateways := getInternetGatewaysByVpcId(ec2Session, *vpc.VpcId)
 
 	for _, gateway := range gateways {
-		creationDate, ttl := utils.GetTimeInfos(gateway.Tags)
+		creationDate, ttl, isProtected, _, _ := utils.GetEssentialTags(gateway.Tags,tagName)
 
 		var gatewayStruct = InternetGateway{
 			Id: *gateway.InternetGatewayId,
 			CreationDate: creationDate,
 			ttl: ttl,
+			IsProtected: isProtected,
 		}
 
 		internetGateways = append(internetGateways, gatewayStruct)
@@ -74,7 +76,7 @@ func SetInternetGatewaysIdsByVpcId (ec2Session ec2.EC2, vpc *VpcInfo, waitGroup 
 
 func DeleteInternetGatewaysByIds (ec2Session ec2.EC2, internetGateways []InternetGateway) {
 	for _, internetGateway := range internetGateways {
-		if utils.CheckIfExpired(internetGateway.CreationDate, internetGateway.ttl) {
+		if utils.CheckIfExpired(internetGateway.CreationDate, internetGateway.ttl) && !internetGateway.IsProtected {
 			_, err := ec2Session.DeleteInternetGateway(
 				&ec2.DeleteInternetGatewayInput{
 					InternetGatewayId: aws.String(internetGateway.Id),
