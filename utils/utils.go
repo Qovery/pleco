@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/rds"
+	"github.com/aws/aws-sdk-go/service/s3"
 	log "github.com/sirupsen/logrus"
 	"strconv"
 	"time"
@@ -46,6 +47,11 @@ func GetEssentialTags(tagsInput interface{}, tagName string) (time.Time, int64, 
 			m := tagsInput.([]*kms.Tag)
 			for _, elem := range m {
 				tags = append(tags, Tag{Key: elem.TagKey, Value: elem.TagValue})
+			}
+		case []*s3.Tag:
+			m := tagsInput.([]*s3.Tag)
+			for _, elem := range m {
+				tags = append(tags, Tag{Key: elem.Key, Value: elem.Value})
 			}
 		case []*Tag:
 			m := tagsInput.([]*Tag)
