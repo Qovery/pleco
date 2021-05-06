@@ -6,16 +6,16 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/kms"
 	log "github.com/sirupsen/logrus"
-	"strconv"
 	"time"
 )
 
 type CompleteKey struct {
-	KeyId string
-	TTL int64
-	Tag string
-	Status string
+	KeyId        string
+	TTL          int64
+	Tag          string
+	Status       string
 	CreationDate time.Time
+	IsProtected  bool
 }
 
 
@@ -31,26 +31,19 @@ func getKeys(svc kms.KMS) []*kms.KeyListEntry{
 }
 
 func getCompleteKey(svc kms.KMS, keyId *string, tagName string) CompleteKey {
-	var completeKey CompleteKey
 	tags := getKeyTags(svc,keyId)
 	metaData := getKeyMetadata(svc,keyId)
 
-	completeKey.KeyId = *keyId
-	completeKey.Status = *metaData.KeyMetadata.KeyState
-	completeKey.CreationDate = *metaData.KeyMetadata.CreationDate
+	_, ttl, isProtected, _, _ := utils.GetEssentialTags(tags, tagName)
 
-	for i := range tags {
-		if *tags[i].TagKey == "ttl" {
-			ttl , _ := strconv.ParseInt(*tags[i].TagValue,10,64)
-			completeKey.TTL = ttl
-		}
 
-		if *tags[i].TagKey == tagName {
-			completeKey.Tag = *tags[i].TagValue
-		}
+	return CompleteKey{
+		KeyId: *keyId,
+		Status: *metaData.KeyMetadata.KeyState,
+		CreationDate: *metaData.KeyMetadata.CreationDate,
+		TTL: ttl,
+		IsProtected: isProtected,
 	}
-
-	return completeKey
 }
 
 func deleteKey(svc kms.KMS, keyId string) (*kms.ScheduleKeyDeletionOutput,error){
@@ -117,8 +110,7 @@ func DeleteExpiredKeys(svc kms.KMS, tagName string, dryRun bool) {
 		completeKey := getCompleteKey(svc, key.KeyId, tagName)
 
 		if completeKey.Status != "PendingDeletion" &&
-			completeKey.TTL != 0 &&
-			utils.CheckIfExpired(completeKey.CreationDate,  completeKey.TTL) {
+			utils.CheckIfExpired(completeKey.CreationDate,  completeKey.TTL) && !completeKey.IsProtected {
 			if completeKey.Tag == tagName || tagName == "ttl"{
 				expiredKeys = append(expiredKeys, completeKey)
 			}

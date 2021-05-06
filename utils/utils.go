@@ -4,47 +4,84 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/rds"
+	log "github.com/sirupsen/logrus"
 	"strconv"
 	"time"
 )
 
-func GetTimeInfos(tags []*ec2.Tag) (time.Time, int64) {
-	var creationDate = time.Time{}
-	var ttl int64
-
-
-	for i := range tags {
-		if *tags[i].Key == "creationDate" {
-			creationTime, _ := strconv.ParseInt(*tags[i].Value, 10, 64)
-			creationDate = time.Unix(creationTime,0)
-		}
-		if *tags[i].Key == "ttl" {
-			result, _ := strconv.ParseInt(*tags[i].Value, 10, 64)
-			ttl = result
-		}
-	}
-
-	return creationDate, ttl
+type Tag struct {
+	_     struct{} `type:"structure"`
+	Key   *string  `type:"string"`
+	Value *string  `type:"string"`
 }
 
-func GetRDSTimeInfos(tags []*rds.Tag) (time.Time, int64) {
+func GetEssentialTags(tagsInput interface{}, tagName string) (time.Time, int64, bool, string, string) {
 	var creationDate = time.Time{}
 	var ttl int64
+	var isProtected bool
+	var clusterId string
+	var tag string
+	var tags []Tag
 
-
-	for i := range tags {
-		if *tags[i].Key == "creationDate" {
-			creationTime, _ := strconv.ParseInt(*tags[i].Value, 10, 64)
-			creationDate = time.Unix(creationTime,0)
-		}
-		if *tags[i].Key == "ttl" {
-			result, _ := strconv.ParseInt(*tags[i].Value, 10, 64)
-			ttl = result
-		}
+	switch tagsInput.(type) {
+		case []*rds.Tag:
+			m := tagsInput.([]*rds.Tag)
+			for _, elem := range m {
+				tags = append(tags, Tag{Key: elem.Key, Value: elem.Value})
+			}
+		case []*ec2.Tag:
+			m := tagsInput.([]*ec2.Tag)
+			for _, elem := range m {
+				tags = append(tags, Tag{Key: elem.Key, Value: elem.Value})
+			}
+		case []*iam.Tag:
+			m := tagsInput.([]*iam.Tag)
+			for _, elem := range m {
+				tags = append(tags, Tag{Key: elem.Key, Value: elem.Value})
+			}
+		case []*kms.Tag:
+			m := tagsInput.([]*kms.Tag)
+			for _, elem := range m {
+				tags = append(tags, Tag{Key: elem.TagKey, Value: elem.TagValue})
+			}
+		case []*Tag:
+			m := tagsInput.([]*Tag)
+			for _, elem := range m {
+				tags = append(tags, Tag{Key: elem.Key, Value: elem.Value})
+			}
+		case map[string]*string:
+			m := tagsInput.(map[string]*string)
+			for key, value := range m {
+				tags = append(tags, Tag{Key: &key, Value: value})
+			}
+		default:
+			log.Debugf("Can't parse tags %s.", tagsInput)
 	}
 
-	return creationDate, ttl
+	for i := range tags {
+		switch *tags[i].Key {
+			case "creationDate":
+				creationTime, _ := strconv.ParseInt(*tags[i].Value, 10, 64)
+				creationDate = time.Unix(creationTime,0)
+			case "ttl":
+				result, _ := strconv.ParseInt(*tags[i].Value, 10, 64)
+				ttl = result
+			case "do_not_delete":
+				result, _ := strconv.ParseBool(*tags[i].Value)
+				isProtected = result
+			case "ClusterId":
+				clusterId = *tags[i].Value
+			case tagName:
+				tag = *tags[i].Value
+			default:
+				continue
+			}
+	}
+
+	return creationDate, ttl, isProtected, clusterId, tag
 }
 
 func CheckIfExpired(creationTime time.Time, ttl int64) bool {
@@ -167,3 +204,7 @@ func getSlicedArray(arrayToSlice []*string, sliceRange int) [][]*string {
 
 	return slicedArray
 }
+
+
+
+

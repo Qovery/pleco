@@ -6,7 +6,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	log "github.com/sirupsen/logrus"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -17,6 +16,7 @@ type CompleteLogGroup struct {
 	ttl int64
 	creationDate time.Time
 	clusterId string
+	IsProtected bool
 }
 
 func getCloudwatchLogs(svc cloudwatchlogs.CloudWatchLogs)  []*cloudwatchlogs.LogGroup {
@@ -31,28 +31,17 @@ func getCloudwatchLogs(svc cloudwatchlogs.CloudWatchLogs)  []*cloudwatchlogs.Log
 }
 
 func getCompleteLogGroup(svc cloudwatchlogs.CloudWatchLogs, log cloudwatchlogs.LogGroup, tagName string) CompleteLogGroup {
-	var completeLogGroup CompleteLogGroup
 	tags := getLogGroupTag(svc, *log.LogGroupName)
+	_, ttl, isprotected, clusterId, tag := utils.GetEssentialTags(tags, tagName)
 
-	completeLogGroup.logGroupName = *log.LogGroupName
-	completeLogGroup.creationDate = time.Unix(*log.CreationTime/1000,0)
-
-	for key, element := range tags {
-		if key == "ttl" {
-			ttl , _ := strconv.ParseInt(*element,10,64)
-			completeLogGroup.ttl = ttl
-		}
-
-		if key == "ClusterId" {
-			completeLogGroup.clusterId = *element
-		}
-
-		if key == tagName {
-			completeLogGroup.tag = *element
-		}
+	return CompleteLogGroup{
+		logGroupName:  *log.LogGroupName,
+		creationDate: time.Unix(*log.CreationTime/1000,0),
+		ttl:  ttl,
+		clusterId: clusterId,
+		IsProtected: isprotected,
+		tag: tag,
 	}
-
-	return completeLogGroup
 }
 
 func deleteCloudwatchLog (svc cloudwatchlogs.CloudWatchLogs, logGroupName string) (string, error) {
@@ -107,7 +96,7 @@ func DeleteExpiredLogs(svc cloudwatchlogs.CloudWatchLogs, tagName string, dryRun
 	var expiredLogs []CompleteLogGroup
 	for _, log := range logs {
 		completeLogGroup := getCompleteLogGroup(svc, *log, tagName)
-		if completeLogGroup.ttl != 0 && utils.CheckIfExpired(completeLogGroup.creationDate, completeLogGroup.ttl) {
+		if utils.CheckIfExpired(completeLogGroup.creationDate, completeLogGroup.ttl) && !completeLogGroup.IsProtected{
 			expiredLogs = append(expiredLogs, completeLogGroup)
 		}
 	}

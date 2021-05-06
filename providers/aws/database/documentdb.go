@@ -7,7 +7,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/rds"
 	log "github.com/sirupsen/logrus"
-	"strconv"
 	"time"
 )
 
@@ -17,6 +16,7 @@ type documentDBCluster struct {
 	ClusterCreateTime time.Time
 	Status string
 	TTL int64
+	IsProtected bool
 }
 
 func listTaggedDocumentDBClusters(svc rds.RDS, tagName string) ([]documentDBCluster, error) {
@@ -34,33 +34,20 @@ func listTaggedDocumentDBClusters(svc rds.RDS, tagName string) ([]documentDBClus
 	}
 
 	for _, cluster := range result.DBClusters {
-		for _, tag := range cluster.TagList {
-			if *tag.Key == tagName {
-				if *tag.Key == "" {
-					log.Warnf("Tag %s was empty and it wasn't expected, skipping", *tag.Key)
-					continue
-				}
-
-				ttl, err := strconv.Atoi(*tag.Value)
-				if err != nil {
-					log.Errorf("Error while trying to convert tag value (%s) to integer on instance %s in %s",
-						*tag.Value, *cluster.DBClusterIdentifier, *svc.Config.Region)
-					continue
-				}
-
-				for _, instance := range cluster.DBClusterMembers {
-					instances = append(instances, *instance.DBInstanceIdentifier)
-				}
-
-				taggedClusters = append(taggedClusters, documentDBCluster{
-					DBClusterIdentifier:  *cluster.DBClusterIdentifier,
-					DBClusterMembers: 	  instances,
-					ClusterCreateTime:    *cluster.ClusterCreateTime,
-					Status:               *cluster.Status,
-					TTL:                  int64(ttl),
-				})
-			}
+		for _, instance := range cluster.DBClusterMembers {
+			instances = append(instances, *instance.DBInstanceIdentifier)
 		}
+
+		_, ttl, isProtected, _, _ := utils.GetEssentialTags(cluster.TagList,tagName)
+
+		taggedClusters = append(taggedClusters, documentDBCluster{
+			DBClusterIdentifier:  *cluster.DBClusterIdentifier,
+			DBClusterMembers: 	  instances,
+			ClusterCreateTime:    *cluster.ClusterCreateTime,
+			Status:               *cluster.Status,
+			TTL:                  ttl,
+			IsProtected: 		  isProtected,
+		})
 	}
 
 	return taggedClusters, nil
@@ -132,7 +119,7 @@ func DeleteExpiredDocumentDBClusters(svc rds.RDS, tagName string, dryRun bool) {
 
 	var expiredClusters []documentDBCluster
 	for _, cluster := range clusters {
-		if utils.CheckIfExpired(cluster.ClusterCreateTime, cluster.TTL) {
+		if utils.CheckIfExpired(cluster.ClusterCreateTime, cluster.TTL)  && !cluster.IsProtected {
 			expiredClusters = append(expiredClusters, cluster)
 		}
 	}

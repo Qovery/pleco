@@ -18,7 +18,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
 	"sigs.k8s.io/aws-iam-authenticator/pkg/token"
-	"strconv"
 	"time"
 )
 
@@ -29,6 +28,7 @@ type eksCluster struct {
 	ClusterNodeGroupsName []*string
 	Status string
 	TTL int64
+	IsProtected bool
 }
 
 func AuthenticateToEks(clusterName string, clusterUrl string, roleArn string, session *session.Session) (*kubernetes.Clientset, error) {
@@ -84,37 +84,32 @@ func listTaggedEKSClusters(svc eks.EKS, tagName string) ([]eksCluster, error) {
 			continue
 		}
 
-		if ttlValue, ok := clusterInfo.Cluster.Tags[tagName]; ok {
-			ttl, err := strconv.Atoi(*ttlValue)
-			if err != nil {
-				log.Errorf("Can't convert TTL tag for cluster %v (%s), may be the value is not correct", clusterName, region)
-				continue
-			}
+		_, ttl, isProtected, _, _ := utils.GetEssentialTags(clusterInfo.Cluster.Tags, tagName)
 
-			// ignore if creation is in progress to avoid nil fields
-			if *clusterInfo.Cluster.Status == "CREATING" {
-				log.Debugf("Can't perform action on cluster %v (%s), current status is: %s", clusterName, region ,*clusterInfo.Cluster.Status)
-				continue
-			}
-
-			// get node groups
-			nodeGroups, err := svc.ListNodegroups(&eks.ListNodegroupsInput{
-				ClusterName: &clusterName,
-			})
-			if err != nil {
-				log.Errorf("Error while trying to get node groups from cluster %s (%s): %s", clusterName, region, err)
-				continue
-			}
-
-			taggedClusters = append(taggedClusters, eksCluster{
-				ClusterCreateTime: *clusterInfo.Cluster.CreatedAt,
-				ClusterNodeGroupsName: nodeGroups.Nodegroups,
-				ClusterName:       clusterName,
-				ClusterId:			utils.AwsStringChecker(clusterInfo.Cluster.Identity),
-				Status:            *clusterInfo.Cluster.Status,
-				TTL:               int64(ttl),
-			})
+		// ignore if creation is in progress to avoid nil fields
+		if *clusterInfo.Cluster.Status == "CREATING" {
+			log.Debugf("Can't perform action on cluster %v (%s), current status is: %s", clusterName, region ,*clusterInfo.Cluster.Status)
+			continue
 		}
+
+		// get node groups
+		nodeGroups, err := svc.ListNodegroups(&eks.ListNodegroupsInput{
+			ClusterName: &clusterName,
+		})
+		if err != nil {
+			log.Errorf("Error while trying to get node groups from cluster %s (%s): %s", clusterName, region, err)
+			continue
+		}
+
+		taggedClusters = append(taggedClusters, eksCluster{
+			ClusterCreateTime: *clusterInfo.Cluster.CreatedAt,
+			ClusterNodeGroupsName: nodeGroups.Nodegroups,
+			ClusterName:       clusterName,
+			ClusterId:			utils.AwsStringChecker(clusterInfo.Cluster.Identity),
+			Status:            *clusterInfo.Cluster.Status,
+			TTL:               ttl,
+			IsProtected: isProtected,
+		})
 	}
 
 	return taggedClusters, nil
@@ -243,7 +238,7 @@ func DeleteExpiredEKSClusters(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.
 
 	var expiredCluster []eksCluster
 	for _, cluster := range clusters {
-		if utils.CheckIfExpired(cluster.ClusterCreateTime, cluster.TTL) {
+		if utils.CheckIfExpired(cluster.ClusterCreateTime, cluster.TTL) && !cluster.IsProtected {
 			expiredCluster = append(expiredCluster, cluster)
 		}
 	}

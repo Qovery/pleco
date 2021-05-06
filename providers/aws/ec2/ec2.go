@@ -6,15 +6,15 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	log "github.com/sirupsen/logrus"
-	"strconv"
 	"time"
 )
 
 type EBSVolume struct {
-	VolumeId string
+	VolumeId    string
 	CreatedTime time.Time
-	Status string
-	TTL int64
+	Status      string
+	TTL         int64
+	IsProtected bool
 }
 
 func TagVolumesFromEksClusterForDeletion(ec2Session ec2.EC2, tagKey string, clusterName string) error {
@@ -109,28 +109,14 @@ func listTaggedVolumes(ec2Session ec2.EC2, tagName string) ([]EBSVolume, error) 
 	}
 
 	for _, currentVolume := range result.Volumes {
-		ttlValue := ""
-		for _, currentTag := range currentVolume.Tags {
-			if *currentTag.Key == tagName {
-				ttlValue = *currentTag.Value
-			}
-		}
-
-		if ttlValue == "" {
-			continue
-		}
-
-		ttlInt, err := strconv.Atoi(ttlValue)
-		if err != nil {
-			log.Errorf("Bad %s value on volume %s (%s), can't use it, it should be a number", tagName, *currentVolume.VolumeId, *ec2Session.Config.Region)
-			continue
-		}
+		_, ttl, isProtected, _, _ := utils.GetEssentialTags(currentVolume.Tags, tagName)
 
 		taggedVolumes = append(taggedVolumes, EBSVolume{
 			VolumeId:    *currentVolume.VolumeId,
 			CreatedTime: *currentVolume.CreateTime,
 			Status:      *currentVolume.State,
-			TTL:         int64(ttlInt),
+			TTL:        ttl,
+			IsProtected: isProtected,
 		})
 	}
 
@@ -147,7 +133,7 @@ func DeleteExpiredVolumes(ec2Session ec2.EC2, tagName string, dryRun bool) {
 
 	var expiredVolumes []EBSVolume
 	for _, volume := range volumes {
-		if utils.CheckIfExpired(volume.CreatedTime, volume.TTL) {
+		if utils.CheckIfExpired(volume.CreatedTime, volume.TTL) && !volume.IsProtected {
 			expiredVolumes = append(expiredVolumes, volume)
 		}
 	}

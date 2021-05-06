@@ -10,9 +10,10 @@ import (
 )
 
 type SecurityGroup struct {
-	Id string
+	Id           string
 	CreationDate time.Time
-	ttl int64
+	ttl          int64
+	IsProtected  bool
 }
 
 func getSecurityGroupsByVpcId (ec2Session ec2.EC2, vpcId string) []*ec2.SecurityGroup {
@@ -50,7 +51,7 @@ func getSecurityGroupsByVpcsIds (ec2Session ec2.EC2, vpcsIds []*string) []*ec2.S
 	return result.SecurityGroups
 }
 
-func SetSecurityGroupsIdsByVpcId (ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup) {
+func SetSecurityGroupsIdsByVpcId (ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup, tagName string) {
 	defer waitGroup.Done()
 	var securityGroupsStruct []SecurityGroup
 
@@ -58,12 +59,13 @@ func SetSecurityGroupsIdsByVpcId (ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *s
 
 	for _, securityGroup := range securityGroups {
 		if *securityGroup.GroupName != "default" {
-			creationDate, ttl := utils.GetTimeInfos(securityGroup.Tags)
+			creationDate, ttl, isProtected, _, _ := utils.GetEssentialTags(securityGroup.Tags, tagName)
 
 			var securityGroupStruct = SecurityGroup{
 				Id: *securityGroup.GroupId,
 				CreationDate: creationDate,
 				ttl: ttl,
+				IsProtected: isProtected,
 			}
 
 			securityGroupsStruct = append(securityGroupsStruct, securityGroupStruct)
@@ -76,7 +78,7 @@ func SetSecurityGroupsIdsByVpcId (ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *s
 
 func DeleteSecurityGroupsByIds (ec2Session ec2.EC2, securityGroups []SecurityGroup) {
 	for _, securityGroup := range securityGroups {
-		if utils.CheckIfExpired(securityGroup.CreationDate, securityGroup.ttl) {
+		if utils.CheckIfExpired(securityGroup.CreationDate, securityGroup.ttl) && !securityGroup.IsProtected{
 			deleteIpPermissions(ec2Session, securityGroup.Id)
 
 			_, err := ec2Session.DeleteSecurityGroup(

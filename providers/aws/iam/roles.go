@@ -6,17 +6,16 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
 	log "github.com/sirupsen/logrus"
-	"strconv"
-	"strings"
 	"time"
 )
 
 type Role struct {
-	RoleName string
-	CreationDate time.Time
-	ttl int64
-	Tag string
+	RoleName        string
+	CreationDate    time.Time
+	ttl             int64
+	Tag             string
 	InstanceProfile []*iam.InstanceProfile
+	IsProtected     bool
 }
 
 func getRoles(iamSession *iam.IAM, tagName string) []Role {
@@ -35,26 +34,17 @@ func getRoles(iamSession *iam.IAM, tagName string) []Role {
 	for _, role := range result.Roles {
 		tags := getRoleTags(iamSession, *role.RoleName)
 		instanceProfiles := getRoleInstanceProfile(iamSession, *role.RoleName)
+		_, ttl, isProtected, _, _ := utils.GetEssentialTags(tags, tagName)
 		newRole := Role{
 			RoleName: *role.RoleName,
 			CreationDate: *role.CreateDate,
 			InstanceProfile: instanceProfiles,
+			ttl: ttl,
+			IsProtected: isProtected,
 		}
 
-		for _, tag := range tags {
-			if strings.EqualFold(*tag.Key, tagName) {
-				newRole.Tag = *tag.Value
-			}
 
-			if strings.EqualFold(*tag.Key, "ttl") {
-				ttl, _ := strconv.ParseInt(*tag.Value, 10,64)
-				newRole.ttl = ttl
-			}
-		}
-
-		if newRole.ttl != 0 {
 			roles = append(roles, newRole)
-		}
 	}
 
 	return roles
@@ -95,7 +85,7 @@ func DeleteExpiredRoles(iamSession *iam.IAM, tagName string, dryRun bool) {
 	var expiredRoles []Role
 
 	for _, role := range roles {
-		if utils.CheckIfExpired(role.CreationDate, role.ttl) {
+		if utils.CheckIfExpired(role.CreationDate, role.ttl) && !role.IsProtected {
 			expiredRoles = append(expiredRoles, role)
 		}
 	}
