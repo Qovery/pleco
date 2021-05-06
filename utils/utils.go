@@ -47,6 +47,11 @@ func GetEssentialTags(tagsInput interface{}, tagName string) (time.Time, int64, 
 			for _, elem := range m {
 				tags = append(tags, Tag{Key: elem.TagKey, Value: elem.TagValue})
 			}
+		case []*Tag:
+			m := tagsInput.([]*Tag)
+			for _, elem := range m {
+				tags = append(tags, Tag{Key: elem.Key, Value: elem.Value})
+			}
 		case map[string]*string:
 			m := tagsInput.(map[string]*string)
 			for key, value := range m {
