@@ -18,7 +18,6 @@ jobs:
         with:
           go-version: 1.15.x
       -
-        # TODO : fix linter
 #        name: Run golangci-lint
 #        uses: actions-contrib/golangci-lint@v1
 #        env:
@@ -26,10 +25,10 @@ jobs:
 #        with:
 #          args: "run --timeout 5m0s"
 #      -
-        name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v1
-        with:
-          version: latest
-          args: release --rm-dist --skip-publish --skip-validate
-        env:
-          GITHUB_TOKEN: ${{ secrets.GORELEASER_GITHUB_TOKEN }}
+#        name: Run GoReleaser
+#        uses: goreleaser/goreleaser-action@v1
+#        with:
+#          version: latest
+#          args: release --rm-dist --skip-publish --skip-validate
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GORELEASER_GITHUB_TOKEN }}
