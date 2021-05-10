@@ -5,6 +5,8 @@
 
 # <img src="./assets/pleco_logo.png" width=420 />
 
-Automatically remove cloud and kubernetes resources based on ttl on tags
+Automatically remove cloud and kubernetes resources based on a time to leave tag, **ttl**.
+
+Protect resources from deletion with a protection tag, **do_no_delete**.
 
 NOTE: this project is in early stage development
