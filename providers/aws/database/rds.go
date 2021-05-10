@@ -109,7 +109,7 @@ func DeleteExpiredRDSDatabases(svc rds.RDS, tagName string, dryRun bool) {
 
 	var expiredDatabases []rdsDatabase
 	for _, database := range databases {
-		if utils.CheckIfExpired(database.InstanceCreateTime, database.TTL) {
+		if utils.CheckIfExpired(database.InstanceCreateTime, database.TTL) && !database.IsProtected {
 			expiredDatabases = append(expiredDatabases, database)
 		}
 	}
