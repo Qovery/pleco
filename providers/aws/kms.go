@@ -109,7 +109,7 @@ func DeleteExpiredKeys(svc kms.KMS, tagName string, dryRun bool) {
 	for _, key := range keys {
 		completeKey := getCompleteKey(svc, key.KeyId, tagName)
 
-		if completeKey.Status != "PendingDeletion" &&
+		if completeKey.Status != "PendingDeletion" && completeKey.Status != "Disabled" &&
 			utils.CheckIfExpired(completeKey.CreationDate,  completeKey.TTL) && !completeKey.IsProtected {
 			if completeKey.Tag == tagName || tagName == "ttl"{
 				expiredKeys = append(expiredKeys, completeKey)
