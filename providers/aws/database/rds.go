@@ -39,13 +39,15 @@ func listTaggedRDSDatabases(svc rds.RDS, tagName string) ([]rdsDatabase, error) 
 	for _, instance := range result.DBInstances {
 		_, ttl, isProtected, _, _ := utils.GetEssentialTags(instance.TagList,tagName)
 
-		taggedDatabases = append(taggedDatabases, rdsDatabase{
-			DBInstanceIdentifier: *instance.DBInstanceIdentifier,
-			InstanceCreateTime:   *instance.InstanceCreateTime,
-			DBInstanceStatus:     *instance.DBInstanceStatus,
-			TTL:                  int64(ttl),
-			IsProtected: isProtected,
+		if instance.InstanceCreateTime != nil {
+			taggedDatabases = append(taggedDatabases, rdsDatabase{
+				DBInstanceIdentifier: *instance.DBInstanceIdentifier,
+				InstanceCreateTime:   *instance.InstanceCreateTime,
+				DBInstanceStatus:     *instance.DBInstanceStatus,
+				TTL:                  int64(ttl),
+				IsProtected: isProtected,
 			})
+		}
 	}
 
 	return taggedDatabases, nil
@@ -118,7 +120,7 @@ func DeleteExpiredRDSDatabases(svc rds.RDS, tagName string, dryRun bool) {
 
 	log.Debug(count)
 
-	if dryRun || len(expiredDatabases) == 0 {
+	if dryRun || len(expiredDatabases) == 0 || expiredDatabases != nil{
 		return
 	}
 
