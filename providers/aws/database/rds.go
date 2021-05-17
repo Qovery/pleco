@@ -33,7 +33,7 @@ func listTaggedRDSDatabases(svc rds.RDS, tagName string) ([]rdsDatabase, error) 
 	}
 
 	if len(result.DBInstances) == 0 {
-		return nil, nil
+		return []rdsDatabase{}, nil
 	}
 
 	for _, instance := range result.DBInstances {
