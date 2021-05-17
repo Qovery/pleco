@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/elasticache"
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/kms"
@@ -56,6 +57,11 @@ func GetEssentialTags(tagsInput interface{}, tagName string) (time.Time, int64, 
 			}
 		case []*elbv2.Tag:
 			m := tagsInput.([]*elbv2.Tag)
+			for _, elem := range m {
+				tags = append(tags, Tag{Key: elem.Key, Value: elem.Value})
+			}
+		case []*elasticache.Tag:
+			m := tagsInput.([]*elasticache.Tag)
 			for _, elem := range m {
 				tags = append(tags, Tag{Key: elem.Key, Value: elem.Value})
 			}
