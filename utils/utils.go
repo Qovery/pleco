@@ -207,7 +207,7 @@ func getSlicedArray(arrayToSlice []*string, sliceRange int) [][]*string {
 	var slicedArray [][]*string
 	slicesCount := len(arrayToSlice) / sliceRange + 1
 
-	if len(arrayToSlice) < sliceRange {
+	if len(arrayToSlice) <= sliceRange {
 		slicedArray = append(slicedArray, arrayToSlice)
 	} else {
 		for i := 0; i < slicesCount; i++ {
