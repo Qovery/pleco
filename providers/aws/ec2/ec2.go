@@ -151,7 +151,7 @@ func DeleteExpiredVolumes(ec2Session ec2.EC2, tagName string, dryRun bool) {
 		deletionErr := deleteVolumes(ec2Session, volumes)
 			if deletionErr != nil {
 				log.Errorf("Deletion EBS %s (%s) error: %s",
-					volume.VolumeId, *ec2Session.Config.Region, err)
+					volume.VolumeId, *ec2Session.Config.Region, deletionErr.Error())
 			}
 	}
 }

@@ -279,10 +279,10 @@ func TagClustersResources(svc eks.EKS, ec2Session ec2.EC2, rdsSession rds.RDS, t
 
 
 		//TODO : find why tagging key pair make them disappear
-		//tagErr = ec22.TagSshKeys(ec2Session, cluster.ClusterName, cluster.ClusterCreateTime, cluster.TTL, doNotDelete)
-		//if tagErr != nil {
-		//	tagErrs = fmt.Errorf("%s ; %s", tagErrs, tagErr)
-		//}
+		tagErr = ec22.TagSshKeys(ec2Session, cluster.ClusterName, cluster.ClusterCreateTime, cluster.TTL)
+		if tagErr != nil {
+			tagErrs = fmt.Errorf("%s ; %s", tagErrs, tagErr)
+		}
 	}
 
 	if tagErrs != nil {
