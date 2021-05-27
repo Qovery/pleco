@@ -1,4 +1,4 @@
-package database
+package aws
 
 import (
 	"github.com/Qovery/pleco/utils"
@@ -113,7 +113,7 @@ func DeleteExpiredElasticacheDatabases(svc elasticache.ElastiCache, tagName stri
 
 	var expiredClusters []elasticacheCluster
 	for _, cluster := range clusters {
-		if utils.CheckIfExpired(cluster.ClusterCreateTime, cluster.TTL) && !cluster.IsProtected{
+		if utils.CheckIfExpired(cluster.ClusterCreateTime, cluster.TTL, "elasticache: " + cluster.ClusterIdentifier) && !cluster.IsProtected{
 			expiredClusters = append(expiredClusters, cluster)
 		}
 	}

@@ -1,4 +1,4 @@
-package database
+package aws
 
 import (
 	"fmt"
@@ -7,7 +7,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/rds"
 	log "github.com/sirupsen/logrus"
-	"strings"
 	"time"
 )
 
@@ -111,7 +110,7 @@ func DeleteExpiredRDSDatabases(svc rds.RDS, tagName string, dryRun bool) {
 
 	var expiredDatabases []rdsDatabase
 	for _, database := range databases {
-		if utils.CheckIfExpired(database.InstanceCreateTime, database.TTL) && !database.IsProtected {
+		if utils.CheckIfExpired(database.InstanceCreateTime, database.TTL, "rds Db: " + database.DBInstanceIdentifier) && !database.IsProtected {
 			expiredDatabases = append(expiredDatabases, database)
 		}
 	}
@@ -135,12 +134,6 @@ func DeleteExpiredRDSDatabases(svc rds.RDS, tagName string, dryRun bool) {
 	}
 }
 
-func AddCreationDateTagToRdsSubnetGroups(svc rds.RDS, vpcIds []*string, creationDate time.Time, ttl int64) error {
-	RDSIds := getRDSIdsByVpcIds(svc, vpcIds)
-
-	return utils.AddCreationDateTag(svc, RDSIds, creationDate, ttl)
-}
-
 func getRDSSubnetGroups(svc rds.RDS) []*rds.DBSubnetGroup {
 	result, err := svc.DescribeDBSubnetGroups(
 		&rds.DescribeDBSubnetGroupsInput{
@@ -152,22 +145,6 @@ func getRDSSubnetGroups(svc rds.RDS) []*rds.DBSubnetGroup {
 	}
 
 	return result.DBSubnetGroups
-}
-
-func getRDSIdsByVpcIds(svc rds.RDS, VpcIds []*string) []*string {
-	RDSSubnetGroups := getRDSSubnetGroups(svc)
-
-	var RDSIds []*string
-
-	for _, rdsSubnetGroup := range RDSSubnetGroups {
-		for _, vpcId := range VpcIds {
-			if strings.Contains(*rdsSubnetGroup.DBSubnetGroupName,*vpcId) {
-				RDSIds = append(RDSIds, rdsSubnetGroup.DBSubnetGroupArn)
-			}
-		}
-	}
-
-	return RDSIds
 }
 
 func getRDSSubnetGroupsTags(svc rds.RDS, dbSubnetGroupArn string) []*rds.Tag {
@@ -192,7 +169,7 @@ func getExpiredRDSSubnetGroups(svc rds.RDS, tagName string) []*rds.DBSubnetGroup
 		tags := getRDSSubnetGroupsTags(svc, *RDSSubnetGroup.DBSubnetGroupArn)
 		creationDate, ttl, isProtected, _, _ := utils.GetEssentialTags(tags, tagName)
 
-		if utils.CheckIfExpired(creationDate,ttl) && !isProtected {
+		if utils.CheckIfExpired(creationDate, ttl, "RDS subnet group: " + *RDSSubnetGroup.DBSubnetGroupArn) && !isProtected {
 			expiredRDSSubnetGroups = append(expiredRDSSubnetGroups, RDSSubnetGroup)
 		}
 	}

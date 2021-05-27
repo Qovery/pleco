@@ -34,6 +34,7 @@ func listTaggedBuckets(s3Session s3.S3, tagName string) ([]s3Bucket, error) {
 			&s3.GetBucketLocationInput{
 				Bucket: aws.String(*bucket.Name),
 		})
+
 		if locationErr != nil {
 			continue
 		}
@@ -46,6 +47,7 @@ func listTaggedBuckets(s3Session s3.S3, tagName string) ([]s3Bucket, error) {
 			&s3.GetBucketTaggingInput{
 				Bucket: aws.String(*bucket.Name),
 		})
+
 		if tagErr != nil {
 			continue
 		}
@@ -72,6 +74,7 @@ func deleteS3Objects(s3session s3.S3, bucket string, objects []*s3.ObjectIdentif
 				Quiet: aws.Bool(false),
 		},
 	})
+
 	if err != nil {
 		return err
 	}
@@ -85,6 +88,7 @@ func deleteS3ObjectsVersions(s3session s3.S3, bucket string) error {
 		&s3.ListObjectVersionsInput{
 			Bucket: aws.String(bucket),
 	})
+
 	if err != nil {
 		return err
 	}
@@ -140,6 +144,7 @@ func deleteAllS3Objects(s3session s3.S3, bucket string) error {
 		&s3.ListObjectsV2Input{
 			Bucket: aws.String(bucket),
 	})
+
 	if err != nil {
 		return err
 	}
@@ -206,7 +211,7 @@ func DeleteExpiredBuckets(s3session s3.S3, tagName string, dryRun bool) {
 	}
 	var expiredBuckets []s3Bucket
 	for _, bucket := range buckets {
-		if utils.CheckIfExpired(bucket.CreateTime, bucket.TTL) && !bucket.IsProtected {
+		if utils.CheckIfExpired(bucket.CreateTime, bucket.TTL, "S3 bucket: "+ bucket.Name) && !bucket.IsProtected {
 			expiredBuckets = append(expiredBuckets, bucket)
 		}
 	}
@@ -231,7 +236,7 @@ func DeleteExpiredBuckets(s3session s3.S3, tagName string, dryRun bool) {
 		deletionErr := deleteS3Buckets(s3session, bucket.Name)
 		if deletionErr != nil {
 			log.Errorf("Deletion S3 Bucket %s/%s error: %s",
-					bucket.Name, *region, err)
+				bucket.Name, *region, err)
 		}
 	}
 }

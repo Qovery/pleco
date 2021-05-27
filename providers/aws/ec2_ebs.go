@@ -1,4 +1,4 @@
-package ec2
+package aws
 
 import (
 	"fmt"
@@ -133,7 +133,7 @@ func DeleteExpiredVolumes(ec2Session ec2.EC2, tagName string, dryRun bool) {
 
 	var expiredVolumes []EBSVolume
 	for _, volume := range volumes {
-		if utils.CheckIfExpired(volume.CreatedTime, volume.TTL) && !volume.IsProtected {
+		if utils.CheckIfExpired(volume.CreatedTime, volume.TTL, "EBS volume: " + volume.VolumeId) && !volume.IsProtected {
 			expiredVolumes = append(expiredVolumes, volume)
 		}
 	}

@@ -1,4 +1,4 @@
-package logs
+package aws
 
 import (
 	"github.com/Qovery/pleco/utils"
@@ -96,7 +96,7 @@ func DeleteExpiredLogs(svc cloudwatchlogs.CloudWatchLogs, tagName string, dryRun
 	var expiredLogs []CompleteLogGroup
 	for _, log := range logs {
 		completeLogGroup := getCompleteLogGroup(svc, *log, tagName)
-		if utils.CheckIfExpired(completeLogGroup.creationDate, completeLogGroup.ttl) && !completeLogGroup.IsProtected{
+		if utils.CheckIfExpired(completeLogGroup.creationDate, completeLogGroup.ttl, "log group: " + completeLogGroup.logGroupName) && !completeLogGroup.IsProtected{
 			expiredLogs = append(expiredLogs, completeLogGroup)
 		}
 	}

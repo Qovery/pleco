@@ -1,4 +1,4 @@
-package ec2
+package aws
 
 import (
 	"fmt"
@@ -176,7 +176,7 @@ func DeleteExpiredLoadBalancers(elbSession elbv2.ELBV2, tagName string, dryRun b
 
 	var expiredLoadBalancers []ElasticLoadBalancer
 	for _, lb := range lbs{
-		if utils.CheckIfExpired(lb.CreatedTime, lb.TTL) && !lb.IsProtected {
+		if utils.CheckIfExpired(lb.CreatedTime, lb.TTL, "Elastic load balancer: " + lb.Arn) && !lb.IsProtected {
 			expiredLoadBalancers = append(expiredLoadBalancers, lb)
 		}
 	}
