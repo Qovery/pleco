@@ -9,7 +9,7 @@ Automatically remove cloud and kubernetes resources based on a time to leave tag
 
 Protect resources from deletion with a protection tag, **do_no_delete**.
 
-NOTE: this project is in early stage development
+NOTE: this project is used in Qovery's production environment
 
 ---
 ## Supported resources
