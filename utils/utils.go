@@ -88,8 +88,7 @@ func GetEssentialTags(tagsInput interface{}, tagName string) (time.Time, int64, 
 	for i := range tags {
 		switch tags[i].Key {
 			case "creationDate":
-				creationTime, _ := strconv.ParseInt(tags[i].Value, 10, 64)
-				creationDate = time.Unix(creationTime,0)
+				creationDate = stringDateToTimeDate(tags[i].Value)
 			case "ttl":
 				result, _ := strconv.ParseInt(tags[i].Value, 10, 64)
 				ttl = result
@@ -188,7 +187,7 @@ func rdsCreationDateTag(rdsSession rds.RDS, idsToTag []*string, creationDate tim
 func ElemToDeleteFormattedInfos(elemName string, arraySize int, region string) (string,string) {
 	count := fmt.Sprintf("There is no %s to delete in region %s.", elemName,region)
 	if arraySize == 1 {
-		count = fmt.Sprintf("There is no %s to delete in region %s.", elemName,region)
+		count = fmt.Sprintf("There is 1 %s to delete in region %s.", elemName,region)
 	}
 	if arraySize > 1 {
 		count = fmt.Sprintf("There are %d %ss to delete in region %s.", arraySize, elemName,region)
@@ -227,6 +226,17 @@ func getSlicedArray(arrayToSlice []*string, sliceRange int) [][]*string {
 
 
 	return slicedArray
+}
+
+func stringDateToTimeDate(date string) time.Time {
+	year, _ := strconv.ParseInt(date[0:4], 10, 32)
+	month, _ := strconv.ParseInt(date[5:7], 10, 32)
+	day, _ := strconv.ParseInt(date[8:10], 10, 32)
+	hour, _ := strconv.ParseInt(date[11:13], 10, 32)
+	minutes, _ := strconv.ParseInt(date[14:16], 10, 32)
+	seconds, _ := strconv.ParseInt(date[17:18], 10, 32)
+
+	return time.Date(int(year), time.Month(month), int(day), int(hour), int(minutes), int(seconds), 0, time.Local)
 }
 
 
