@@ -20,11 +20,9 @@ func listTaggedBuckets(s3Session s3.S3, tagName string) ([]s3Bucket, error) {
 	var taggedS3Buckets []s3Bucket
 	currentRegion := s3Session.Config.Region
 
-	input := &s3.ListBucketsInput{}
-
-	result, err := s3Session.ListBuckets(input)
-	if err != nil {
-		return nil, err
+	result, bucketErr := s3Session.ListBuckets(&s3.ListBucketsInput{})
+	if bucketErr != nil {
+		return nil, bucketErr
 	}
 
 	if len(result.Buckets) == 0 {
@@ -32,11 +30,11 @@ func listTaggedBuckets(s3Session s3.S3, tagName string) ([]s3Bucket, error) {
 	}
 
 	for _, bucket := range result.Buckets {
-		bucketLocationinput := &s3.GetBucketLocationInput{
-			Bucket: aws.String(*bucket.Name),
-		}
-		location, err := s3Session.GetBucketLocation(bucketLocationinput)
-		if err != nil {
+		location, locationErr := s3Session.GetBucketLocation(
+			&s3.GetBucketLocationInput{
+				Bucket: aws.String(*bucket.Name),
+		})
+		if locationErr != nil {
 			continue
 		}
 
@@ -44,12 +42,11 @@ func listTaggedBuckets(s3Session s3.S3, tagName string) ([]s3Bucket, error) {
 			continue
 		}
 
-		input := &s3.GetBucketTaggingInput{
-			Bucket: aws.String(*bucket.Name),
-		}
-
-		bucketTags, err := s3Session.GetBucketTagging(input)
-		if err != nil {
+		bucketTags, tagErr := s3Session.GetBucketTagging(
+			&s3.GetBucketTaggingInput{
+				Bucket: aws.String(*bucket.Name),
+		})
+		if tagErr != nil {
 			continue
 		}
 
@@ -67,15 +64,14 @@ func listTaggedBuckets(s3Session s3.S3, tagName string) ([]s3Bucket, error) {
 }
 
 func deleteS3Objects(s3session s3.S3, bucket string, objects []*s3.ObjectIdentifier) error {
-	input := &s3.DeleteObjectsInput{
-		Bucket: aws.String(bucket),
-		Delete: &s3.Delete{
-			Objects: objects,
-			Quiet: aws.Bool(false),
+	_, err := s3session.DeleteObjects(
+		&s3.DeleteObjectsInput{
+			Bucket: aws.String(bucket),
+			Delete: &s3.Delete{
+				Objects: objects,
+				Quiet: aws.Bool(false),
 		},
-	}
-
-	_, err := s3session.DeleteObjects(input)
+	})
 	if err != nil {
 		return err
 	}
@@ -85,16 +81,16 @@ func deleteS3Objects(s3session s3.S3, bucket string, objects []*s3.ObjectIdentif
 
 func deleteS3ObjectsVersions(s3session s3.S3, bucket string) error {
 	// list all objects
-	input := &s3.ListObjectVersionsInput{
-		Bucket:              aws.String(bucket),
-	}
-	result, err := s3session.ListObjectVersions(input)
+	result, err := s3session.ListObjectVersions(
+		&s3.ListObjectVersionsInput{
+			Bucket: aws.String(bucket),
+	})
 	if err != nil {
 		return err
 	}
 
 	// delete all objects
-	objectsIdentifiers := []*s3.ObjectIdentifier{}
+	var objectsIdentifiers []*s3.ObjectIdentifier
 	counter := 0
 	for _, version := range result.Versions {
 		if counter >= 1000 {
@@ -140,16 +136,16 @@ func deleteS3ObjectsVersions(s3session s3.S3, bucket string) error {
 
 func deleteAllS3Objects(s3session s3.S3, bucket string) error {
 	// list all objects
-	input := &s3.ListObjectsV2Input{
-		Bucket: aws.String(bucket),
-	}
-	result, err := s3session.ListObjectsV2(input)
+	result, err := s3session.ListObjectsV2(
+		&s3.ListObjectsV2Input{
+			Bucket: aws.String(bucket),
+	})
 	if err != nil {
 		return err
 	}
 
 	// delete all objects
-	objectsIdentifiers := []*s3.ObjectIdentifier{}
+	var objectsIdentifiers []*s3.ObjectIdentifier
 	counter := 0
 	for _, object := range result.Contents {
 		if counter >= 1000 {
@@ -215,9 +211,9 @@ func DeleteExpiredBuckets(s3session s3.S3, tagName string, dryRun bool) {
 		}
 	}
 
-	s := "There is no expired S3 bucket to delete."
+	s := fmt.Sprintf("There is no expired S3 bucket to delete in %s.", *region)
 	if len(expiredBuckets) == 1 {
-		s = "There is 1 expired S3 bucket to delete."
+		s = fmt.Sprintf("There is 1 expired S3 bucket to delete in %s.", *region)
 	}
 	if len(expiredBuckets) > 1 {
 		s = fmt.Sprintf("There are %d expired S3 buckets to delete.", len(expiredBuckets))

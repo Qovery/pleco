@@ -53,7 +53,7 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 
 	logrus.Infof("Starting to check expired resources in region %s." , *currentSession.Config.Region)
 
-
+	var currentS3Session *s3.S3
 	var currentRdsSession *rds.RDS
 	var currentElasticacheSession *elasticache.ElastiCache
 	var currentEKSSession *eks.EKS
@@ -64,6 +64,12 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 	var currentECRSession *ecr.ECR
 	elbEnabled := false
 	ebsEnabled := false
+
+	// S3
+	s3Enabled, _ := cmd.Flags().GetBool("enable-s3")
+	if s3Enabled {
+		currentS3Session = s3.New(currentSession)
+	}
 
 	// RDS + DocumentDB connection
 	rdsEnabled, _ := cmd.Flags().GetBool("enable-rds")
@@ -144,6 +150,12 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 			 }
 		}
 
+		// check s3
+		if s3Enabled {
+			logrus.Debugf("Listing all S3 buckets in region %s.", *currentS3Session.Config.Region)
+			DeleteExpiredBuckets(*currentS3Session, tagName, dryRun)
+		}
+
 		// check RDS
 		if rdsEnabled {
 			logrus.Debugf("Listing all RDS databases in region %s.", *currentRdsSession.Config.Region)
@@ -221,14 +233,7 @@ func runPlecoInGlobal(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.
 
 	logrus.Info("Starting to check global expired resources.")
 
-	var currentS3Session *s3.S3
 	var currentIAMSession *iam.IAM
-
-	// S3
-	s3Enabled, _ := cmd.Flags().GetBool("enable-s3")
-	if s3Enabled {
-		currentS3Session = s3.New(currentSession)
-	}
 
 	// IAM
 	iamEnabled, _ := cmd.Flags().GetBool("enable-iam")
@@ -237,12 +242,6 @@ func runPlecoInGlobal(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.
 	}
 
 	for {
-		// check s3
-		if s3Enabled {
-			logrus.Debugf("Listing all S3 buckets in region %s.", *currentS3Session.Config.Region)
-			DeleteExpiredBuckets(*currentS3Session, tagName, dryRun)
-		}
-
 		// check IAM
 		if iamEnabled {
 			logrus.Debug("Listing all IAM access.")
