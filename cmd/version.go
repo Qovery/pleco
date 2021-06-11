@@ -19,5 +19,5 @@ func init() {
 }
 
 func GetCurrentVersion() string {
-	return "0.7.21" // ci-version-check
+	return "0.8.0" // ci-version-check
 }

@@ -1,4 +1,4 @@
-package iam
+package aws
 
 import (
 	"fmt"
@@ -85,7 +85,7 @@ func DeleteExpiredRoles(iamSession *iam.IAM, tagName string, dryRun bool) {
 	var expiredRoles []Role
 
 	for _, role := range roles {
-		if utils.CheckIfExpired(role.CreationDate, role.ttl) && !role.IsProtected {
+		if utils.CheckIfExpired(role.CreationDate, role.ttl, "iam role: " + role.RoleName) && !role.IsProtected {
 			expiredRoles = append(expiredRoles, role)
 		}
 	}

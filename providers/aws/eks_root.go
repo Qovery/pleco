@@ -1,10 +1,7 @@
-package eks
+package aws
 
 import (
 	"fmt"
-	ec22 "github.com/Qovery/pleco/providers/aws/ec2"
-	"github.com/Qovery/pleco/providers/aws/logs"
-	"github.com/Qovery/pleco/providers/aws/vpc"
 	"github.com/Qovery/pleco/utils"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -160,32 +157,27 @@ func deleteEKSCluster(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.ELBV2, c
 	}
 
 	// tag associated load balancers for deletion
-	lbsAssociatedToThisEksCluster, err := ec22.ListTaggedLoadBalancersWithKeyContains(elbSession, cluster.ClusterName)
+	lbsAssociatedToThisEksCluster, err := ListTaggedLoadBalancersWithKeyContains(elbSession, cluster.ClusterName)
 	if err != nil {
 		return err
 	}
-	err = ec22.TagLoadBalancersForDeletion(elbSession, tagName, lbsAssociatedToThisEksCluster, cluster.ClusterName)
+	err = TagLoadBalancersForDeletion(elbSession, tagName, lbsAssociatedToThisEksCluster, cluster.ClusterName)
 	if err != nil {
 		return err
 	}
 
 	// tag associated ebs for deletion
-	err = ec22.TagVolumesFromEksClusterForDeletion(ec2Session, tagName, cluster.ClusterName)
+	err = TagVolumesFromEksClusterForDeletion(ec2Session, tagName, cluster.ClusterName)
 	if err != nil {
 		return err
 	}
 
 	// tag cloudwatch logs for deletion
-	err = logs.TagLogsForDeletion(cloudwatchLogsSession, tagName, cluster.ClusterId)
+	err = TagLogsForDeletion(cloudwatchLogsSession, tagName, cluster.ClusterId)
 	if err != nil {
 		return err
 	}
 
-	// add cluster creation date vpc for deletion
-	err = vpc.TagVPCsForDeletion(ec2Session, rdsSession, cluster.ClusterName, cluster.ClusterCreateTime, cluster.TTL)
-	if err != nil {
-		return err
-	}
 
 	// delete EKS cluster
 	_, err = svc.DeleteCluster(
@@ -238,7 +230,7 @@ func DeleteExpiredEKSClusters(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.
 
 	var expiredCluster []eksCluster
 	for _, cluster := range clusters {
-		if utils.CheckIfExpired(cluster.ClusterCreateTime, cluster.TTL) && !cluster.IsProtected {
+		if utils.CheckIfExpired(cluster.ClusterCreateTime, cluster.TTL, "eks cluster: " + cluster.ClusterId) && !cluster.IsProtected {
 			expiredCluster = append(expiredCluster, cluster)
 		}
 	}
@@ -261,33 +253,4 @@ func DeleteExpiredEKSClusters(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.
 		}
 
 	}
-}
-
-func TagClustersResources(svc eks.EKS, ec2Session ec2.EC2, rdsSession rds.RDS, tagName string) error {
-	clusters, err := listTaggedEKSClusters(svc, tagName)
-	if err != nil {
-		return fmt.Errorf("can't list EKS clusters: %s\n", err)
-	}
-
-	var tagErrs error
-	for _, cluster := range clusters {
-		tagErr := vpc.TagVPCsForDeletion(ec2Session, rdsSession, cluster.ClusterName, cluster.ClusterCreateTime, cluster.TTL)
-		if tagErr != nil {
-			tagErrs = fmt.Errorf("%s ; %s", tagErrs, tagErr)
-		}
-
-
-
-		//TODO : find why tagging key pair make them disappear
-		tagErr = ec22.TagSshKeys(ec2Session, cluster.ClusterName, cluster.ClusterCreateTime, cluster.TTL)
-		if tagErr != nil {
-			tagErrs = fmt.Errorf("%s ; %s", tagErrs, tagErr)
-		}
-	}
-
-	if tagErrs != nil {
-		return tagErrs
-	}
-
-	return nil
 }

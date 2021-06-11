@@ -1,4 +1,4 @@
-package vpc
+package aws
 
 import (
 	"github.com/Qovery/pleco/utils"
@@ -34,24 +34,6 @@ func getInternetGatewaysByVpcId (ec2Session ec2.EC2, vpcId string) []*ec2.Intern
 	return gateways.InternetGateways
 }
 
-func getInternetGatewaysByVpcsIds (ec2Session ec2.EC2, vpcsIds []*string) []*ec2.InternetGateway{
-	input := &ec2.DescribeInternetGatewaysInput{
-		Filters:  []*ec2.Filter{
-			{
-				Name:   aws.String("attachment.vpc-id"),
-				Values: vpcsIds,
-			},
-		},
-	}
-
-	result , err := ec2Session.DescribeInternetGateways(input)
-	if err != nil {
-		log.Error(err)
-	}
-
-	return result.InternetGateways
-}
-
 func SetInternetGatewaysIdsByVpcId (ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup, tagName string) {
 	defer waitGroup.Done()
 	var internetGateways []InternetGateway
@@ -76,7 +58,7 @@ func SetInternetGatewaysIdsByVpcId (ec2Session ec2.EC2, vpc *VpcInfo, waitGroup 
 
 func DeleteInternetGatewaysByIds (ec2Session ec2.EC2, internetGateways []InternetGateway) {
 	for _, internetGateway := range internetGateways {
-		if utils.CheckIfExpired(internetGateway.CreationDate, internetGateway.ttl) && !internetGateway.IsProtected {
+		if utils.CheckIfExpired(internetGateway.CreationDate, internetGateway.ttl, "vpc internet gateway: " + internetGateway.Id) && !internetGateway.IsProtected {
 			_, err := ec2Session.DeleteInternetGateway(
 				&ec2.DeleteInternetGatewayInput{
 					InternetGatewayId: aws.String(internetGateway.Id),
@@ -88,15 +70,4 @@ func DeleteInternetGatewaysByIds (ec2Session ec2.EC2, internetGateways []Interne
 			}
 		}
 	}
-}
-
-func AddCreationDateTagToIGW (ec2Session ec2.EC2, vpcsId []*string, creationDate time.Time, ttl int64) error {
-	gateways := getInternetGatewaysByVpcsIds(ec2Session, vpcsId)
-	var gatewaysIds []*string
-
-	for _, gateway := range gateways {
-		gatewaysIds = append(gatewaysIds, gateway.InternetGatewayId)
-	}
-
-	return utils.AddCreationDateTag(ec2Session, gatewaysIds, creationDate, ttl)
 }

@@ -1,4 +1,4 @@
-package vpc
+package aws
 
 import (
 	"github.com/Qovery/pleco/utils"
@@ -34,23 +34,6 @@ func getSecurityGroupsByVpcId (ec2Session ec2.EC2, vpcId string) []*ec2.Security
 	return result.SecurityGroups
 }
 
-func getSecurityGroupsByVpcsIds (ec2Session ec2.EC2, vpcsIds []*string) []*ec2.SecurityGroup{
-		result , err := ec2Session.DescribeSecurityGroups(
-			&ec2.DescribeSecurityGroupsInput{
-				Filters:  []*ec2.Filter{
-					{
-						Name:   aws.String("vpc-id"),
-						Values: vpcsIds,
-					},
-				},
-			})
-		if err != nil {
-			log.Error(err)
-		}
-
-	return result.SecurityGroups
-}
-
 func SetSecurityGroupsIdsByVpcId (ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup, tagName string) {
 	defer waitGroup.Done()
 	var securityGroupsStruct []SecurityGroup
@@ -78,7 +61,7 @@ func SetSecurityGroupsIdsByVpcId (ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *s
 
 func DeleteSecurityGroupsByIds (ec2Session ec2.EC2, securityGroups []SecurityGroup) {
 	for _, securityGroup := range securityGroups {
-		if utils.CheckIfExpired(securityGroup.CreationDate, securityGroup.ttl) && !securityGroup.IsProtected{
+		if utils.CheckIfExpired(securityGroup.CreationDate, securityGroup.ttl, "vpc security group: " + securityGroup.Id) && !securityGroup.IsProtected{
 			deleteIpPermissions(ec2Session, securityGroup.Id)
 
 			_, err := ec2Session.DeleteSecurityGroup(
@@ -119,16 +102,4 @@ func deleteIpPermissions (ec2Session ec2.EC2, securityGroupId string) {
 		log.Warn("Egress Perms : " + egressErr.Error())
 	}
 
-}
-
-func AddCreationDateTagToSG (ec2Session ec2.EC2, vpcsId []*string, creationDate time.Time, ttl int64) error {
-	securityGroups := getSecurityGroupsByVpcsIds(ec2Session, vpcsId)
-	var securityGroupsIds []*string
-
-	for _, securityGroup := range securityGroups {
-		securityGroupsIds = append(securityGroupsIds, securityGroup.GroupId)
-	}
-
-
-	return utils.AddCreationDateTag(ec2Session, securityGroupsIds, creationDate, ttl)
 }

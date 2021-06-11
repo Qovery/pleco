@@ -1,12 +1,9 @@
-package vpc
+package aws
 
 import (
-	"fmt"
-	"github.com/Qovery/pleco/providers/aws/database"
 	"github.com/Qovery/pleco/utils"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/rds"
 	log "github.com/sirupsen/logrus"
 	"sync"
 	"time"
@@ -108,7 +105,7 @@ func listTaggedVPC(ec2Session ec2.EC2, tagName string) ([]VpcInfo, error) {
 			getCompleteVpc(ec2Session, &taggedVpc, tagName)
 		}
 
-		if utils.CheckIfExpired(taggedVpc.CreationDate, taggedVpc.TTL) && !taggedVpc.IsProtected {
+		if utils.CheckIfExpired(taggedVpc.CreationDate, taggedVpc.TTL, "vpc: " + *taggedVpc.VpcId) && !taggedVpc.IsProtected {
 			taggedVPCs = append(taggedVPCs, taggedVpc)
 		}
 
@@ -180,43 +177,4 @@ func getCompleteVpc(ec2Session ec2.EC2, vpc *VpcInfo, tagName string){
 	waitGroup.Add(1)
 	go SetRouteTablesIdsByVpcId(ec2Session, vpc, &waitGroup, tagName)
 	waitGroup.Wait()
-}
-
-func addCreationDateToVpcs(ec2Session ec2.EC2, vpcsIds []*string, clusterCreationTime time.Time, clusterTtl int64) error {
-	return utils.AddCreationDateTag(ec2Session, vpcsIds, clusterCreationTime, clusterTtl)
-}
-
-func TagVPCsForDeletion(ec2Session ec2.EC2, rdsSession rds.RDS, clusterId string, clusterCreationTime time.Time, clusterTtl int64) error {
-	vpcsIds := GetVpcsIdsByClusterNameTag(ec2Session, clusterId)
-
-	err := AddCreationDateTagToSG(ec2Session, vpcsIds, clusterCreationTime, clusterTtl)
-	if err != nil {
-		return fmt.Errorf("Can't tag security groups for cluster %s in region %s: %s", clusterId, * ec2Session.Config.Region, err.Error())
-	}
-
- 	err = AddCreationDateTagToIGW(ec2Session, vpcsIds, clusterCreationTime, clusterTtl)
-	if err != nil {
-		return fmt.Errorf("Can't tag internet gateways for cluster %s in region %s: %s", clusterId, * ec2Session.Config.Region, err.Error())
-	}
-
-	err = AddCreationDateTagToSubnets(ec2Session, vpcsIds, clusterCreationTime, clusterTtl)
-	if err != nil {
-		return fmt.Errorf("Can't tag subnets for cluster %s in region %s: %s", clusterId, * ec2Session.Config.Region, err.Error())
-	}
-
-	err = AddCreationDateTagToRTB(ec2Session, vpcsIds, clusterCreationTime, clusterTtl)
-	if err != nil {
-		return fmt.Errorf("Can't tag route tables for cluster %s in region %s: %s", clusterId, * ec2Session.Config.Region, err.Error())
-	}
-
-	err = database.AddCreationDateTagToRdsSubnetGroups(rdsSession, vpcsIds, clusterCreationTime, clusterTtl)
-	if err != nil {
-		return fmt.Errorf("Can't tag RDS subnet groups for cluster %s in region %s: %s", clusterId, * rdsSession.Config.Region, err.Error())
-	}
-
-	err = addCreationDateToVpcs(ec2Session, vpcsIds, clusterCreationTime, clusterTtl)
-	if err != nil {
-		return fmt.Errorf("Can't tag VPC for cluster %s in region %s: %s", clusterId, * rdsSession.Config.Region, err.Error())
-	}
-	return nil
 }

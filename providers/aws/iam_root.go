@@ -1,4 +1,4 @@
-package iam
+package aws
 
 import (
 	"github.com/aws/aws-sdk-go/service/iam"

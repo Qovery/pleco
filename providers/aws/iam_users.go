@@ -1,4 +1,4 @@
-package iam
+package aws
 
 import (
 	"fmt"
@@ -105,7 +105,7 @@ func DeleteExpiredUsers(iamSession *iam.IAM, tagName string, dryRun bool) {
 	var expiredUsers []User
 
 	for _, user := range users {
-		if utils.CheckIfExpired(user.CreationDate, user.ttl) && !user.IsProtected {
+		if utils.CheckIfExpired(user.CreationDate, user.ttl, "iam user: " + user.UserName) && !user.IsProtected {
 			expiredUsers = append(expiredUsers, user)
 		}
 	}

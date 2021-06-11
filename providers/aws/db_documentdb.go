@@ -1,4 +1,4 @@
-package database
+package aws
 
 import (
 	"errors"
@@ -119,7 +119,7 @@ func DeleteExpiredDocumentDBClusters(svc rds.RDS, tagName string, dryRun bool) {
 
 	var expiredClusters []documentDBCluster
 	for _, cluster := range clusters {
-		if utils.CheckIfExpired(cluster.ClusterCreateTime, cluster.TTL)  && !cluster.IsProtected {
+		if utils.CheckIfExpired(cluster.ClusterCreateTime, cluster.TTL, "document Db: " + cluster.DBClusterIdentifier)  && !cluster.IsProtected {
 			expiredClusters = append(expiredClusters, cluster)
 		}
 	}

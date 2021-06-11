@@ -1,4 +1,4 @@
-package ec2
+package aws
 
 import (
 	"github.com/Qovery/pleco/utils"
@@ -45,19 +45,7 @@ func getSshKeys (ec2session *ec2.EC2, tagName string) []KeyPair {
 	return keys
 }
 
-func TagSshKeys(ec2session ec2.EC2, clusterName string, clusterCreationTime time.Time, clusterTtl int64) error {
-	keys := getSshKeys(&ec2session, "ttl")
-	var keysIds []*string
-	for _, key := range keys {
-		if key.KeyName == clusterName {
-			keysIds = append(keysIds, &key.KeyId)
-		}
-	}
-
-	return utils.AddCreationDateTag(ec2session, keysIds, clusterCreationTime, clusterTtl)
-}
-
-func deleteKey (ec2session *ec2.EC2, keyId string) error {
+func deleteKeyPair (ec2session *ec2.EC2, keyId string) error {
 	_, err := ec2session.DeleteKeyPair(
 		&ec2.DeleteKeyPairInput{
 			KeyPairId: aws.String(keyId),
@@ -66,12 +54,12 @@ func deleteKey (ec2session *ec2.EC2, keyId string) error {
 	return err
 }
 
-func DeleteExpiredKeys (ec2session *ec2.EC2, tagName string, dryRun bool) {
+func DeleteExpiredKeyPairs(ec2session *ec2.EC2, tagName string, dryRun bool) {
 	keys := getSshKeys(ec2session, tagName)
 	region := ec2session.Config.Region
 	var expiredKeys []KeyPair
 	for _, key := range keys {
-		if utils.CheckIfExpired(key.CreationDate, key.ttl) && !key.IsProtected {
+		if utils.CheckIfExpired(key.CreationDate, key.ttl, "ec2 key pair: " + key.KeyId) && !key.IsProtected {
 			expiredKeys = append(expiredKeys, key)
 		}
 	}
@@ -87,7 +75,7 @@ func DeleteExpiredKeys (ec2session *ec2.EC2, tagName string, dryRun bool) {
 	log.Debug(start)
 
 	for _, key := range expiredKeys {
-		deletionErr := deleteKey(ec2session, key.KeyId)
+		deletionErr := deleteKeyPair(ec2session, key.KeyId)
 		if deletionErr != nil {
 			log.Errorf("Deletion EC2 key pair error %s/%s: %s",
 				key.KeyName, *region, deletionErr)

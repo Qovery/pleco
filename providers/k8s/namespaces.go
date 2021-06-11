@@ -89,7 +89,7 @@ func DeleteExpiredNamespaces(clientSet *kubernetes.Clientset, tagName string, dr
 	}
 
 	for _, namespace := range namespaces {
-		if utils.CheckIfExpired(namespace.NamespaceCreateTime, namespace.TTL) {
+		if utils.CheckIfExpired(namespace.NamespaceCreateTime, namespace.TTL, "Namespace: " +namespace.Name) {
 			err := deleteNamespace(clientSet, namespace, dryRun)
 			if err != nil {
 				log.Errorf("error while trying to delete namespace: %s", err)

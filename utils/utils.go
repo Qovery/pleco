@@ -2,7 +2,6 @@ package utils
 
 import (
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	"github.com/aws/aws-sdk-go/service/elbv2"
@@ -35,50 +34,41 @@ func GetEssentialTags(tagsInput interface{}, tagName string) (time.Time, int64, 
 	var tag string
 	var tags []MyTag
 
-	switch tagsInput.(type) {
+	switch typedTags := tagsInput.(type) {
 		case []*rds.Tag:
-			m := tagsInput.([]*rds.Tag)
-			for _, elem := range m {
+			for _, elem := range typedTags {
 				tags = append(tags, MyTag{Key: *elem.Key, Value: *elem.Value})
 			}
 		case []*ec2.Tag:
-			m := tagsInput.([]*ec2.Tag)
-			for _, elem := range m {
+			for _, elem := range typedTags {
 				tags = append(tags, MyTag{Key: *elem.Key, Value: *elem.Value})
 			}
 		case []*iam.Tag:
-			m := tagsInput.([]*iam.Tag)
-			for _, elem := range m {
+			for _, elem := range typedTags {
 				tags = append(tags, MyTag{Key: *elem.Key, Value: *elem.Value})
 			}
 		case []*kms.Tag:
-			m := tagsInput.([]*kms.Tag)
-			for _, elem := range m {
+			for _, elem := range typedTags {
 				tags = append(tags, MyTag{Key: *elem.TagKey, Value: *elem.TagValue})
 			}
 		case []*s3.Tag:
-			m := tagsInput.([]*s3.Tag)
-			for _, elem := range m {
+			for _, elem := range typedTags {
 				tags = append(tags, MyTag{Key: *elem.Key, Value: *elem.Value})
 			}
 		case []*elbv2.Tag:
-			m := tagsInput.([]*elbv2.Tag)
-			for _, elem := range m {
+			for _, elem := range typedTags {
 				tags = append(tags, MyTag{Key: *elem.Key, Value: *elem.Value})
 			}
 		case []*elasticache.Tag:
-			m := tagsInput.([]*elasticache.Tag)
-			for _, elem := range m {
+			for _, elem := range typedTags {
 				tags = append(tags, MyTag{Key: *elem.Key, Value: *elem.Value})
 			}
 		case []*Tag:
-			m := tagsInput.([]*Tag)
-			for _, elem := range m {
+			for _, elem := range typedTags {
 				tags = append(tags, MyTag{Key: *elem.Key, Value: *elem.Value})
 			}
 		case map[string]*string:
-			m := tagsInput.(map[string]*string)
-			for key, value := range m {
+			for key, value := range typedTags {
 				tags = append(tags, MyTag{Key: key, Value: *value})
 			}
 		default:
@@ -107,81 +97,18 @@ func GetEssentialTags(tagsInput interface{}, tagName string) (time.Time, int64, 
 	return creationDate, ttl, isProtected, clusterId, tag
 }
 
-func CheckIfExpired(creationTime time.Time, ttl int64) bool {
+func CheckIfExpired(creationTime time.Time, ttl int64, resourceName string) bool {
 	expirationTime := creationTime.Add(time.Duration(ttl) * time.Second)
-	if ttl == 0  || creationTime.Year() < 1972 {
+	if ttl == 0 {
 		return false
 	}
+
+	if creationTime.Year() < 1972 {
+		log.Errorf("Creation date tag is missing. Can't check if resource %s is expired.", resourceName)
+		return false
+	}
+
 	return time.Now().After(expirationTime)
-}
-
-func AddCreationDateTag(svc interface{}, idsToTag []*string, creationDate time.Time, ttl int64) error {
-	if idsToTag != nil {
-
-		ec2Session, isOk := svc.(ec2.EC2)
-		if isOk {
-			return  ec2CreationDateTag(ec2Session, idsToTag, creationDate, ttl)
-		}
-
-		rdsSession, isOk := svc.(rds.RDS)
-		if isOk {
-			return  rdsCreationDateTag(rdsSession, idsToTag, creationDate, ttl)
-		}
-	}
-
-	return nil
-}
-
-func ec2CreationDateTag(ec2Session ec2.EC2, idsToTag []*string, creationDate time.Time, ttl int64) error {
-	slicedArray := getSlicedArray(idsToTag, 20)
-
-	for _, slice := range slicedArray {
-			_, err := ec2Session.CreateTags(
-				&ec2.CreateTagsInput{
-					Resources: 	slice,
-					Tags: []*ec2.Tag{
-						{
-							Key: aws.String("creationDate"),
-							Value: aws.String(creationDate.String()),
-						},
-						{
-							Key: aws.String("ttl"),
-							Value: aws.String(strconv.FormatInt(ttl,10)),
-						},
-					},
-				})
-
-			if err != nil {
-				return fmt.Errorf("Can't add tags to %p in region %s: %s", slice, *ec2Session.Config.Region, err.Error())
-			}
-		}
-
-	return nil
-}
-
-func rdsCreationDateTag(rdsSession rds.RDS, idsToTag []*string, creationDate time.Time, ttl int64) error {
-	for _, id := range idsToTag {
-		_, err := 	rdsSession.AddTagsToResource(
-			&rds.AddTagsToResourceInput{
-				ResourceName: aws.String(*id),
-				Tags: []*rds.Tag{
-					{
-						Key: aws.String("creationDate"),
-						Value: aws.String(creationDate.String()),
-					},
-					{
-						Key: aws.String("ttl"),
-						Value: aws.String(strconv.FormatInt(ttl,10)),
-					},
-				},
-				})
-
-		if err != nil {
-			return fmt.Errorf("Can't add tags to %s in region %s: %s", *id, *rdsSession.Config.Region, err.Error())
-		}
-	}
-
-	return nil
 }
 
 func ElemToDeleteFormattedInfos(elemName string, arraySize int, region string) (string,string) {

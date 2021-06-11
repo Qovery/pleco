@@ -110,7 +110,7 @@ func DeleteExpiredKeys(svc kms.KMS, tagName string, dryRun bool) {
 		completeKey := getCompleteKey(svc, key.KeyId, tagName)
 
 		if completeKey.Status != "PendingDeletion" && completeKey.Status != "Disabled" &&
-			utils.CheckIfExpired(completeKey.CreationDate,  completeKey.TTL) && !completeKey.IsProtected {
+			utils.CheckIfExpired(completeKey.CreationDate,  completeKey.TTL, "kms key: " + completeKey.KeyId) && !completeKey.IsProtected {
 			if completeKey.Tag == tagName || tagName == "ttl"{
 				expiredKeys = append(expiredKeys, completeKey)
 			}
