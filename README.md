@@ -98,7 +98,7 @@ For exemple:
 -a eu-west-3,us-east-2
 ```
 
-####Resources Selector
+#### Resources Selector
 When pleco is running you have to specify which resources expiration will be checked.
 
 Here are some the resources you can check:
