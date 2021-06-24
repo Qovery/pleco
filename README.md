@@ -17,9 +17,12 @@ NOTE: this project is used in Qovery's production environment
 ---
 ## Supported resources
 - [X] AWS 
-  - [X] Document db databases 
+  - [X] Document DB databases
+  - [ ] Document DB subnet groups
   - [X] Elasticache databases
+  - [ ] Elasticache groups
   - [X] RDS databases
+  - [ ] RDS subnet groups  
   - [X] EBS volumes
   - [X] ELB load balancers
   - [X] EC2 Key pairs

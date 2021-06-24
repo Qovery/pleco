@@ -1,4 +1,4 @@
-package vpc
+package aws
 
 import (
 	"github.com/Qovery/pleco/utils"
@@ -34,24 +34,6 @@ func getSubnetsByVpcId (ec2Session ec2.EC2, vpcId string) []*ec2.Subnet {
 	return subnets.Subnets
 }
 
-func getSubnetsByVpcsIds (ec2Session ec2.EC2, vpcsIds []*string) []*ec2.Subnet {
-	input := &ec2.DescribeSubnetsInput{
-		Filters:  []*ec2.Filter{
-			{
-				Name:   aws.String("vpc-id"),
-				Values: vpcsIds,
-			},
-		},
-	}
-
-	result , err := ec2Session.DescribeSubnets(input)
-	if err != nil {
-		log.Error(err)
-	}
-
-	return result.Subnets
-}
-
 func SetSubnetsIdsByVpcId (ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup, tagName string) {
 	defer waitGroup.Done()
 	var subnetsStruct []Subnet
@@ -62,10 +44,10 @@ func SetSubnetsIdsByVpcId (ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.Wai
 		creationDate, ttl, isProtected, _, _ := utils.GetEssentialTags(subnet.Tags, tagName)
 
 		var subnetStruct = Subnet{
-			Id: *subnet.SubnetId,
-			CreationDate: creationDate,
-			ttl: ttl,
-			IsProtected: isProtected,
+			Id: 			*subnet.SubnetId,
+			CreationDate: 	creationDate,
+			ttl: 			ttl,
+			IsProtected: 	isProtected,
 		}
 		subnetsStruct = append(subnetsStruct, subnetStruct)
 	}
@@ -75,7 +57,7 @@ func SetSubnetsIdsByVpcId (ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.Wai
 
 func DeleteSubnetsByIds (ec2Session ec2.EC2, subnets []Subnet) {
 	for _, subnet := range subnets {
-		if utils.CheckIfExpired(subnet.CreationDate, subnet.ttl) && subnet.IsProtected {
+		if utils.CheckIfExpired(subnet.CreationDate, subnet.ttl, "vpc subnet: " + subnet.Id) && subnet.IsProtected {
 			_, err := ec2Session.DeleteSubnet(
 				&ec2.DeleteSubnetInput{
 					SubnetId: aws.String(subnet.Id),
@@ -87,15 +69,4 @@ func DeleteSubnetsByIds (ec2Session ec2.EC2, subnets []Subnet) {
 			}
 		}
 	}
-}
-
-func AddCreationDateTagToSubnets (ec2Session ec2.EC2, vpcsIds []*string, creationDate time.Time, ttl int64) error {
-	subnets := getSubnetsByVpcsIds(ec2Session, vpcsIds)
-	var subnetsIds []*string
-
-	for _, subnet := range subnets {
-		subnetsIds = append(subnetsIds, subnet.SubnetId)
-	}
-
-	return utils.AddCreationDateTag(ec2Session, subnetsIds, creationDate,ttl)
 }

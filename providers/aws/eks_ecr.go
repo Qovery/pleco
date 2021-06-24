@@ -1,4 +1,4 @@
-package eks
+package aws
 
 import (
 	"fmt"

@@ -1,4 +1,4 @@
-package iam
+package aws
 
 import (
 	"fmt"
@@ -32,12 +32,12 @@ func getUsers(iamSession *iam.IAM, tagName string) []User {
 
 	for _, user := range result.Users {
 		tags := getUserTags(iamSession, *user.UserName)
-		_ , ttl, isProtected, _, _ := utils.GetEssentialTags(tags, tagName)
+		creationDate, ttl, isProtected, _, _ := utils.GetEssentialTags(tags, tagName)
 		newUser := User{
-			UserName: *user.UserName,
-			CreationDate: *user.CreateDate,
-			ttl: ttl,
-			IsProtected: isProtected,
+			UserName: 		*user.UserName,
+			CreationDate: 	creationDate,
+			ttl: 			ttl,
+			IsProtected: 	isProtected,
 		}
 
 		users = append(users, newUser)
@@ -105,7 +105,7 @@ func DeleteExpiredUsers(iamSession *iam.IAM, tagName string, dryRun bool) {
 	var expiredUsers []User
 
 	for _, user := range users {
-		if utils.CheckIfExpired(user.CreationDate, user.ttl) && !user.IsProtected {
+		if utils.CheckIfExpired(user.CreationDate, user.ttl, "iam user: " + user.UserName) && !user.IsProtected {
 			expiredUsers = append(expiredUsers, user)
 		}
 	}

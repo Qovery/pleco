@@ -1,4 +1,4 @@
-package iam
+package aws
 
 import (
 	"fmt"
@@ -34,13 +34,13 @@ func getRoles(iamSession *iam.IAM, tagName string) []Role {
 	for _, role := range result.Roles {
 		tags := getRoleTags(iamSession, *role.RoleName)
 		instanceProfiles := getRoleInstanceProfile(iamSession, *role.RoleName)
-		_, ttl, isProtected, _, _ := utils.GetEssentialTags(tags, tagName)
+		creationDate, ttl, isProtected, _, _ := utils.GetEssentialTags(tags, tagName)
 		newRole := Role{
-			RoleName: *role.RoleName,
-			CreationDate: *role.CreateDate,
-			InstanceProfile: instanceProfiles,
-			ttl: ttl,
-			IsProtected: isProtected,
+			RoleName: 			*role.RoleName,
+			CreationDate: 		creationDate,
+			InstanceProfile: 	instanceProfiles,
+			ttl: 				ttl,
+			IsProtected: 		isProtected,
 		}
 
 
@@ -85,7 +85,7 @@ func DeleteExpiredRoles(iamSession *iam.IAM, tagName string, dryRun bool) {
 	var expiredRoles []Role
 
 	for _, role := range roles {
-		if utils.CheckIfExpired(role.CreationDate, role.ttl) && !role.IsProtected {
+		if utils.CheckIfExpired(role.CreationDate, role.ttl, "iam role: " + role.RoleName) && !role.IsProtected {
 			expiredRoles = append(expiredRoles, role)
 		}
 	}

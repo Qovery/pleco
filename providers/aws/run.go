@@ -1,12 +1,6 @@
 package aws
 
 import (
-	"github.com/Qovery/pleco/providers/aws/database"
-	ec22 "github.com/Qovery/pleco/providers/aws/ec2"
-	eks2 "github.com/Qovery/pleco/providers/aws/eks"
-	iam2 "github.com/Qovery/pleco/providers/aws/iam"
-	"github.com/Qovery/pleco/providers/aws/logs"
-	"github.com/Qovery/pleco/providers/aws/vpc"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -23,7 +17,6 @@ import (
 	"sync"
 	"time"
 )
-
 
 func RunPlecoAWS(cmd *cobra.Command, regions []string, interval int64, dryRun bool, wg *sync.WaitGroup) {
 	tagName, _ := cmd.Flags().GetString("tag-name")
@@ -75,13 +68,13 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 	rdsEnabled, _ := cmd.Flags().GetBool("enable-rds")
 	documentdbEnabled, _ := cmd.Flags().GetBool("enable-documentdb")
 	if rdsEnabled || documentdbEnabled {
-		currentRdsSession = database.RdsSession(*currentSession, region)
+		currentRdsSession = RdsSession(*currentSession, region)
 	}
 
 	// Elasticache connection
 	elasticacheEnabled, _ := cmd.Flags().GetBool("enable-elasticache")
 	if elasticacheEnabled {
-		currentElasticacheSession = database.ElasticacheSession(*currentSession, region)
+		currentElasticacheSession = ElasticacheSession(*currentSession, region)
 	}
 
 	// EKS connection
@@ -93,6 +86,7 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 		currentEC2Session = ec2.New(currentSession)
 		ebsEnabled = true
 		currentCloudwatchLogsSession = cloudwatchlogs.New(currentSession)
+		currentRdsSession = rds.New(currentSession)
 	}
 
 	// ELB connection
@@ -141,13 +135,10 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 	}
 
 	for {
-		//tag cluster resources
-		if eksEnabled && vpcEnabled{
-			logrus.Debugf("Tagging clusters resources in region %s.", *currentRdsSession.Config.Region)
-			 err := eks2.TagClustersResources(*currentEKSSession, *currentEC2Session, *currentRdsSession, tagName)
-			 if err != nil {
-			 	logrus.Error(err)
-			 }
+		// check s3
+		if s3Enabled {
+			logrus.Debugf("Listing all S3 buckets in region %s.", *currentS3Session.Config.Region)
+			DeleteExpiredBuckets(*currentS3Session, tagName, dryRun)
 		}
 
 		// check s3
@@ -159,50 +150,50 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 		// check RDS
 		if rdsEnabled {
 			logrus.Debugf("Listing all RDS databases in region %s.", *currentRdsSession.Config.Region)
-			database.DeleteExpiredRDSDatabases(*currentRdsSession, tagName, dryRun)
+			DeleteExpiredRDSDatabases(*currentRdsSession, tagName, dryRun)
 		}
 
 		// check DocumentDB
 		if documentdbEnabled {
 			logrus.Debugf("Listing all DocumentDB databases in region %s.", *currentRdsSession.Config.Region)
-			database.DeleteExpiredDocumentDBClusters(*currentRdsSession, tagName, dryRun)
+			DeleteExpiredDocumentDBClusters(*currentRdsSession, tagName, dryRun)
 		}
 
 		// check Elasticache
 		if elasticacheEnabled {
 			logrus.Debugf("Listing all Elasticache databases in region %s.", *currentElasticacheSession.Config.Region)
-			database.DeleteExpiredElasticacheDatabases(*currentElasticacheSession, tagName, dryRun)
+			DeleteExpiredElasticacheDatabases(*currentElasticacheSession, tagName, dryRun)
 		}
 
 		// check EKS
 		if eksEnabled {
 			logrus.Debugf("Listing all EKS clusters in region %s.", *currentEKSSession.Config.Region)
-			eks2.DeleteExpiredEKSClusters(*currentEKSSession, *currentEC2Session, *currentElbSession, *currentCloudwatchLogsSession, *currentRdsSession, tagName, dryRun)
+			DeleteExpiredEKSClusters(*currentEKSSession, *currentEC2Session, *currentElbSession, *currentCloudwatchLogsSession, *currentRdsSession, tagName, dryRun)
 		}
 
 		// check load balancers
 		if elbEnabled {
 			logrus.Debugf("Listing all ELB load balancers in region %s.", *currentElbSession.Config.Region)
-			ec22.DeleteExpiredLoadBalancers(*currentElbSession, tagName, dryRun)
+			DeleteExpiredLoadBalancers(*currentElbSession, tagName, dryRun)
 		}
 
 		// check EBS volumes
 		if ebsEnabled {
 			logrus.Debugf("Listing all EBS volumes in region %s.", *currentEC2Session.Config.Region)
-			ec22.DeleteExpiredVolumes(*currentEC2Session, tagName, dryRun)
+			DeleteExpiredVolumes(*currentEC2Session, tagName, dryRun)
 		}
 
 		// check VPC
 		if vpcEnabled {
 			logrus.Debugf("Listing all VPC resources in region %s.", *currentEC2Session.Config.Region)
-			vpc.DeleteExpiredVPC(*currentEC2Session, tagName, dryRun)
-			database.DeleteExpiredRDSSubnetGroups(*currentRdsSession, tagName, dryRun)
+			DeleteExpiredVPC(*currentEC2Session, tagName, dryRun)
+			DeleteExpiredRDSSubnetGroups(*currentRdsSession, tagName, dryRun)
 		}
 
 		//check Cloudwatch
 		if cloudwatchLogsEnabled {
 			logrus.Debugf("Listing all Cloudwatch logs in region %s.", *currentCloudwatchLogsSession.Config.Region)
-			logs.DeleteExpiredLogs(*currentCloudwatchLogsSession, tagName, dryRun)
+			DeleteExpiredLogs(*currentCloudwatchLogsSession, tagName, dryRun)
 		}
 
 		// check KMS
@@ -214,13 +205,13 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 		// check SSH
 		if sshKeysEnabled {
 			logrus.Debugf("Listing all EC2 key pairs in region %s.", *currentEC2Session.Config.Region)
-			ec22.DeleteExpiredKeys(currentEC2Session, tagName, dryRun)
+			DeleteExpiredKeyPairs(currentEC2Session, tagName, dryRun)
 		}
 
 		// check ECR
 		if ecrEnabled {
 			logrus.Debugf("Listing all ECR repositories in region %s.", *currentECRSession.Config.Region)
-			eks2.DeleteEmptyRepositories(currentECRSession, dryRun)
+			DeleteEmptyRepositories(currentECRSession, dryRun)
 		}
 
 		time.Sleep(time.Duration(interval) * time.Second)
@@ -245,7 +236,7 @@ func runPlecoInGlobal(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.
 		// check IAM
 		if iamEnabled {
 			logrus.Debug("Listing all IAM access.")
-			iam2.DeleteExpiredIAM(currentIAMSession, tagName, dryRun)
+			DeleteExpiredIAM(currentIAMSession, tagName, dryRun)
 		}
 
 		time.Sleep(time.Duration(interval) * time.Second)

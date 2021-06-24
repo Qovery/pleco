@@ -1,4 +1,4 @@
-package iam
+package aws
 
 import (
 	"fmt"

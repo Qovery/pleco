@@ -1,4 +1,4 @@
-package database
+package aws
 
 import (
 	"errors"
@@ -38,12 +38,12 @@ func listTaggedDocumentDBClusters(svc rds.RDS, tagName string) ([]documentDBClus
 			instances = append(instances, *instance.DBInstanceIdentifier)
 		}
 
-		_, ttl, isProtected, _, _ := utils.GetEssentialTags(cluster.TagList,tagName)
+		creationDate, ttl, isProtected, _, _ := utils.GetEssentialTags(cluster.TagList,tagName)
 
 		taggedClusters = append(taggedClusters, documentDBCluster{
 			DBClusterIdentifier:  *cluster.DBClusterIdentifier,
 			DBClusterMembers: 	  instances,
-			ClusterCreateTime:    *cluster.ClusterCreateTime,
+			ClusterCreateTime:    creationDate,
 			Status:               *cluster.Status,
 			TTL:                  ttl,
 			IsProtected: 		  isProtected,
@@ -119,7 +119,7 @@ func DeleteExpiredDocumentDBClusters(svc rds.RDS, tagName string, dryRun bool) {
 
 	var expiredClusters []documentDBCluster
 	for _, cluster := range clusters {
-		if utils.CheckIfExpired(cluster.ClusterCreateTime, cluster.TTL)  && !cluster.IsProtected {
+		if utils.CheckIfExpired(cluster.ClusterCreateTime, cluster.TTL, "document Db: " + cluster.DBClusterIdentifier)  && !cluster.IsProtected {
 			expiredClusters = append(expiredClusters, cluster)
 		}
 	}
