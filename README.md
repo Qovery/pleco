@@ -2,8 +2,11 @@
 ![Push](https://github.com/Qovery/pleco/workflows/Push/badge.svg)
 [![DockerHub](https://img.shields.io/badge/DockerHub-pleco-blue?url=https://hub.docker.com/repository/docker/qoveryrd/pleco)](https://hub.docker.com/repository/docker/qoveryrd/pleco)
 [![Artifact HUB](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/pleco)](https://artifacthub.io/packages/search?repo=pleco)
+[![Powered](https://img.shields.io/badge/Powered%20by-Qovery-blueviolet)](https://www.qovery.com)
 
-# <img src="./assets/pleco_logo.png" width=420 />
+<p align="center">
+    <img src="./assets/pleco_logo.png" width=420 />
+</p>
 
 Automatically remove cloud and kubernetes resources based on a time to leave tag, **ttl**.
 
@@ -101,7 +104,7 @@ For exemple:
 -a eu-west-3,us-east-2
 ```
 
-####Resources Selector
+#### Resources Selector
 When pleco is running you have to specify which resources expiration will be checked.
 
 Here are some the resources you can check:
