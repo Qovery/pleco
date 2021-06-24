@@ -109,11 +109,11 @@ func listTaggedVolumes(ec2Session ec2.EC2, tagName string) ([]EBSVolume, error) 
 	}
 
 	for _, currentVolume := range result.Volumes {
-		_, ttl, isProtected, _, _ := utils.GetEssentialTags(currentVolume.Tags, tagName)
+		creationDate, ttl, isProtected, _, _ := utils.GetEssentialTags(currentVolume.Tags, tagName)
 
 		taggedVolumes = append(taggedVolumes, EBSVolume{
 			VolumeId:    *currentVolume.VolumeId,
-			CreatedTime: *currentVolume.CreateTime,
+			CreatedTime: creationDate,
 			Status:      *currentVolume.State,
 			TTL:        ttl,
 			IsProtected: isProtected,

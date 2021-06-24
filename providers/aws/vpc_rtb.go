@@ -45,11 +45,11 @@ func SetRouteTablesIdsByVpcId (ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync
 		creationDate, ttl, isProtected, _, _:= utils.GetEssentialTags(routeTable.Tags, tagName)
 
 		var routeTableStruct = RouteTable{
-			Id: *routeTable.RouteTableId,
-			CreationDate: creationDate,
-			ttl: ttl,
-			Associations: routeTable.Associations,
-			IsProtected: isProtected,
+			Id: 			*routeTable.RouteTableId,
+			CreationDate: 	creationDate,
+			ttl: 			ttl,
+			Associations: 	routeTable.Associations,
+			IsProtected:	isProtected,
 		}
 		routeTablesStruct = append(routeTablesStruct, routeTableStruct)
 	}

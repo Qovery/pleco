@@ -34,15 +34,15 @@ func getCompleteKey(svc kms.KMS, keyId *string, tagName string) CompleteKey {
 	tags := getKeyTags(svc,keyId)
 	metaData := getKeyMetadata(svc,keyId)
 
-	_, ttl, isProtected, _, _ := utils.GetEssentialTags(tags, tagName)
+	creationDate, ttl, isProtected, _, _ := utils.GetEssentialTags(tags, tagName)
 
 
 	return CompleteKey{
-		KeyId: *keyId,
-		Status: *metaData.KeyMetadata.KeyState,
-		CreationDate: *metaData.KeyMetadata.CreationDate,
-		TTL: ttl,
-		IsProtected: isProtected,
+		KeyId: 			*keyId,
+		Status: 		*metaData.KeyMetadata.KeyState,
+		CreationDate: 	creationDate,
+		TTL: 			ttl,
+		IsProtected: 	isProtected,
 	}
 }
 

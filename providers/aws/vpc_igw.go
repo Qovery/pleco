@@ -44,10 +44,10 @@ func SetInternetGatewaysIdsByVpcId (ec2Session ec2.EC2, vpc *VpcInfo, waitGroup 
 		creationDate, ttl, isProtected, _, _ := utils.GetEssentialTags(gateway.Tags,tagName)
 
 		var gatewayStruct = InternetGateway{
-			Id: *gateway.InternetGatewayId,
-			CreationDate: creationDate,
-			ttl: ttl,
-			IsProtected: isProtected,
+			Id: 			*gateway.InternetGatewayId,
+			CreationDate: 	creationDate,
+			ttl: 			ttl,
+			IsProtected: 	isProtected,
 		}
 
 		internetGateways = append(internetGateways, gatewayStruct)

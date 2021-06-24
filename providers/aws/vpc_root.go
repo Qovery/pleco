@@ -78,11 +78,11 @@ func listTaggedVPC(ec2Session ec2.EC2, tagName string) ([]VpcInfo, error) {
 	for _, vpc := range VPCs {
 		creationDate, ttl, isprotected, _, _ := utils.GetEssentialTags(vpc.Tags, tagName)
 		taggedVpc := VpcInfo{
-			VpcId:      vpc.VpcId,
-			Status:     *vpc.State,
-			CreationDate: creationDate,
-			TTL: ttl,
-			IsProtected: isprotected,
+			VpcId:      	vpc.VpcId,
+			Status:     	*vpc.State,
+			CreationDate: 	creationDate,
+			TTL: 			ttl,
+			IsProtected: 	isprotected,
 		}
 
 		if *vpc.State != "available" {

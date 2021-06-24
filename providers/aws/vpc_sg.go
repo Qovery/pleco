@@ -45,10 +45,10 @@ func SetSecurityGroupsIdsByVpcId (ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *s
 			creationDate, ttl, isProtected, _, _ := utils.GetEssentialTags(securityGroup.Tags, tagName)
 
 			var securityGroupStruct = SecurityGroup{
-				Id: *securityGroup.GroupId,
-				CreationDate: creationDate,
-				ttl: ttl,
-				IsProtected: isProtected,
+				Id: 			*securityGroup.GroupId,
+				CreationDate: 	creationDate,
+				ttl: 			ttl,
+				IsProtected: 	isProtected,
 			}
 
 			securityGroupsStruct = append(securityGroupsStruct, securityGroupStruct)

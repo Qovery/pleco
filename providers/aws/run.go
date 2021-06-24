@@ -86,6 +86,7 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 		currentEC2Session = ec2.New(currentSession)
 		ebsEnabled = true
 		currentCloudwatchLogsSession = cloudwatchlogs.New(currentSession)
+		currentRdsSession = rds.New(currentSession)
 	}
 
 	// ELB connection

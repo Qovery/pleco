@@ -81,7 +81,7 @@ func listTaggedEKSClusters(svc eks.EKS, tagName string) ([]eksCluster, error) {
 			continue
 		}
 
-		_, ttl, isProtected, _, _ := utils.GetEssentialTags(clusterInfo.Cluster.Tags, tagName)
+		creationDate, ttl, isProtected, _, _ := utils.GetEssentialTags(clusterInfo.Cluster.Tags, tagName)
 
 		// ignore if creation is in progress to avoid nil fields
 		if *clusterInfo.Cluster.Status == "CREATING" {
@@ -99,12 +99,12 @@ func listTaggedEKSClusters(svc eks.EKS, tagName string) ([]eksCluster, error) {
 		}
 
 		taggedClusters = append(taggedClusters, eksCluster{
-			ClusterCreateTime: *clusterInfo.Cluster.CreatedAt,
-			ClusterNodeGroupsName: nodeGroups.Nodegroups,
-			ClusterName:       clusterName,
-			ClusterId:			utils.AwsStringChecker(clusterInfo.Cluster.Identity),
-			Status:            *clusterInfo.Cluster.Status,
-			TTL:               ttl,
+			ClusterCreateTime: 		creationDate,
+			ClusterNodeGroupsName: 	nodeGroups.Nodegroups,
+			ClusterName:       		clusterName,
+			ClusterId:				utils.AwsStringChecker(clusterInfo.Cluster.Identity),
+			Status:            		*clusterInfo.Cluster.Status,
+			TTL:               		ttl,
 			IsProtected: isProtected,
 		})
 	}
@@ -230,7 +230,7 @@ func DeleteExpiredEKSClusters(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.
 
 	var expiredCluster []eksCluster
 	for _, cluster := range clusters {
-		if utils.CheckIfExpired(cluster.ClusterCreateTime, cluster.TTL, "eks cluster: " + cluster.ClusterId) && !cluster.IsProtected {
+		if utils.CheckIfExpired(cluster.ClusterCreateTime, cluster.TTL, "eks cluster: " + cluster.ClusterName) && !cluster.IsProtected {
 			expiredCluster = append(expiredCluster, cluster)
 		}
 	}

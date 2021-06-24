@@ -36,6 +36,7 @@ func listTaggedBuckets(s3Session s3.S3, tagName string) ([]s3Bucket, error) {
 		})
 
 		if locationErr != nil {
+			log.Errorf("Location error for bucket %s: %s", *bucket.Name, locationErr.Error())
 			continue
 		}
 
@@ -49,16 +50,17 @@ func listTaggedBuckets(s3Session s3.S3, tagName string) ([]s3Bucket, error) {
 		})
 
 		if tagErr != nil {
+			log.Errorf("Tag error for bucket %s: %s", *bucket.Name, tagErr.Error())
 			continue
 		}
 
-		_, ttl, isProtected, _, _ := utils.GetEssentialTags(bucketTags.TagSet, tagName)
+		creationDate, ttl, isProtected, _, _ := utils.GetEssentialTags(bucketTags.TagSet, tagName)
 
 		taggedS3Buckets = append(taggedS3Buckets, s3Bucket{
-			Name:   	*bucket.Name,
-			CreateTime: *bucket.CreationDate,
-			TTL:    	ttl,
-			IsProtected: isProtected,
+			Name:   		*bucket.Name,
+			CreateTime: 	creationDate,
+			TTL:    		ttl,
+			IsProtected: 	isProtected,
 		})
 	}
 

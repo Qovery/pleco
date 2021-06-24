@@ -53,12 +53,12 @@ func listTaggedElasticacheDatabases(svc elasticache.ElastiCache, tagName string)
 			replicationGroupId = *cluster.ReplicationGroupId
 		}
 
-		_, ttl, isProtected, _, _ := utils.GetEssentialTags(tags.TagList, tagName)
+		creationDate, ttl, isProtected, _, _ := utils.GetEssentialTags(tags.TagList, tagName)
 
 		taggedClusters = append(taggedClusters, elasticacheCluster{
 			ClusterIdentifier:    *cluster.CacheClusterId,
 			ReplicationGroupId:	  replicationGroupId,
-			ClusterCreateTime:    *cluster.CacheClusterCreateTime,
+			ClusterCreateTime:    creationDate,
 			ClusterStatus:        *cluster.CacheClusterStatus,
 			TTL:                  ttl,
 			IsProtected: isProtected,

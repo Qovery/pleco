@@ -32,15 +32,15 @@ func getCloudwatchLogs(svc cloudwatchlogs.CloudWatchLogs)  []*cloudwatchlogs.Log
 
 func getCompleteLogGroup(svc cloudwatchlogs.CloudWatchLogs, log cloudwatchlogs.LogGroup, tagName string) CompleteLogGroup {
 	tags := getLogGroupTag(svc, *log.LogGroupName)
-	_, ttl, isprotected, clusterId, tag := utils.GetEssentialTags(tags, tagName)
+	creationDate, ttl, isprotected, clusterId, tag := utils.GetEssentialTags(tags, tagName)
 
 	return CompleteLogGroup{
-		logGroupName:  *log.LogGroupName,
-		creationDate: time.Unix(*log.CreationTime/1000,0),
-		ttl:  ttl,
-		clusterId: clusterId,
-		IsProtected: isprotected,
-		tag: tag,
+		logGroupName: 	 *log.LogGroupName,
+		creationDate: 	creationDate,
+		ttl:  			ttl,
+		clusterId: 		clusterId,
+		IsProtected: 	isprotected,
+		tag: 			tag,
 	}
 }
 

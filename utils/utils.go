@@ -104,7 +104,7 @@ func CheckIfExpired(creationTime time.Time, ttl int64, resourceName string) bool
 	}
 
 	if creationTime.Year() < 1972 {
-		log.Errorf("Creation date tag is missing. Can't check if resource %s is expired.", resourceName)
+		log.Warnf("Creation date tag is missing. Can't check if resource %s is expired.", resourceName)
 		return false
 	}
 
