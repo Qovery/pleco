@@ -192,7 +192,7 @@ func DeleteExpiredLoadBalancers(elbSession elbv2.ELBV2, tagName string, dryRun b
 
 	log.Debug(start)
 
-	for _, lb := range lbs {
+	for _, lb := range expiredLoadBalancers {
 		deletionErr := deleteLoadBalancers(elbSession, lbs, dryRun)
 		if deletionErr != nil {
 			log.Errorf("Deletion ELB %s (%s) error: %s",
