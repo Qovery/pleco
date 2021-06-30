@@ -128,7 +128,7 @@ func DeleteExpiredElasticacheDatabases(svc elasticache.ElastiCache, tagName stri
 
 	log.Debug(start)
 
-	for _, cluster := range clusters {
+	for _, cluster := range expiredClusters {
 		deletionErr := deleteElasticacheCluster(svc, cluster)
 		if deletionErr != nil {
 			log.Errorf("Deletion Elasticache cluster error %s/%s: %s",

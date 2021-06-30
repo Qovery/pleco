@@ -131,14 +131,13 @@ func deleteVPC(ec2Session ec2.EC2, VpcList []VpcInfo, dryRun bool) error {
 			DeleteSubnetsByIds(ec2Session, vpc.Subnets)
 			DeleteRouteTablesByIds(ec2Session, vpc.RouteTables)
 
-			_, err := ec2Session.DeleteVpc(
+			_, deleteErr := ec2Session.DeleteVpc(
 				&ec2.DeleteVpcInput{
 					VpcId:  aws.String(*vpc.VpcId),
 				},
 			)
-			if err != nil {
-				// ignore errors, certainly due to dependencies that are not yet removed
-				log.Warnf("Can't delete VPC %s in %s yet: %s", *vpc.VpcId, region, err.Error())
+			if deleteErr != nil {
+				log.Warnf("Can't delete VPC %s in %s yet: %s", *vpc.VpcId, region, deleteErr.Error())
 			}
 	}
 
