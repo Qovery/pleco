@@ -90,16 +90,17 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 	}
 
 	// ELB connection
-	elbEnabledByUser, _ := cmd.Flags().GetBool("enable-elb")
-	if elbEnabled || elbEnabledByUser && !eksEnabled {
+	elbEnabled, _ = cmd.Flags().GetBool("enable-elb")
+	if elbEnabled {
 		currentEKSSession = eks.New(currentSession)
 		currentElbSession = elbv2.New(currentSession)
 		elbEnabled = true
 	}
 
 	// EBS connection
-	ebsEnabledByUser, _ := cmd.Flags().GetBool("enable-ebs")
-	if ebsEnabled || ebsEnabledByUser {
+	ebsEnabled, _ = cmd.Flags().GetBool("enable-ebs")
+	if ebsEnabled {
+		currentEKSSession = eks.New(currentSession)
 		currentEC2Session = ec2.New(currentSession)
 		ebsEnabled = true
 	}
@@ -181,7 +182,7 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 		// check EBS volumes
 		if ebsEnabled {
 			logrus.Debugf("Listing all EBS volumes in region %s.", *currentEC2Session.Config.Region)
-			DeleteExpiredVolumes(*currentEC2Session, tagName, dryRun)
+			DeleteExpiredVolumes(*currentEKSSession, *currentEC2Session, tagName, dryRun)
 		}
 
 		// check VPC
