@@ -56,17 +56,28 @@ func SetInternetGatewaysIdsByVpcId (ec2Session ec2.EC2, vpc *VpcInfo, waitGroup 
 	vpc.InternetGateways= internetGateways
 }
 
-func DeleteInternetGatewaysByIds (ec2Session ec2.EC2, internetGateways []InternetGateway) {
+func DeleteInternetGatewaysByIds (ec2Session ec2.EC2, internetGateways []InternetGateway, vpcId string) {
 	for _, internetGateway := range internetGateways {
-		if utils.CheckIfExpired(internetGateway.CreationDate, internetGateway.ttl, "vpc internet gateway: " + internetGateway.Id) && !internetGateway.IsProtected {
-			_, err := ec2Session.DeleteInternetGateway(
+		if !internetGateway.IsProtected {
+
+			_, detachErr := ec2Session.DetachInternetGateway(
+				&ec2.DetachInternetGatewayInput{
+				InternetGatewayId: aws.String(internetGateway.Id),
+				VpcId: aws.String(vpcId),
+				})
+
+			if detachErr != nil {
+				log.Error(detachErr)
+			}
+
+			_, deleteErr := ec2Session.DeleteInternetGateway(
 				&ec2.DeleteInternetGatewayInput{
 					InternetGatewayId: aws.String(internetGateway.Id),
 				},
 			)
 
-			if err != nil {
-				log.Error(err)
+			if deleteErr != nil {
+				log.Error(deleteErr)
 			}
 		}
 	}

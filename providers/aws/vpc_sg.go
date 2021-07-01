@@ -10,10 +10,12 @@ import (
 )
 
 type SecurityGroup struct {
-	Id           string
-	CreationDate time.Time
-	ttl          int64
-	IsProtected  bool
+	Id                  string
+	CreationDate        time.Time
+	ttl                 int64
+	IsProtected         bool
+	IpPermissionIngress []*ec2.IpPermission
+	IpPermissionEgress  []*ec2.IpPermission
 }
 
 func getSecurityGroupsByVpcId (ec2Session ec2.EC2, vpcId string) []*ec2.SecurityGroup {
@@ -43,12 +45,13 @@ func SetSecurityGroupsIdsByVpcId (ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *s
 	for _, securityGroup := range securityGroups {
 		if *securityGroup.GroupName != "default" {
 			creationDate, ttl, isProtected, _, _ := utils.GetEssentialTags(securityGroup.Tags, tagName)
-
 			var securityGroupStruct = SecurityGroup{
-				Id: 			*securityGroup.GroupId,
-				CreationDate: 	creationDate,
-				ttl: 			ttl,
-				IsProtected: 	isProtected,
+				Id: 					*securityGroup.GroupId,
+				CreationDate: 			creationDate,
+				ttl: 					ttl,
+				IsProtected: 			isProtected,
+				IpPermissionIngress: 	securityGroup.IpPermissions,
+				IpPermissionEgress: 	securityGroup.IpPermissionsEgress,
 			}
 
 			securityGroupsStruct = append(securityGroupsStruct, securityGroupStruct)
@@ -61,8 +64,8 @@ func SetSecurityGroupsIdsByVpcId (ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *s
 
 func DeleteSecurityGroupsByIds (ec2Session ec2.EC2, securityGroups []SecurityGroup) {
 	for _, securityGroup := range securityGroups {
-		if utils.CheckIfExpired(securityGroup.CreationDate, securityGroup.ttl, "vpc security group: " + securityGroup.Id) && !securityGroup.IsProtected{
-			deleteIpPermissions(ec2Session, securityGroup.Id)
+		if !securityGroup.IsProtected{
+			deleteIpPermissions(ec2Session, securityGroup)
 
 			_, err := ec2Session.DeleteSecurityGroup(
 				&ec2.DeleteSecurityGroupInput{
@@ -77,29 +80,25 @@ func DeleteSecurityGroupsByIds (ec2Session ec2.EC2, securityGroups []SecurityGro
 	}
 }
 
-func deleteIpPermissions (ec2Session ec2.EC2, securityGroupId string) {
+func deleteIpPermissions (ec2Session ec2.EC2, securityGroup SecurityGroup) {
 	_, ingressErr := ec2Session.RevokeSecurityGroupIngress(
 		&ec2.RevokeSecurityGroupIngressInput{
-			GroupId: aws.String(securityGroupId),
-			IpProtocol: aws.String("-1"),
+			GroupId: aws.String(securityGroup.Id),
+			IpPermissions: securityGroup.IpPermissionIngress,
 		})
 
 	if ingressErr != nil {
-		log.Warn("Ingress Perms : " + ingressErr.Error())
+		log.Error("Ingress Perms : " + ingressErr.Error())
 	}
 
 	_, egressErr := ec2Session.RevokeSecurityGroupEgress(
 		&ec2.RevokeSecurityGroupEgressInput{
-			GroupId: aws.String(securityGroupId),
-			IpPermissions: []*ec2.IpPermission{
-				{
-					IpProtocol: aws.String("-1"),
-				},
-			},
+			GroupId: aws.String(securityGroup.Id),
+			IpPermissions: securityGroup.IpPermissionEgress,
 		})
 
 	if egressErr != nil {
-		log.Warn("Egress Perms : " + egressErr.Error())
+		log.Error("Egress Perms : " + egressErr.Error())
 	}
 
 }
