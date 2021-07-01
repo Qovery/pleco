@@ -59,7 +59,7 @@ func SetRouteTablesIdsByVpcId (ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync
 
 func DeleteRouteTablesByIds (ec2Session ec2.EC2, routeTables []RouteTable) {
 	for _, routeTable := range routeTables {
-		if utils.CheckIfExpired(routeTable.CreationDate, routeTable.ttl, "vpc route table: " + routeTable.Id) && !isMainRouteTable(routeTable) && !routeTable.IsProtected{
+		if !isMainRouteTable(routeTable) && !routeTable.IsProtected{
 			_, err := ec2Session.DeleteRouteTable(
 				&ec2.DeleteRouteTableInput{
 					RouteTableId: aws.String(routeTable.Id),

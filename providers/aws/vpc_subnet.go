@@ -57,7 +57,7 @@ func SetSubnetsIdsByVpcId (ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.Wai
 
 func DeleteSubnetsByIds (ec2Session ec2.EC2, subnets []Subnet) {
 	for _, subnet := range subnets {
-		if utils.CheckIfExpired(subnet.CreationDate, subnet.ttl, "vpc subnet: " + subnet.Id) && subnet.IsProtected {
+		if !subnet.IsProtected {
 			_, err := ec2Session.DeleteSubnet(
 				&ec2.DeleteSubnetInput{
 					SubnetId: aws.String(subnet.Id),

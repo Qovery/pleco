@@ -127,7 +127,7 @@ func deleteVPC(ec2Session ec2.EC2, VpcList []VpcInfo, dryRun bool) error {
 
 	for _, vpc := range VpcList {
 			DeleteSecurityGroupsByIds(ec2Session,vpc.SecurityGroups)
-			DeleteInternetGatewaysByIds(ec2Session, vpc.InternetGateways)
+			DeleteInternetGatewaysByIds(ec2Session, vpc.InternetGateways, *vpc.VpcId)
 			DeleteSubnetsByIds(ec2Session, vpc.Subnets)
 			DeleteRouteTablesByIds(ec2Session, vpc.RouteTables)
 
@@ -137,7 +137,7 @@ func deleteVPC(ec2Session ec2.EC2, VpcList []VpcInfo, dryRun bool) error {
 				},
 			)
 			if deleteErr != nil {
-				log.Warnf("Can't delete VPC %s in %s yet: %s", *vpc.VpcId, region, deleteErr.Error())
+				log.Errorf("Can't delete VPC %s in %s yet: %s", *vpc.VpcId, region, deleteErr.Error())
 			}
 	}
 
