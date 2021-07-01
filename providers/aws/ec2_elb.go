@@ -3,10 +3,12 @@ package aws
 import (
 	"fmt"
 	"github.com/Qovery/pleco/utils"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	log "github.com/sirupsen/logrus"
 	"strings"
+	"time"
 )
 
 type ElasticLoadBalancer struct {
@@ -14,9 +16,51 @@ type ElasticLoadBalancer struct {
 	Name string
 	Status string
 	IsProtected bool
+	CreationDate time.Time
+	TTL int64
 }
 
-func listExpiredLoadBalancers(eksSession eks.EKS,lbSession elbv2.ELBV2, tagName string) ([]ElasticLoadBalancer, error) {
+func TagLoadBalancersForDeletion(lbSession elbv2.ELBV2, tagKey string, loadBalancersList []ElasticLoadBalancer, clusterName string) error {
+	var lbArns []*string
+
+	if len(loadBalancersList) == 0 {
+		return nil
+	}
+
+	for _, lb := range loadBalancersList {
+		lbArns = append(lbArns, aws.String(lb.Arn))
+	}
+
+	if len(lbArns) == 0 {
+		return nil
+	}
+
+	for _, lbArn := range lbArns {
+		_, err := lbSession.AddTags(
+			&elbv2.AddTagsInput{
+				ResourceArns: aws.StringSlice([]string{*lbArn}),
+				Tags:         []*elbv2.Tag{
+					{
+						Key: aws.String(tagKey),
+						Value: aws.String("1"),
+					},
+					{
+						Key: aws.String("creationDate"),
+						Value: aws.String(time.Now().Format(time.RFC3339)),
+					},
+				},
+			},
+		)
+		if err != nil {
+			return fmt.Errorf("Can't tag load balancer %s for cluster %s in region %s: %s", *lbArn, clusterName, *lbSession.Config.Region, err.Error())
+		}
+	}
+
+
+	return nil
+}
+
+func ListExpiredLoadBalancers(eksSession eks.EKS,lbSession elbv2.ELBV2, tagName string) ([]ElasticLoadBalancer, error) {
 	var taggedLoadBalancers []ElasticLoadBalancer
 	region := *lbSession.Config.Region
 
@@ -38,10 +82,12 @@ func listExpiredLoadBalancers(eksSession eks.EKS,lbSession elbv2.ELBV2, tagName 
 			continue
 		}
 
-		_, _, isProtected, _, _ := utils.GetEssentialTags(result.TagDescriptions[0].Tags, tagName)
+		creationDate, ttl, isProtected, _, _ := utils.GetEssentialTags(result.TagDescriptions[0].Tags, tagName)
+		currentLb.CreationDate = creationDate
+		currentLb.TTL = ttl
 		currentLb.IsProtected = isProtected
 
-		if !isAssociatedToLivingCluster(result.TagDescriptions[0].Tags, eksSession) && !currentLb.IsProtected {
+		if !currentLb.IsProtected && (!isAssociatedToLivingCluster(result.TagDescriptions[0].Tags, eksSession) || utils.CheckIfExpired(currentLb.CreationDate, currentLb.TTL, "ELB " + currentLb.Name))  {
 			taggedLoadBalancers = append(taggedLoadBalancers, currentLb)
 		}
 	}
@@ -113,7 +159,7 @@ func deleteLoadBalancers(lbSession elbv2.ELBV2, loadBalancersList []ElasticLoadB
 }
 
 func DeleteExpiredLoadBalancers(eksSession eks.EKS, elbSession elbv2.ELBV2, tagName string, dryRun bool) {
-	expiredLoadBalancers, err := listExpiredLoadBalancers(eksSession, elbSession, tagName)
+	expiredLoadBalancers, err := ListExpiredLoadBalancers(eksSession, elbSession, tagName)
 	region := elbSession.Config.Region
 	if err != nil {
 		log.Errorf("can't list Load Balancers: %s\n", err)

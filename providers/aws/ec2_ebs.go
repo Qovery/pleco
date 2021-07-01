@@ -53,6 +53,10 @@ func TagVolumesFromEksClusterForDeletion(ec2Session ec2.EC2, tagKey string, clus
 					Key:   aws.String(tagKey),
 					Value: aws.String("1"),
 				},
+				{
+					Key: aws.String("creationDate"),
+					Value: aws.String(time.Now().Format(time.RFC3339)),
+				},
 			},
 		})
 	if err != nil {
