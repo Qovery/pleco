@@ -156,18 +156,8 @@ func deleteEKSCluster(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.ELBV2, c
 		return nil
 	}
 
-	// tag associated load balancers for deletion
-	lbsAssociatedToThisEksCluster, err := ListTaggedLoadBalancersWithKeyContains(elbSession, cluster.ClusterName)
-	if err != nil {
-		return err
-	}
-	err = TagLoadBalancersForDeletion(elbSession, tagName, lbsAssociatedToThisEksCluster, cluster.ClusterName)
-	if err != nil {
-		return err
-	}
-
 	// tag associated ebs for deletion
-	err = TagVolumesFromEksClusterForDeletion(ec2Session, tagName, cluster.ClusterName)
+	err := TagVolumesFromEksClusterForDeletion(ec2Session, tagName, cluster.ClusterName)
 	if err != nil {
 		return err
 	}

@@ -91,7 +91,8 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 
 	// ELB connection
 	elbEnabledByUser, _ := cmd.Flags().GetBool("enable-elb")
-	if elbEnabled || elbEnabledByUser {
+	if elbEnabled || elbEnabledByUser && !eksEnabled {
+		currentEKSSession = eks.New(currentSession)
 		currentElbSession = elbv2.New(currentSession)
 		elbEnabled = true
 	}
@@ -174,7 +175,7 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 		// check load balancers
 		if elbEnabled {
 			logrus.Debugf("Listing all ELB load balancers in region %s.", *currentElbSession.Config.Region)
-			DeleteExpiredLoadBalancers(*currentElbSession, tagName, dryRun)
+			DeleteExpiredLoadBalancers(*currentEKSSession, *currentElbSession, tagName, dryRun)
 		}
 
 		// check EBS volumes
