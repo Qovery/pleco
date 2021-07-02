@@ -2,9 +2,11 @@ package aws
 
 import (
 	"fmt"
+	"github.com/Qovery/pleco/utils"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ecr"
 	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 func getRepositories(ecrSession *ecr.ECR) []*ecr.Repository {
@@ -39,10 +41,16 @@ func DeleteEmptyRepositories(ecrSession *ecr.ECR, drynRun bool) {
 	region := ecrSession.Config.Region
 	var emptyRepositoryNames []string
 	for _, repository := range repositories {
-		images := getRepositoryImages(ecrSession, *repository.RepositoryName)
-		if len(images) == 0 {
-			emptyRepositoryNames = append(emptyRepositoryNames, *repository.RepositoryName)
+		time, _ := time.Parse(time.RFC3339, repository.CreatedAt.Format(time.RFC3339))
+
+		if utils.CheckIfExpired(time, 600, "ECR repository: ") {
+			images := getRepositoryImages(ecrSession, *repository.RepositoryName)
+
+			if len(images) == 0 {
+				emptyRepositoryNames = append(emptyRepositoryNames, *repository.RepositoryName)
+			}
 		}
+
 	}
 
 	s := fmt.Sprintf("There is no empty ECR repository to delete in region %s.", *region)
