@@ -5,7 +5,9 @@ import (
 	"github.com/Qovery/pleco/utils"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/eks"
 	log "github.com/sirupsen/logrus"
+	"strings"
 	"time"
 )
 
@@ -66,7 +68,7 @@ func TagVolumesFromEksClusterForDeletion(ec2Session ec2.EC2, tagKey string, clus
 	return nil
 }
 
-func deleteVolumes(ec2Session ec2.EC2, VolumesList []EBSVolume) error {
+func deleteVolumes(ec2Session ec2.EC2, VolumesList []EBSVolume) {
 	for _, volume := range VolumesList {
 		switch volume.Status {
 		case "deleting":
@@ -86,24 +88,13 @@ func deleteVolumes(ec2Session ec2.EC2, VolumesList []EBSVolume) error {
 			},
 		)
 		if err != nil {
-			return err
+			log.Errorf("Can't delete EBS %s in %s", volume.VolumeId, *ec2Session.Config.Region)
 		}
 	}
-	return nil
 }
 
-func listTaggedVolumes(ec2Session ec2.EC2, tagName string) ([]EBSVolume, error) {
-	var taggedVolumes []EBSVolume
-
-	input := &ec2.DescribeVolumesInput{
-		//Filters: []*ec2.Filter{
-		//	{
-		//		Name: aws.String("tag:" + tagName),
-		//	},
-		//},
-	}
-
-	result, err := ec2Session.DescribeVolumes(input)
+func listExpiredVolumes(eksSession eks.EKS, ec2Session ec2.EC2, tagName string) ([]EBSVolume, error) {
+	result, err := ec2Session.DescribeVolumes(&ec2.DescribeVolumesInput{})
 	if err != nil {
 		return nil, err
 	}
@@ -112,34 +103,35 @@ func listTaggedVolumes(ec2Session ec2.EC2, tagName string) ([]EBSVolume, error) 
 		return nil, nil
 	}
 
+	var expiredVolumes []EBSVolume
 	for _, currentVolume := range result.Volumes {
-		creationDate, ttl, isProtected, _, _ := utils.GetEssentialTags(currentVolume.Tags, tagName)
+		if strings.Contains(*currentVolume.State, "in-use") {
+			continue
+		}
 
-		taggedVolumes = append(taggedVolumes, EBSVolume{
-			VolumeId:    *currentVolume.VolumeId,
-			CreatedTime: creationDate,
-			Status:      *currentVolume.State,
-			TTL:        ttl,
-			IsProtected: isProtected,
-		})
+		creationDate, ttl, isProtected, _, _ := utils.GetEssentialTags(currentVolume.Tags, tagName)
+		volume := EBSVolume{
+			VolumeId:   	*currentVolume.VolumeId,
+			CreatedTime:	creationDate,
+			Status:     	*currentVolume.State,
+			TTL:        	ttl,
+			IsProtected: 	isProtected,
+		}
+
+		if !volume.IsProtected && (!utils.IsAssociatedToLivingCluster(currentVolume.Tags, eksSession) || utils.CheckIfExpired(volume.CreatedTime, volume.TTL, "EBS volume: " + volume.VolumeId)) {
+			expiredVolumes = append(expiredVolumes, volume)
+		}
 	}
 
-	return taggedVolumes, nil
+	return expiredVolumes, nil
 }
 
-func DeleteExpiredVolumes(ec2Session ec2.EC2, tagName string, dryRun bool) {
-	volumes, err := listTaggedVolumes(ec2Session, tagName)
+func DeleteExpiredVolumes(eksSession eks.EKS, ec2Session ec2.EC2, tagName string, dryRun bool) {
+	expiredVolumes, err := listExpiredVolumes(eksSession, ec2Session, tagName)
 	region := ec2Session.Config.Region
 	if err != nil {
 		log.Errorf("Can't list volumes: %s\n", err)
 		return
-	}
-
-	var expiredVolumes []EBSVolume
-	for _, volume := range volumes {
-		if utils.CheckIfExpired(volume.CreatedTime, volume.TTL, "EBS volume: " + volume.VolumeId) && !volume.IsProtected {
-			expiredVolumes = append(expiredVolumes, volume)
-		}
 	}
 
 	count, start:= utils.ElemToDeleteFormattedInfos("expired EBS volume", len(expiredVolumes), *region)
@@ -151,11 +143,6 @@ func DeleteExpiredVolumes(ec2Session ec2.EC2, tagName string, dryRun bool) {
 	}
 
 	log.Debug(start)
-	for _, volume := range expiredVolumes {
-		deletionErr := deleteVolumes(ec2Session, volumes)
-			if deletionErr != nil {
-				log.Errorf("Deletion EBS %s (%s) error: %s",
-					volume.VolumeId, *ec2Session.Config.Region, deletionErr.Error())
-			}
-	}
+
+	deleteVolumes(ec2Session, expiredVolumes)
 }

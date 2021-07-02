@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/aws/aws-sdk-go/service/iam"
@@ -11,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	log "github.com/sirupsen/logrus"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -133,6 +135,37 @@ func AwsStringChecker(elem interface{ String() string }) string {
 	} else {
 		return ""
 	}
+}
+
+func IsAssociatedToLivingCluster(tagsInput interface{}, svc eks.EKS) bool {
+	result, clusterErr := svc.ListClusters(&eks.ListClustersInput{})
+	if clusterErr != nil {
+		log.Error("Can't list cluster for ELB association check")
+		return false
+	}
+
+	switch typedTags := tagsInput.(type) {
+		case []*elbv2.Tag:
+			for _, cluster := range result.Clusters {
+				for _, tag := range typedTags {
+					if strings.Contains(*tag.Key, "/cluster/") && strings.Contains(*tag.Key, *cluster) {
+						return true
+					}
+				}
+			}
+		case []*ec2.Tag:
+			for _, cluster := range result.Clusters {
+				for _, tag := range typedTags {
+					if strings.Contains(*tag.Key, "/cluster/") && strings.Contains(*tag.Key, *cluster) {
+						return true
+					}
+				}
+			}
+		default:
+			log.Debugf("Can't parse tags %s.", tagsInput)
+	}
+
+	return false
 }
 
 func getSlicedArray(arrayToSlice []*string, sliceRange int) [][]*string {

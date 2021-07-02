@@ -7,7 +7,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	log "github.com/sirupsen/logrus"
-	"strings"
 	"time"
 )
 
@@ -87,7 +86,7 @@ func ListExpiredLoadBalancers(eksSession eks.EKS,lbSession elbv2.ELBV2, tagName 
 		currentLb.TTL = ttl
 		currentLb.IsProtected = isProtected
 
-		if !currentLb.IsProtected && (!isAssociatedToLivingCluster(result.TagDescriptions[0].Tags, eksSession) || utils.CheckIfExpired(currentLb.CreationDate, currentLb.TTL, "ELB " + currentLb.Name))  {
+		if !currentLb.IsProtected && (!utils.IsAssociatedToLivingCluster(result.TagDescriptions[0].Tags, eksSession) || utils.CheckIfExpired(currentLb.CreationDate, currentLb.TTL, "ELB " + currentLb.Name))  {
 			taggedLoadBalancers = append(taggedLoadBalancers, currentLb)
 		}
 	}
@@ -95,23 +94,7 @@ func ListExpiredLoadBalancers(eksSession eks.EKS,lbSession elbv2.ELBV2, tagName 
 	return taggedLoadBalancers, nil
 }
 
-func isAssociatedToLivingCluster(tags []*elbv2.Tag, svc eks.EKS) bool {
-	result, clusterErr := svc.ListClusters(&eks.ListClustersInput{})
-	if clusterErr != nil {
-		log.Error("Can't list cluster for ELB association check")
-		return false
-	}
 
-	for _, cluster := range result.Clusters {
-		for _, tag := range tags {
-			if strings.Contains(*tag.Key, "/cluster/") && strings.Contains(*tag.Key, *cluster) {
-				return true
-			}
-		}
-	}
-
-	return false
-}
 
 func ListLoadBalancers(lbSession elbv2.ELBV2) ([]ElasticLoadBalancer, error) {
 	var allLoadBalancers []ElasticLoadBalancer
