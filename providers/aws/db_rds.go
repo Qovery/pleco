@@ -36,12 +36,13 @@ func listTaggedRDSDatabases(svc rds.RDS, tagName string) ([]rdsDatabase, error) 
 	}
 
 	for _, instance := range result.DBInstances {
-		creationDate, ttl, isProtected, _, _ := utils.GetEssentialTags(instance.TagList,tagName)
+		_, ttl, isProtected, _, _ := utils.GetEssentialTags(instance.TagList,tagName)
+		time, _ := time.Parse(time.RFC3339, instance.InstanceCreateTime.Format(time.RFC3339))
 
 		if instance.InstanceCreateTime != nil {
 			taggedDatabases = append(taggedDatabases, rdsDatabase{
 				DBInstanceIdentifier: *instance.DBInstanceIdentifier,
-				InstanceCreateTime:   creationDate,
+				InstanceCreateTime:   time,
 				DBInstanceStatus:     *instance.DBInstanceStatus,
 				TTL:                  int64(ttl),
 				IsProtected: isProtected,
@@ -92,9 +93,11 @@ func GetRDSInstanceInfos(svc rds.RDS, databaseIdentifier string) (rdsDatabase, e
 		}, err
 	}
 
+	time, _ := time.Parse(time.RFC3339, result.DBInstances[0].InstanceCreateTime.Format(time.RFC3339))
+
 	return rdsDatabase{
 		DBInstanceIdentifier: *result.DBInstances[0].DBInstanceIdentifier,
-		InstanceCreateTime:   *result.DBInstances[0].InstanceCreateTime,
+		InstanceCreateTime:   time,
 		DBInstanceStatus:     *result.DBInstances[0].DBInstanceStatus,
 		TTL:                  -1,
 	}, nil

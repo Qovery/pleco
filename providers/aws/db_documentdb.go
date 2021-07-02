@@ -38,12 +38,13 @@ func listTaggedDocumentDBClusters(svc rds.RDS, tagName string) ([]documentDBClus
 			instances = append(instances, *instance.DBInstanceIdentifier)
 		}
 
-		creationDate, ttl, isProtected, _, _ := utils.GetEssentialTags(cluster.TagList,tagName)
+		_, ttl, isProtected, _, _ := utils.GetEssentialTags(cluster.TagList,tagName)
+		time, _ := time.Parse(time.RFC3339, cluster.ClusterCreateTime.Format(time.RFC3339))
 
 		taggedClusters = append(taggedClusters, documentDBCluster{
 			DBClusterIdentifier:  *cluster.DBClusterIdentifier,
 			DBClusterMembers: 	  instances,
-			ClusterCreateTime:    creationDate,
+			ClusterCreateTime:    time,
 			Status:               *cluster.Status,
 			TTL:                  ttl,
 			IsProtected: 		  isProtected,
