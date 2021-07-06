@@ -26,7 +26,7 @@ func listTaggedRDSDatabases(svc rds.RDS, tagName string) ([]rdsDatabase, error) 
 	var taggedDatabases []rdsDatabase
 
 	// unfortunately AWS doesn't support tag filtering for RDS
-	result, err := svc.DescribeDBInstances(nil)
+	result, err := svc.DescribeDBInstances(&rds.DescribeDBInstancesInput{})
 	if err != nil {
 		return nil, err
 	}
@@ -36,10 +36,21 @@ func listTaggedRDSDatabases(svc rds.RDS, tagName string) ([]rdsDatabase, error) 
 	}
 
 	for _, instance := range result.DBInstances {
+		if instance.TagList == nil {
+			log.Errorf("No tags for instance %s in %s", *instance.DBInstanceIdentifier, *svc.Config.Region)
+			continue
+		}
+
+		if instance.InstanceCreateTime == nil {
+			log.Errorf("No creation date for instance %s in %s", *instance.DBInstanceIdentifier, *svc.Config.Region)
+			continue
+		}
+
 		_, ttl, isProtected, _, _ := utils.GetEssentialTags(instance.TagList,tagName)
 		time, _ := time.Parse(time.RFC3339, instance.InstanceCreateTime.Format(time.RFC3339))
 
-		if instance.InstanceCreateTime != nil {
+
+		if instance.DBInstanceIdentifier != nil {
 			taggedDatabases = append(taggedDatabases, rdsDatabase{
 				DBInstanceIdentifier: *instance.DBInstanceIdentifier,
 				InstanceCreateTime:   time,
@@ -122,7 +133,7 @@ func DeleteExpiredRDSDatabases(svc rds.RDS, tagName string, dryRun bool) {
 
 	log.Debug(count)
 
-	if dryRun || len(expiredDatabases) == 0 || expiredDatabases != nil{
+	if dryRun || len(expiredDatabases) == 0 || expiredDatabases == nil{
 		return
 	}
 
