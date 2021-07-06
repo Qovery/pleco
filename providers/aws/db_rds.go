@@ -36,6 +36,10 @@ func listTaggedRDSDatabases(svc rds.RDS, tagName string) ([]rdsDatabase, error) 
 	}
 
 	for _, instance := range result.DBInstances {
+		if *instance.DBInstanceStatus == "deleting" {
+			continue
+		}
+
 		if instance.TagList == nil {
 			log.Errorf("No tags for instance %s in %s", *instance.DBInstanceIdentifier, *svc.Config.Region)
 			continue
