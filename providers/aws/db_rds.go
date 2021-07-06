@@ -26,7 +26,7 @@ func listTaggedRDSDatabases(svc rds.RDS, tagName string) ([]rdsDatabase, error) 
 	var taggedDatabases []rdsDatabase
 
 	// unfortunately AWS doesn't support tag filtering for RDS
-	result, err := svc.DescribeDBInstances(nil)
+	result, err := svc.DescribeDBInstances(&rds.DescribeDBInstancesInput{})
 	if err != nil {
 		return nil, err
 	}
@@ -36,10 +36,20 @@ func listTaggedRDSDatabases(svc rds.RDS, tagName string) ([]rdsDatabase, error) 
 	}
 
 	for _, instance := range result.DBInstances {
-		_, ttl, isProtected, _, _ := utils.GetEssentialTags(instance.TagList,tagName)
-		time, _ := time.Parse(time.RFC3339, instance.InstanceCreateTime.Format(time.RFC3339))
+		if instance.TagList == nil {
+			log.Errorf("No tags for instance %s in %s", *instance.DBInstanceIdentifier, *svc.Config.Region)
+			continue
+		}
 
-		if instance.InstanceCreateTime != nil {
+		_, ttl, isProtected, _, _ := utils.GetEssentialTags(instance.TagList,tagName)
+		time, timeErr := time.Parse(time.RFC3339, instance.InstanceCreateTime.Format(time.RFC3339))
+
+		if timeErr != nil {
+			log.Errorf("No creation date for instance %s in %s", *instance.DBInstanceIdentifier, *svc.Config.Region)
+			continue
+		}
+
+		if instance.InstanceCreateTime != nil && instance.DBInstanceIdentifier != nil {
 			taggedDatabases = append(taggedDatabases, rdsDatabase{
 				DBInstanceIdentifier: *instance.DBInstanceIdentifier,
 				InstanceCreateTime:   time,
