@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"fmt"
 	"github.com/Qovery/pleco/utils"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -16,24 +15,27 @@ type rdsDatabase struct {
 	DBInstanceStatus     string
 	TTL                  int64
 	IsProtected          bool
+	ParameterGroups      []*rds.DBParameterGroupStatus
+	SubnetGroup          *rds.DBSubnetGroup
 }
 
 func RdsSession(sess session.Session, region string) *rds.RDS {
 	return rds.New(&sess, &aws.Config{Region: aws.String(region)})
 }
 
-func listTaggedRDSDatabases(svc rds.RDS, tagName string) ([]rdsDatabase, error) {
-	var taggedDatabases []rdsDatabase
-
-	// unfortunately AWS doesn't support tag filtering for RDS
+func listExpiredRDSDatabases(svc rds.RDS, tagName string) []rdsDatabase {
 	result, err := svc.DescribeDBInstances(&rds.DescribeDBInstancesInput{})
+
 	if err != nil {
-		return nil, err
+		log.Errorf("Can't get RDS databases in %s: %s", *svc.Config.Region, err.Error())
+		return nil
 	}
 
 	if len(result.DBInstances) == 0 {
-		return []rdsDatabase{}, nil
+		return nil
 	}
+
+	var expiredDatabases []rdsDatabase
 
 	for _, instance := range result.DBInstances {
 		if *instance.DBInstanceStatus == "deleting" {
@@ -53,43 +55,52 @@ func listTaggedRDSDatabases(svc rds.RDS, tagName string) ([]rdsDatabase, error) 
 		_, ttl, isProtected, _, _ := utils.GetEssentialTags(instance.TagList,tagName)
 		time, _ := time.Parse(time.RFC3339, instance.InstanceCreateTime.Format(time.RFC3339))
 
-
 		if instance.DBInstanceIdentifier != nil {
-			taggedDatabases = append(taggedDatabases, rdsDatabase{
-				DBInstanceIdentifier: *instance.DBInstanceIdentifier,
-				InstanceCreateTime:   time,
-				DBInstanceStatus:     *instance.DBInstanceStatus,
-				TTL:                  int64(ttl),
-				IsProtected: isProtected,
-			})
+			database := rdsDatabase{
+				DBInstanceIdentifier: 	*instance.DBInstanceIdentifier,
+				InstanceCreateTime:   	time,
+				DBInstanceStatus:     	*instance.DBInstanceStatus,
+				TTL:                  	int64(ttl),
+				IsProtected: 			isProtected,
+				SubnetGroup:			instance.DBSubnetGroup,
+				ParameterGroups:		instance.DBParameterGroups,
+			}
+
+			if utils.CheckIfExpired(database.InstanceCreateTime, database.TTL, "rds Db: " + database.DBInstanceIdentifier) && !database.IsProtected {
+				expiredDatabases = append(expiredDatabases, database)
+			}
 		}
 	}
 
-	return taggedDatabases, nil
+	return expiredDatabases
 }
 
-func DeleteRDSDatabase(svc rds.RDS, database rdsDatabase) error {
+func DeleteRDSDatabase(svc rds.RDS, database rdsDatabase) {
 	if database.DBInstanceStatus == "deleting" {
 		log.Infof("RDS instance %s is already in deletion process, skipping...", database.DBInstanceIdentifier)
-		return nil
+		return
 	} else {
 		log.Infof("Deleting RDS database %s in %s, expired after %d seconds",
 			database.DBInstanceIdentifier, *svc.Config.Region, database.TTL)
 	}
 
 
-	_, err := svc.DeleteDBInstance(
+	_, instanceErr := svc.DeleteDBInstance(
 		&rds.DeleteDBInstanceInput{
 			DBInstanceIdentifier:      aws.String(database.DBInstanceIdentifier),
 			DeleteAutomatedBackups:    aws.Bool(true),
 			SkipFinalSnapshot:         aws.Bool(true),
 		},
 	)
-	if err != nil {
-		return err
-	}
+	if instanceErr != nil {
+		log.Errorf("Can't delete RDS instance %s in %s: %s", database.DBInstanceIdentifier, *svc.Config.Region, instanceErr.Error())
+	} else {
+		deleteRDSSubnetGroup(svc, *database.SubnetGroup.DBSubnetGroupName)
 
-	return nil
+		for _, parameterGroup := range database.ParameterGroups {
+			deleteRDSParameterGroups(svc, *parameterGroup.DBParameterGroupName)
+		}
+	}
 }
 
 func GetRDSInstanceInfos(svc rds.RDS, databaseIdentifier string) (rdsDatabase, error) {
@@ -119,21 +130,9 @@ func GetRDSInstanceInfos(svc rds.RDS, databaseIdentifier string) (rdsDatabase, e
 }
 
 func DeleteExpiredRDSDatabases(svc rds.RDS, tagName string, dryRun bool) {
-	databases, err := listTaggedRDSDatabases(svc, tagName)
-	region := svc.Config.Region
-	if err != nil {
-		log.Errorf("can't list RDS databases: %s\n", err)
-		return
-	}
+	expiredDatabases := listExpiredRDSDatabases(svc, tagName)
 
-	var expiredDatabases []rdsDatabase
-	for _, database := range databases {
-		if utils.CheckIfExpired(database.InstanceCreateTime, database.TTL, "rds Db: " + database.DBInstanceIdentifier) && !database.IsProtected {
-			expiredDatabases = append(expiredDatabases, database)
-		}
-	}
-
-	count, start:= utils.ElemToDeleteFormattedInfos("expired RDS database", len(expiredDatabases), *region)
+	count, start:= utils.ElemToDeleteFormattedInfos("expired RDS database", len(expiredDatabases), *svc.Config.Region)
 
 	log.Debug(count)
 
@@ -144,87 +143,28 @@ func DeleteExpiredRDSDatabases(svc rds.RDS, tagName string, dryRun bool) {
 	log.Debug(start)
 
 	for _, database := range expiredDatabases {
-		deletionErr := DeleteRDSDatabase(svc, database)
-			if deletionErr != nil {
-				log.Errorf("Deletion RDS database error %s/%s: %s",
-					database.DBInstanceIdentifier, *svc.Config.Region, err)
-			}
+		DeleteRDSDatabase(svc, database)
 	}
 }
 
-func getRDSSubnetGroups(svc rds.RDS) []*rds.DBSubnetGroup {
-	result, err := svc.DescribeDBSubnetGroups(
-		&rds.DescribeDBSubnetGroupsInput{
-			MaxRecords: aws.Int64(100),
-		})
-
-	if err != nil {
-		log.Errorf("Can't get DocumentDB subnet groups in region %s: %s", *svc.Config.Region, err.Error())
-	}
-
-	return result.DBSubnetGroups
-}
-
-func getRDSSubnetGroupsTags(svc rds.RDS, dbSubnetGroupArn string) []*rds.Tag {
-	result, err := svc.ListTagsForResource(
-		&rds.ListTagsForResourceInput{
-			ResourceName: aws.String(dbSubnetGroupArn),
-		})
-
-	if err != nil {
-		log.Errorf("Can't get tags for %s in region %s: %s", dbSubnetGroupArn, *svc.Config.Region, err.Error())
-		return []*rds.Tag{}
-	}
-
-	return result.TagList
-}
-
-func getExpiredRDSSubnetGroups(svc rds.RDS, tagName string) []*rds.DBSubnetGroup {
-	RDSSubnetGroups := getRDSSubnetGroups(svc)
-	var expiredRDSSubnetGroups []*rds.DBSubnetGroup
-
-	for _, RDSSubnetGroup := range RDSSubnetGroups {
-		tags := getRDSSubnetGroupsTags(svc, *RDSSubnetGroup.DBSubnetGroupArn)
-		creationDate, ttl, isProtected, _, _ := utils.GetEssentialTags(tags, tagName)
-
-		if utils.CheckIfExpired(creationDate, ttl, "RDS subnet group: " + *RDSSubnetGroup.DBSubnetGroupArn) && !isProtected {
-			expiredRDSSubnetGroups = append(expiredRDSSubnetGroups, RDSSubnetGroup)
-		}
-	}
-
-	return expiredRDSSubnetGroups
-}
-
-func deleteRDSSubnetGroup(svc rds.RDS, dbSubnetGroupName string) error {
+func deleteRDSSubnetGroup(svc rds.RDS, dbSubnetGroupName string) {
 	_, err := svc.DeleteDBSubnetGroup(
 		&rds.DeleteDBSubnetGroupInput{
 			DBSubnetGroupName: aws.String(dbSubnetGroupName),
 		})
 
 	if err != nil {
-		return fmt.Errorf("Can't delete DocumentDB %s in region %s: %s", dbSubnetGroupName, *svc.Config.Region, err.Error())
+		log.Errorf("Can't delete RDS Subnet Group %s in region %s: %s", dbSubnetGroupName, *svc.Config.Region, err.Error())
 	}
-
-	return nil
 }
 
-func DeleteExpiredRDSSubnetGroups(svc rds.RDS, tagName string ,dryRun bool) {
-	expiredRDSSubnetGroups :=  getExpiredRDSSubnetGroups(svc, tagName)
+func deleteRDSParameterGroups(svc rds.RDS, dbParameterGroupName string) {
+	_, err := svc.DeleteDBParameterGroup(
+		&rds.DeleteDBParameterGroupInput{
+			DBParameterGroupName: aws.String(dbParameterGroupName),
+		})
 
-	count, start:= utils.ElemToDeleteFormattedInfos("expired RDS subnet group", len(expiredRDSSubnetGroups), *svc.Config.Region)
-
-	log.Debug(count)
-
-	if dryRun || len(expiredRDSSubnetGroups) == 0 {
-		return
-	}
-
-	log.Debug(start)
-
-	for _, expiredRDSSubnetGroup := range expiredRDSSubnetGroups {
-		err := deleteRDSSubnetGroup(svc, *expiredRDSSubnetGroup.DBSubnetGroupName)
-		if err != nil {
-			log.Errorf("Deletion RDS subnet group error %s/%s: %s", *expiredRDSSubnetGroup.DBSubnetGroupName, *svc.Config.Region, err)
-		}
+	if err != nil {
+		log.Errorf("Can't delete RDS parameter group %s in region %s: %s", dbParameterGroupName, *svc.Config.Region, err.Error())
 	}
 }

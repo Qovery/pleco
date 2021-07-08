@@ -143,12 +143,6 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 			DeleteExpiredBuckets(*currentS3Session, tagName, dryRun)
 		}
 
-		// check s3
-		if s3Enabled {
-			logrus.Debugf("Listing all S3 buckets in region %s.", *currentS3Session.Config.Region)
-			DeleteExpiredBuckets(*currentS3Session, tagName, dryRun)
-		}
-
 		// check RDS
 		if rdsEnabled {
 			logrus.Debugf("Listing all RDS databases in region %s.", *currentRdsSession.Config.Region)
@@ -189,7 +183,6 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 		if vpcEnabled {
 			logrus.Debugf("Listing all VPC resources in region %s.", *currentEC2Session.Config.Region)
 			DeleteExpiredVPC(*currentEC2Session, tagName, dryRun)
-			DeleteExpiredRDSSubnetGroups(*currentRdsSession, tagName, dryRun)
 		}
 
 		//check Cloudwatch

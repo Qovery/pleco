@@ -1,8 +1,6 @@
 package aws
 
 import (
-	"errors"
-	"fmt"
 	"github.com/Qovery/pleco/utils"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/rds"
@@ -19,21 +17,23 @@ type documentDBCluster struct {
 	IsProtected bool
 }
 
-func listTaggedDocumentDBClusters(svc rds.RDS, tagName string) ([]documentDBCluster, error) {
-	var taggedClusters []documentDBCluster
-	var instances []string
-
-	// unfortunately AWS doesn't support tag filtering for RDS
-	result, err := svc.DescribeDBClusters(nil)
+func getDBClusters(svc rds.RDS) []*rds.DBCluster {
+	result, err := svc.DescribeDBClusters(&rds.DescribeDBClustersInput{})
 	if err != nil {
-		return nil, err
+		log.Errorf("Can't get DB clusters in %s: %s", *svc.Config.Region, err.Error())
+		return nil
 	}
 
-	if len(result.DBClusters) == 0 {
-		return nil, nil
-	}
+	return result.DBClusters
+}
 
-	for _, cluster := range result.DBClusters {
+func listExpiredDocumentDBClusters(svc rds.RDS, tagName string) []documentDBCluster {
+	dbClusters := getDBClusters(svc)
+
+	var expiredClusters []documentDBCluster
+
+	for _, cluster := range dbClusters {
+		var instances []string
 		for _, instance := range cluster.DBClusterMembers {
 			instances = append(instances, *instance.DBInstanceIdentifier)
 		}
@@ -41,22 +41,35 @@ func listTaggedDocumentDBClusters(svc rds.RDS, tagName string) ([]documentDBClus
 		_, ttl, isProtected, _, _ := utils.GetEssentialTags(cluster.TagList,tagName)
 		time, _ := time.Parse(time.RFC3339, cluster.ClusterCreateTime.Format(time.RFC3339))
 
-		taggedClusters = append(taggedClusters, documentDBCluster{
-			DBClusterIdentifier:  *cluster.DBClusterIdentifier,
-			DBClusterMembers: 	  instances,
-			ClusterCreateTime:    time,
-			Status:               *cluster.Status,
-			TTL:                  ttl,
-			IsProtected: 		  isProtected,
-		})
+		if utils.CheckIfExpired(time, ttl, "document Db: " + *cluster.DBClusterIdentifier)  && !isProtected {
+			expiredClusters = append(expiredClusters, documentDBCluster{
+				DBClusterIdentifier: *cluster.DBClusterIdentifier,
+				DBClusterMembers:    instances,
+				ClusterCreateTime:   time,
+				Status:              *cluster.Status,
+				TTL:                 ttl,
+				IsProtected:         isProtected,
+			})
+		}
 	}
 
-	return taggedClusters, nil
+	return expiredClusters
+}
+
+func deleteClusterInstances(svc rds.RDS, cluster documentDBCluster) {
+	for _, instance := range cluster.DBClusterMembers {
+		rdsInstanceInfo, err := GetRDSInstanceInfos(svc, instance)
+		if err != nil {
+			log.Errorf("Can't access RDS instance %s information for DocumentDB cluster %s: %s",
+				instance, cluster.DBClusterIdentifier, err)
+			continue
+		}
+
+		DeleteRDSDatabase(svc, rdsInstanceInfo)
+	}
 }
 
 func deleteDocumentDBCluster(svc rds.RDS, cluster documentDBCluster, dryRun bool) error {
-	deleteInstancesErrors := 0
-
 	if cluster.Status == "deleting" {
 		log.Infof("DocumentDB cluster %s is already in deletion process, skipping...", cluster.DBClusterIdentifier)
 		return nil
@@ -65,36 +78,11 @@ func deleteDocumentDBCluster(svc rds.RDS, cluster documentDBCluster, dryRun bool
 			cluster.DBClusterIdentifier, *svc.Config.Region, cluster.TTL)
 	}
 
-	// delete instance before deleting the cluster (otherwise it fails)
-	for _, instance := range cluster.DBClusterMembers {
-		rdsInstanceInfo, err := GetRDSInstanceInfos(svc, instance)
-		if err != nil {
-			log.Errorf("Can't access RDS instance %s information for DocumentDB cluster %s: %s",
-				instance, cluster.DBClusterIdentifier, err)
-			deleteInstancesErrors++
-			continue
-		}
-
-		if dryRun {
-			continue
-		}
-
-		err = DeleteRDSDatabase(svc, rdsInstanceInfo)
-		if err != nil {
-			log.Errorf("Deletion error on DocumentDB instance %s/%s/%s: %s",
-				instance, cluster.DBClusterIdentifier, *svc.Config.Region, err)
-			deleteInstancesErrors++
-		}
-	}
-
-	if deleteInstancesErrors > 0 {
-		message := fmt.Sprintf("Errors during deleting DocumentDB cluster %s instances, will try later when errors will be gone", cluster.DBClusterIdentifier)
-		return errors.New(message)
-	}
-
 	if dryRun {
 		return nil
 	}
+	// delete instance before deleting the cluster (otherwise it fails)
+	deleteClusterInstances(svc, cluster)
 
 	// delete cluster
 	_, err := svc.DeleteDBCluster(
@@ -111,21 +99,9 @@ func deleteDocumentDBCluster(svc rds.RDS, cluster documentDBCluster, dryRun bool
 }
 
 func DeleteExpiredDocumentDBClusters(svc rds.RDS, tagName string, dryRun bool) {
-	clusters, err := listTaggedDocumentDBClusters(svc, tagName)
-	region := svc.Config.Region
-	if err != nil {
-		log.Errorf("can't list DocumentDB databases: %s\n", err)
-		return
-	}
+	expiredClusters := listExpiredDocumentDBClusters(svc, tagName)
 
-	var expiredClusters []documentDBCluster
-	for _, cluster := range clusters {
-		if utils.CheckIfExpired(cluster.ClusterCreateTime, cluster.TTL, "document Db: " + cluster.DBClusterIdentifier)  && !cluster.IsProtected {
-			expiredClusters = append(expiredClusters, cluster)
-		}
-	}
-
-	count, start:= utils.ElemToDeleteFormattedInfos("expired DocumentDB database", len(expiredClusters), *region)
+	count, start:= utils.ElemToDeleteFormattedInfos("expired DocumentDB database", len(expiredClusters), *svc.Config.Region)
 
 	log.Debug(count)
 
@@ -139,8 +115,8 @@ func DeleteExpiredDocumentDBClusters(svc rds.RDS, tagName string, dryRun bool) {
 	for _, cluster := range expiredClusters {
 		deletionErr := deleteDocumentDBCluster(svc, cluster, dryRun)
 		if deletionErr != nil {
-			log.Errorf("Deletion DocumentDB cluster error %s/%s: %s",
-				cluster.DBClusterIdentifier, *svc.Config.Region, err)
+			log.Errorf("Deletion DocumentDB cluster error %s in %s: %s",
+				cluster.DBClusterIdentifier, *svc.Config.Region, deletionErr.Error())
 		}
 	}
 

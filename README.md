@@ -20,9 +20,10 @@ NOTE: this project is used in Qovery's production environment
   - [X] Document DB databases
   - [X] Document DB subnet groups
   - [X] Elasticache databases
-  - [X] Elasticache subnet groups groups
+  - [ ] Elasticache subnet groups
   - [X] RDS databases
-  - [X] RDS subnet groups  
+  - [X] RDS subnet groups
+  - [X] RDS parameter groups
   - [X] EBS volumes
   - [X] ELB load balancers
   - [X] EC2 Key pairs
