@@ -18,9 +18,9 @@ type SecurityGroup struct {
 	IpPermissionEgress  []*ec2.IpPermission
 }
 
-func getSecurityGroupsByVpcId (ec2Session ec2.EC2, vpcId string) []*ec2.SecurityGroup {
+func getSecurityGroupsByVpcId(ec2Session ec2.EC2, vpcId string) []*ec2.SecurityGroup {
 	input := &ec2.DescribeSecurityGroupsInput{
-		Filters:  []*ec2.Filter{
+		Filters: []*ec2.Filter{
 			{
 				Name:   aws.String("vpc-id"),
 				Values: []*string{aws.String(vpcId)},
@@ -28,7 +28,7 @@ func getSecurityGroupsByVpcId (ec2Session ec2.EC2, vpcId string) []*ec2.Security
 		},
 	}
 
-	result , err := ec2Session.DescribeSecurityGroups(input)
+	result, err := ec2Session.DescribeSecurityGroups(input)
 	if err != nil {
 		log.Error(err)
 	}
@@ -36,7 +36,7 @@ func getSecurityGroupsByVpcId (ec2Session ec2.EC2, vpcId string) []*ec2.Security
 	return result.SecurityGroups
 }
 
-func SetSecurityGroupsIdsByVpcId (ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup, tagName string) {
+func SetSecurityGroupsIdsByVpcId(ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup, tagName string) {
 	defer waitGroup.Done()
 	var securityGroupsStruct []SecurityGroup
 
@@ -46,25 +46,24 @@ func SetSecurityGroupsIdsByVpcId (ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *s
 		if *securityGroup.GroupName != "default" {
 			creationDate, ttl, isProtected, _, _ := utils.GetEssentialTags(securityGroup.Tags, tagName)
 			var securityGroupStruct = SecurityGroup{
-				Id: 					*securityGroup.GroupId,
-				CreationDate: 			creationDate,
-				ttl: 					ttl,
-				IsProtected: 			isProtected,
-				IpPermissionIngress: 	securityGroup.IpPermissions,
-				IpPermissionEgress: 	securityGroup.IpPermissionsEgress,
+				Id:                  *securityGroup.GroupId,
+				CreationDate:        creationDate,
+				ttl:                 ttl,
+				IsProtected:         isProtected,
+				IpPermissionIngress: securityGroup.IpPermissions,
+				IpPermissionEgress:  securityGroup.IpPermissionsEgress,
 			}
 
 			securityGroupsStruct = append(securityGroupsStruct, securityGroupStruct)
 		}
 	}
 
-
 	vpc.SecurityGroups = securityGroupsStruct
 }
 
-func DeleteSecurityGroupsByIds (ec2Session ec2.EC2, securityGroups []SecurityGroup) {
+func DeleteSecurityGroupsByIds(ec2Session ec2.EC2, securityGroups []SecurityGroup) {
 	for _, securityGroup := range securityGroups {
-		if !securityGroup.IsProtected{
+		if !securityGroup.IsProtected {
 			deleteIpPermissions(ec2Session, securityGroup)
 
 			_, err := ec2Session.DeleteSecurityGroup(
@@ -80,10 +79,10 @@ func DeleteSecurityGroupsByIds (ec2Session ec2.EC2, securityGroups []SecurityGro
 	}
 }
 
-func deleteIpPermissions (ec2Session ec2.EC2, securityGroup SecurityGroup) {
+func deleteIpPermissions(ec2Session ec2.EC2, securityGroup SecurityGroup) {
 	_, ingressErr := ec2Session.RevokeSecurityGroupIngress(
 		&ec2.RevokeSecurityGroupIngressInput{
-			GroupId: aws.String(securityGroup.Id),
+			GroupId:       aws.String(securityGroup.Id),
 			IpPermissions: securityGroup.IpPermissionIngress,
 		})
 
@@ -93,7 +92,7 @@ func deleteIpPermissions (ec2Session ec2.EC2, securityGroup SecurityGroup) {
 
 	_, egressErr := ec2Session.RevokeSecurityGroupEgress(
 		&ec2.RevokeSecurityGroupEgressInput{
-			GroupId: aws.String(securityGroup.Id),
+			GroupId:       aws.String(securityGroup.Id),
 			IpPermissions: securityGroup.IpPermissionEgress,
 		})
 

@@ -18,8 +18,7 @@ type CompleteKey struct {
 	IsProtected  bool
 }
 
-
-func getKeys(svc kms.KMS) []*kms.KeyListEntry{
+func getKeys(svc kms.KMS) []*kms.KeyListEntry {
 	input := &kms.ListKeysInput{
 		Limit: aws.Int64(1000),
 	}
@@ -31,22 +30,21 @@ func getKeys(svc kms.KMS) []*kms.KeyListEntry{
 }
 
 func getCompleteKey(svc kms.KMS, keyId *string, tagName string) CompleteKey {
-	tags := getKeyTags(svc,keyId)
-	metaData := getKeyMetadata(svc,keyId)
+	tags := getKeyTags(svc, keyId)
+	metaData := getKeyMetadata(svc, keyId)
 
 	creationDate, ttl, isProtected, _, _ := utils.GetEssentialTags(tags, tagName)
 
-
 	return CompleteKey{
-		KeyId: 			*keyId,
-		Status: 		*metaData.KeyMetadata.KeyState,
-		CreationDate: 	creationDate,
-		TTL: 			ttl,
-		IsProtected: 	isProtected,
+		KeyId:        *keyId,
+		Status:       *metaData.KeyMetadata.KeyState,
+		CreationDate: creationDate,
+		TTL:          ttl,
+		IsProtected:  isProtected,
 	}
 }
 
-func deleteKey(svc kms.KMS, keyId string) (*kms.ScheduleKeyDeletionOutput,error){
+func deleteKey(svc kms.KMS, keyId string) (*kms.ScheduleKeyDeletionOutput, error) {
 	input := &kms.ScheduleKeyDeletionInput{
 		KeyId:               aws.String(keyId),
 		PendingWindowInDays: aws.Int64(7),
@@ -55,10 +53,10 @@ func deleteKey(svc kms.KMS, keyId string) (*kms.ScheduleKeyDeletionOutput,error)
 	result, err := svc.ScheduleKeyDeletion(input)
 	handleKMSError(err)
 
-	return result,err
+	return result, err
 }
 
-func getKeyTags (svc kms.KMS, keyId *string) []*kms.Tag {
+func getKeyTags(svc kms.KMS, keyId *string) []*kms.Tag {
 	input := &kms.ListResourceTagsInput{
 		KeyId: aws.String(*keyId),
 	}
@@ -69,7 +67,7 @@ func getKeyTags (svc kms.KMS, keyId *string) []*kms.Tag {
 	return tags.Tags
 }
 
-func getKeyMetadata (svc kms.KMS,keyId *string) *kms.DescribeKeyOutput{
+func getKeyMetadata(svc kms.KMS, keyId *string) *kms.DescribeKeyOutput {
 	input := &kms.DescribeKeyInput{KeyId: keyId}
 
 	data, err := svc.DescribeKey(input)
@@ -78,7 +76,7 @@ func getKeyMetadata (svc kms.KMS,keyId *string) *kms.DescribeKeyOutput{
 	return data
 }
 
-func handleKMSError (error error) {
+func handleKMSError(error error) {
 	if error != nil {
 		if aerr, ok := error.(awserr.Error); ok {
 			switch aerr.Code() {
@@ -110,8 +108,8 @@ func DeleteExpiredKeys(svc kms.KMS, tagName string, dryRun bool) {
 		completeKey := getCompleteKey(svc, key.KeyId, tagName)
 
 		if completeKey.Status != "PendingDeletion" && completeKey.Status != "Disabled" &&
-			utils.CheckIfExpired(completeKey.CreationDate,  completeKey.TTL, "kms key: " + completeKey.KeyId) && !completeKey.IsProtected {
-			if completeKey.Tag == tagName || tagName == "ttl"{
+			utils.CheckIfExpired(completeKey.CreationDate, completeKey.TTL, "kms key: "+completeKey.KeyId) && !completeKey.IsProtected {
+			if completeKey.Tag == tagName || tagName == "ttl" {
 				expiredKeys = append(expiredKeys, completeKey)
 			}
 		}

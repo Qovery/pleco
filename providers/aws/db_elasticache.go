@@ -54,15 +54,15 @@ func listTaggedElasticacheDatabases(svc elasticache.ElastiCache, tagName string)
 		}
 
 		_, ttl, isProtected, _, _ := utils.GetEssentialTags(tags.TagList, tagName)
-		time, _ := time.Parse(time.RFC3339,cluster.CacheClusterCreateTime.Format(time.RFC3339))
+		time, _ := time.Parse(time.RFC3339, cluster.CacheClusterCreateTime.Format(time.RFC3339))
 
 		taggedClusters = append(taggedClusters, elasticacheCluster{
-			ClusterIdentifier:    *cluster.CacheClusterId,
-			ReplicationGroupId:	  replicationGroupId,
-			ClusterCreateTime:    time,
-			ClusterStatus:        *cluster.CacheClusterStatus,
-			TTL:                  ttl,
-			IsProtected: isProtected,
+			ClusterIdentifier:  *cluster.CacheClusterId,
+			ReplicationGroupId: replicationGroupId,
+			ClusterCreateTime:  time,
+			ClusterStatus:      *cluster.CacheClusterStatus,
+			TTL:                ttl,
+			IsProtected:        isProtected,
 		})
 
 	}
@@ -83,8 +83,8 @@ func deleteElasticacheCluster(svc elasticache.ElastiCache, cluster elasticacheCl
 	if cluster.ReplicationGroupId != "" {
 		_, err := svc.DeleteReplicationGroup(
 			&elasticache.DeleteReplicationGroupInput{
-				ReplicationGroupId:      aws.String(cluster.ReplicationGroupId),
-				RetainPrimaryCluster:    aws.Bool(false),
+				ReplicationGroupId:   aws.String(cluster.ReplicationGroupId),
+				RetainPrimaryCluster: aws.Bool(false),
 			},
 		)
 		if err != nil {
@@ -114,12 +114,12 @@ func DeleteExpiredElasticacheDatabases(svc elasticache.ElastiCache, tagName stri
 
 	var expiredClusters []elasticacheCluster
 	for _, cluster := range clusters {
-		if utils.CheckIfExpired(cluster.ClusterCreateTime, cluster.TTL, "elasticache: " + cluster.ClusterIdentifier) && !cluster.IsProtected{
+		if utils.CheckIfExpired(cluster.ClusterCreateTime, cluster.TTL, "elasticache: "+cluster.ClusterIdentifier) && !cluster.IsProtected {
 			expiredClusters = append(expiredClusters, cluster)
 		}
 	}
 
-	count, start:= utils.ElemToDeleteFormattedInfos("expired Elasticache database", len(expiredClusters), *region)
+	count, start := utils.ElemToDeleteFormattedInfos("expired Elasticache database", len(expiredClusters), *region)
 
 	log.Debug(count)
 
@@ -133,8 +133,8 @@ func DeleteExpiredElasticacheDatabases(svc elasticache.ElastiCache, tagName stri
 		deletionErr := deleteElasticacheCluster(svc, cluster)
 		if deletionErr != nil {
 			log.Errorf("Deletion Elasticache cluster error %s/%s: %s",
-					cluster.ClusterIdentifier, *svc.Config.Region, err)
-			}
+				cluster.ClusterIdentifier, *svc.Config.Region, err)
+		}
 	}
 
 }

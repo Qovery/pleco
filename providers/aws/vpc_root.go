@@ -9,8 +9,6 @@ import (
 	"time"
 )
 
-
-
 type VpcInfo struct {
 	VpcId            *string
 	SecurityGroups   []SecurityGroup
@@ -24,10 +22,10 @@ type VpcInfo struct {
 	IsProtected      bool
 }
 
-func GetVpcsIdsByClusterNameTag (ec2Session ec2.EC2, clusterName string) []*string {
+func GetVpcsIdsByClusterNameTag(ec2Session ec2.EC2, clusterName string) []*string {
 	result, err := ec2Session.DescribeVpcs(
 		&ec2.DescribeVpcsInput{
-			Filters:    []*ec2.Filter{
+			Filters: []*ec2.Filter{
 				{
 					Name:   aws.String("tag:ClusterName"),
 					Values: []*string{aws.String(clusterName)},
@@ -52,7 +50,7 @@ func getVPCs(ec2Session ec2.EC2, tagName string) []*ec2.Vpc {
 	input := &ec2.DescribeVpcsInput{
 		Filters: []*ec2.Filter{
 			{
-				Name: aws.String("tag-key"),
+				Name:   aws.String("tag-key"),
 				Values: []*string{&tagName},
 			},
 		},
@@ -78,11 +76,11 @@ func listTaggedVPC(ec2Session ec2.EC2, tagName string) ([]VpcInfo, error) {
 	for _, vpc := range VPCs {
 		creationDate, ttl, isprotected, _, _ := utils.GetEssentialTags(vpc.Tags, tagName)
 		taggedVpc := VpcInfo{
-			VpcId:      	vpc.VpcId,
-			Status:     	*vpc.State,
-			CreationDate: 	creationDate,
-			TTL: 			ttl,
-			IsProtected: 	isprotected,
+			VpcId:        vpc.VpcId,
+			Status:       *vpc.State,
+			CreationDate: creationDate,
+			TTL:          ttl,
+			IsProtected:  isprotected,
 		}
 
 		if *vpc.State != "available" {
@@ -105,7 +103,7 @@ func listTaggedVPC(ec2Session ec2.EC2, tagName string) ([]VpcInfo, error) {
 			getCompleteVpc(ec2Session, &taggedVpc, tagName)
 		}
 
-		if utils.CheckIfExpired(taggedVpc.CreationDate, taggedVpc.TTL, "vpc: " + *taggedVpc.VpcId) && !taggedVpc.IsProtected {
+		if utils.CheckIfExpired(taggedVpc.CreationDate, taggedVpc.TTL, "vpc: "+*taggedVpc.VpcId) && !taggedVpc.IsProtected {
 			taggedVPCs = append(taggedVPCs, taggedVpc)
 		}
 
@@ -126,19 +124,19 @@ func deleteVPC(ec2Session ec2.EC2, VpcList []VpcInfo, dryRun bool) error {
 	region := *ec2Session.Config.Region
 
 	for _, vpc := range VpcList {
-			DeleteSecurityGroupsByIds(ec2Session,vpc.SecurityGroups)
-			DeleteInternetGatewaysByIds(ec2Session, vpc.InternetGateways, *vpc.VpcId)
-			DeleteSubnetsByIds(ec2Session, vpc.Subnets)
-			DeleteRouteTablesByIds(ec2Session, vpc.RouteTables)
+		DeleteSecurityGroupsByIds(ec2Session, vpc.SecurityGroups)
+		DeleteInternetGatewaysByIds(ec2Session, vpc.InternetGateways, *vpc.VpcId)
+		DeleteSubnetsByIds(ec2Session, vpc.Subnets)
+		DeleteRouteTablesByIds(ec2Session, vpc.RouteTables)
 
-			_, deleteErr := ec2Session.DeleteVpc(
-				&ec2.DeleteVpcInput{
-					VpcId:  aws.String(*vpc.VpcId),
-				},
-			)
-			if deleteErr != nil {
-				log.Errorf("Can't delete VPC %s in %s yet: %s", *vpc.VpcId, region, deleteErr.Error())
-			}
+		_, deleteErr := ec2Session.DeleteVpc(
+			&ec2.DeleteVpcInput{
+				VpcId: aws.String(*vpc.VpcId),
+			},
+		)
+		if deleteErr != nil {
+			log.Errorf("Can't delete VPC %s in %s yet: %s", *vpc.VpcId, region, deleteErr.Error())
+		}
 	}
 
 	return nil
@@ -165,7 +163,7 @@ func DeleteExpiredVPC(ec2Session ec2.EC2, tagName string, dryRun bool) {
 
 }
 
-func getCompleteVpc(ec2Session ec2.EC2, vpc *VpcInfo, tagName string){
+func getCompleteVpc(ec2Session ec2.EC2, vpc *VpcInfo, tagName string) {
 	var waitGroup sync.WaitGroup
 	waitGroup.Add(1)
 	go SetSecurityGroupsIdsByVpcId(ec2Session, vpc, &waitGroup, tagName)

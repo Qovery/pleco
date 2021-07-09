@@ -11,12 +11,12 @@ import (
 )
 
 type ElasticLoadBalancer struct {
-	Arn string
-	Name string
-	Status string
-	IsProtected bool
+	Arn          string
+	Name         string
+	Status       string
+	IsProtected  bool
 	CreationDate time.Time
-	TTL int64
+	TTL          int64
 }
 
 func TagLoadBalancersForDeletion(lbSession elbv2.ELBV2, tagKey string, loadBalancersList []ElasticLoadBalancer, clusterName string) error {
@@ -38,13 +38,13 @@ func TagLoadBalancersForDeletion(lbSession elbv2.ELBV2, tagKey string, loadBalan
 		_, err := lbSession.AddTags(
 			&elbv2.AddTagsInput{
 				ResourceArns: aws.StringSlice([]string{*lbArn}),
-				Tags:         []*elbv2.Tag{
+				Tags: []*elbv2.Tag{
 					{
-						Key: aws.String(tagKey),
+						Key:   aws.String(tagKey),
 						Value: aws.String("1"),
 					},
 					{
-						Key: aws.String("creationDate"),
+						Key:   aws.String("creationDate"),
 						Value: aws.String(time.Now().Format(time.RFC3339)),
 					},
 				},
@@ -55,11 +55,10 @@ func TagLoadBalancersForDeletion(lbSession elbv2.ELBV2, tagKey string, loadBalan
 		}
 	}
 
-
 	return nil
 }
 
-func ListExpiredLoadBalancers(eksSession eks.EKS,lbSession elbv2.ELBV2, tagName string) ([]ElasticLoadBalancer, error) {
+func ListExpiredLoadBalancers(eksSession eks.EKS, lbSession elbv2.ELBV2, tagName string) ([]ElasticLoadBalancer, error) {
 	var taggedLoadBalancers []ElasticLoadBalancer
 	region := *lbSession.Config.Region
 
@@ -86,15 +85,13 @@ func ListExpiredLoadBalancers(eksSession eks.EKS,lbSession elbv2.ELBV2, tagName 
 		currentLb.TTL = ttl
 		currentLb.IsProtected = isProtected
 
-		if !currentLb.IsProtected && (!utils.IsAssociatedToLivingCluster(result.TagDescriptions[0].Tags, eksSession) || utils.CheckIfExpired(currentLb.CreationDate, currentLb.TTL, "ELB " + currentLb.Name))  {
+		if !currentLb.IsProtected && (!utils.IsAssociatedToLivingCluster(result.TagDescriptions[0].Tags, eksSession) || utils.CheckIfExpired(currentLb.CreationDate, currentLb.TTL, "ELB "+currentLb.Name)) {
 			taggedLoadBalancers = append(taggedLoadBalancers, currentLb)
 		}
 	}
 
 	return taggedLoadBalancers, nil
 }
-
-
 
 func ListLoadBalancers(lbSession elbv2.ELBV2) ([]ElasticLoadBalancer, error) {
 	var allLoadBalancers []ElasticLoadBalancer
@@ -112,9 +109,9 @@ func ListLoadBalancers(lbSession elbv2.ELBV2) ([]ElasticLoadBalancer, error) {
 
 	for _, currentLb := range result.LoadBalancers {
 		allLoadBalancers = append(allLoadBalancers, ElasticLoadBalancer{
-			Arn:         *currentLb.LoadBalancerArn,
-			Name:        *currentLb.LoadBalancerName,
-			Status:      *currentLb.State.Code,
+			Arn:    *currentLb.LoadBalancerArn,
+			Name:   *currentLb.LoadBalancerName,
+			Status: *currentLb.State.Code,
 		})
 	}
 
@@ -149,7 +146,7 @@ func DeleteExpiredLoadBalancers(eksSession eks.EKS, elbSession elbv2.ELBV2, tagN
 		return
 	}
 
-	count, start:= utils.ElemToDeleteFormattedInfos("expired ELB load balancer", len(expiredLoadBalancers), *region)
+	count, start := utils.ElemToDeleteFormattedInfos("expired ELB load balancer", len(expiredLoadBalancers), *region)
 
 	log.Debug(count)
 

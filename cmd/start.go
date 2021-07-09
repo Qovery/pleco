@@ -49,7 +49,6 @@ func init() {
 	startCmd.Flags().BoolP("enable-ssh-keys", "z", false, "Enable Key Pair watch")
 	startCmd.Flags().BoolP("enable-ecr", "o", false, "Enable ECR watch")
 
-
 	// K8s
-	startCmd.Flags().StringP("kube-conn", "k", "off","Kubernetes connection method, choose between : off/in/out")
+	startCmd.Flags().StringP("kube-conn", "k", "off", "Kubernetes connection method, choose between : off/in/out")
 }

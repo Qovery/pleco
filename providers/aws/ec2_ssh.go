@@ -17,13 +17,11 @@ type KeyPair struct {
 	IsProtected  bool
 }
 
-func getSshKeys (ec2session *ec2.EC2, tagName string) []KeyPair {
+func getSshKeys(ec2session *ec2.EC2, tagName string) []KeyPair {
 	result, err := ec2session.DescribeKeyPairs(
-		&ec2.DescribeKeyPairsInput{
+		&ec2.DescribeKeyPairsInput{})
 
-		})
-
-	if err !=nil {
+	if err != nil {
 		log.Error(err)
 		return nil
 	}
@@ -32,11 +30,11 @@ func getSshKeys (ec2session *ec2.EC2, tagName string) []KeyPair {
 	for _, key := range result.KeyPairs {
 		creationTime, ttl, isProtected, _, _ := utils.GetEssentialTags(key.Tags, tagName)
 		newKey := KeyPair{
-			KeyName: *key.KeyName,
-			KeyId: *key.KeyPairId,
+			KeyName:      *key.KeyName,
+			KeyId:        *key.KeyPairId,
 			CreationDate: creationTime,
-			ttl: ttl,
-			IsProtected: isProtected,
+			ttl:          ttl,
+			IsProtected:  isProtected,
 		}
 
 		keys = append(keys, newKey)
@@ -45,7 +43,7 @@ func getSshKeys (ec2session *ec2.EC2, tagName string) []KeyPair {
 	return keys
 }
 
-func deleteKeyPair (ec2session *ec2.EC2, keyId string) error {
+func deleteKeyPair(ec2session *ec2.EC2, keyId string) error {
 	_, err := ec2session.DeleteKeyPair(
 		&ec2.DeleteKeyPairInput{
 			KeyPairId: aws.String(keyId),
@@ -59,12 +57,12 @@ func DeleteExpiredKeyPairs(ec2session *ec2.EC2, tagName string, dryRun bool) {
 	region := ec2session.Config.Region
 	var expiredKeys []KeyPair
 	for _, key := range keys {
-		if utils.CheckIfExpired(key.CreationDate, key.ttl, "ec2 key pair: " + key.KeyId) && !key.IsProtected {
+		if utils.CheckIfExpired(key.CreationDate, key.ttl, "ec2 key pair: "+key.KeyId) && !key.IsProtected {
 			expiredKeys = append(expiredKeys, key)
 		}
 	}
 
-	count, start:= utils.ElemToDeleteFormattedInfos("expired ELB load balancer", len(expiredKeys), *region)
+	count, start := utils.ElemToDeleteFormattedInfos("expired ELB load balancer", len(expiredKeys), *region)
 
 	log.Debug(count)
 

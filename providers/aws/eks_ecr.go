@@ -25,7 +25,7 @@ func getRepositories(ecrSession *ecr.ECR) []*ecr.Repository {
 func getRepositoryImages(ecrSession *ecr.ECR, repositoryName string) []*ecr.ImageDetail {
 	result, err := ecrSession.DescribeImages(
 		&ecr.DescribeImagesInput{
-			MaxResults: aws.Int64(1000),
+			MaxResults:     aws.Int64(1000),
 			RepositoryName: aws.String(repositoryName),
 		})
 

@@ -5,7 +5,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func DeleteExpiredIAM (iamSession *iam.IAM, tagName string, dryRun bool) {
+func DeleteExpiredIAM(iamSession *iam.IAM, tagName string, dryRun bool) {
 	log.Debug("Listing all IAM users.")
 	DeleteExpiredUsers(iamSession, tagName, dryRun)
 

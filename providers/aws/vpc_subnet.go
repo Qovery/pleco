@@ -16,11 +16,11 @@ type Subnet struct {
 	IsProtected  bool
 }
 
-func getSubnetsByVpcId (ec2Session ec2.EC2, vpcId string) []*ec2.Subnet {
+func getSubnetsByVpcId(ec2Session ec2.EC2, vpcId string) []*ec2.Subnet {
 	input := &ec2.DescribeSubnetsInput{
 		Filters: []*ec2.Filter{
 			{
-				Name: aws.String("vpc-id"),
+				Name:   aws.String("vpc-id"),
 				Values: []*string{aws.String(vpcId)},
 			},
 		},
@@ -34,7 +34,7 @@ func getSubnetsByVpcId (ec2Session ec2.EC2, vpcId string) []*ec2.Subnet {
 	return subnets.Subnets
 }
 
-func SetSubnetsIdsByVpcId (ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup, tagName string) {
+func SetSubnetsIdsByVpcId(ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup, tagName string) {
 	defer waitGroup.Done()
 	var subnetsStruct []Subnet
 
@@ -44,10 +44,10 @@ func SetSubnetsIdsByVpcId (ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.Wai
 		creationDate, ttl, isProtected, _, _ := utils.GetEssentialTags(subnet.Tags, tagName)
 
 		var subnetStruct = Subnet{
-			Id: 			*subnet.SubnetId,
-			CreationDate: 	creationDate,
-			ttl: 			ttl,
-			IsProtected: 	isProtected,
+			Id:           *subnet.SubnetId,
+			CreationDate: creationDate,
+			ttl:          ttl,
+			IsProtected:  isProtected,
 		}
 		subnetsStruct = append(subnetsStruct, subnetStruct)
 	}
@@ -55,7 +55,7 @@ func SetSubnetsIdsByVpcId (ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.Wai
 	vpc.Subnets = subnetsStruct
 }
 
-func DeleteSubnetsByIds (ec2Session ec2.EC2, subnets []Subnet) {
+func DeleteSubnetsByIds(ec2Session ec2.EC2, subnets []Subnet) {
 	for _, subnet := range subnets {
 		if !subnet.IsProtected {
 			_, err := ec2Session.DeleteSubnet(

@@ -44,7 +44,7 @@ func RunPlecoAWS(cmd *cobra.Command, regions []string, interval int64, dryRun bo
 func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun bool, wg *sync.WaitGroup, currentSession *session.Session, tagName string) {
 	defer wg.Done()
 
-	logrus.Infof("Starting to check expired resources in region %s." , *currentSession.Config.Region)
+	logrus.Infof("Starting to check expired resources in region %s.", *currentSession.Config.Region)
 
 	var currentS3Session *s3.S3
 	var currentRdsSession *rds.RDS

@@ -17,11 +17,11 @@ type RouteTable struct {
 	IsProtected  bool
 }
 
-func getRouteTablesByVpcId (ec2Session ec2.EC2, vpcId string) []*ec2.RouteTable {
+func getRouteTablesByVpcId(ec2Session ec2.EC2, vpcId string) []*ec2.RouteTable {
 	input := &ec2.DescribeRouteTablesInput{
 		Filters: []*ec2.Filter{
 			{
-				Name: aws.String("vpc-id"),
+				Name:   aws.String("vpc-id"),
 				Values: []*string{aws.String(vpcId)},
 			},
 		},
@@ -35,21 +35,21 @@ func getRouteTablesByVpcId (ec2Session ec2.EC2, vpcId string) []*ec2.RouteTable 
 	return routeTables.RouteTables
 }
 
-func SetRouteTablesIdsByVpcId (ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup, tagName string)  {
+func SetRouteTablesIdsByVpcId(ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup, tagName string) {
 	defer waitGroup.Done()
 	var routeTablesStruct []RouteTable
 
 	routeTables := getRouteTablesByVpcId(ec2Session, *vpc.VpcId)
 
 	for _, routeTable := range routeTables {
-		creationDate, ttl, isProtected, _, _:= utils.GetEssentialTags(routeTable.Tags, tagName)
+		creationDate, ttl, isProtected, _, _ := utils.GetEssentialTags(routeTable.Tags, tagName)
 
 		var routeTableStruct = RouteTable{
-			Id: 			*routeTable.RouteTableId,
-			CreationDate: 	creationDate,
-			ttl: 			ttl,
-			Associations: 	routeTable.Associations,
-			IsProtected:	isProtected,
+			Id:           *routeTable.RouteTableId,
+			CreationDate: creationDate,
+			ttl:          ttl,
+			Associations: routeTable.Associations,
+			IsProtected:  isProtected,
 		}
 		routeTablesStruct = append(routeTablesStruct, routeTableStruct)
 	}
@@ -57,9 +57,9 @@ func SetRouteTablesIdsByVpcId (ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync
 	vpc.RouteTables = routeTablesStruct
 }
 
-func DeleteRouteTablesByIds (ec2Session ec2.EC2, routeTables []RouteTable) {
+func DeleteRouteTablesByIds(ec2Session ec2.EC2, routeTables []RouteTable) {
 	for _, routeTable := range routeTables {
-		if !isMainRouteTable(routeTable) && !routeTable.IsProtected{
+		if !isMainRouteTable(routeTable) && !routeTable.IsProtected {
 			_, err := ec2Session.DeleteRouteTable(
 				&ec2.DeleteRouteTableInput{
 					RouteTableId: aws.String(routeTable.Id),

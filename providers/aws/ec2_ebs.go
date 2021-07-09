@@ -56,7 +56,7 @@ func TagVolumesFromEksClusterForDeletion(ec2Session ec2.EC2, tagKey string, clus
 					Value: aws.String("1"),
 				},
 				{
-					Key: aws.String("creationDate"),
+					Key:   aws.String("creationDate"),
 					Value: aws.String(time.Now().Format(time.RFC3339)),
 				},
 			},
@@ -111,14 +111,14 @@ func listExpiredVolumes(eksSession eks.EKS, ec2Session ec2.EC2, tagName string) 
 
 		creationDate, ttl, isProtected, _, _ := utils.GetEssentialTags(currentVolume.Tags, tagName)
 		volume := EBSVolume{
-			VolumeId:   	*currentVolume.VolumeId,
-			CreatedTime:	creationDate,
-			Status:     	*currentVolume.State,
-			TTL:        	ttl,
-			IsProtected: 	isProtected,
+			VolumeId:    *currentVolume.VolumeId,
+			CreatedTime: creationDate,
+			Status:      *currentVolume.State,
+			TTL:         ttl,
+			IsProtected: isProtected,
 		}
 
-		if !volume.IsProtected && (!utils.IsAssociatedToLivingCluster(currentVolume.Tags, eksSession) || utils.CheckIfExpired(volume.CreatedTime, volume.TTL, "EBS volume: " + volume.VolumeId)) {
+		if !volume.IsProtected && (!utils.IsAssociatedToLivingCluster(currentVolume.Tags, eksSession) || utils.CheckIfExpired(volume.CreatedTime, volume.TTL, "EBS volume: "+volume.VolumeId)) {
 			expiredVolumes = append(expiredVolumes, volume)
 		}
 	}
@@ -134,7 +134,7 @@ func DeleteExpiredVolumes(eksSession eks.EKS, ec2Session ec2.EC2, tagName string
 		return
 	}
 
-	count, start:= utils.ElemToDeleteFormattedInfos("expired EBS volume", len(expiredVolumes), *region)
+	count, start := utils.ElemToDeleteFormattedInfos("expired EBS volume", len(expiredVolumes), *region)
 
 	log.Debug(count)
 

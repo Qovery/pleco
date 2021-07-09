@@ -10,11 +10,11 @@ import (
 
 type documentDBCluster struct {
 	DBClusterIdentifier string
-	DBClusterMembers []string
-	ClusterCreateTime time.Time
-	Status string
-	TTL int64
-	IsProtected bool
+	DBClusterMembers    []string
+	ClusterCreateTime   time.Time
+	Status              string
+	TTL                 int64
+	IsProtected         bool
 }
 
 func getDBClusters(svc rds.RDS) []*rds.DBCluster {
@@ -38,10 +38,10 @@ func listExpiredDocumentDBClusters(svc rds.RDS, tagName string) []documentDBClus
 			instances = append(instances, *instance.DBInstanceIdentifier)
 		}
 
-		_, ttl, isProtected, _, _ := utils.GetEssentialTags(cluster.TagList,tagName)
+		_, ttl, isProtected, _, _ := utils.GetEssentialTags(cluster.TagList, tagName)
 		time, _ := time.Parse(time.RFC3339, cluster.ClusterCreateTime.Format(time.RFC3339))
 
-		if utils.CheckIfExpired(time, ttl, "document Db: " + *cluster.DBClusterIdentifier)  && !isProtected {
+		if utils.CheckIfExpired(time, ttl, "document Db: "+*cluster.DBClusterIdentifier) && !isProtected {
 			expiredClusters = append(expiredClusters, documentDBCluster{
 				DBClusterIdentifier: *cluster.DBClusterIdentifier,
 				DBClusterMembers:    instances,
@@ -87,8 +87,8 @@ func deleteDocumentDBCluster(svc rds.RDS, cluster documentDBCluster, dryRun bool
 	// delete cluster
 	_, err := svc.DeleteDBCluster(
 		&rds.DeleteDBClusterInput{
-			DBClusterIdentifier:       aws.String(cluster.DBClusterIdentifier),
-			SkipFinalSnapshot:         aws.Bool(true),
+			DBClusterIdentifier: aws.String(cluster.DBClusterIdentifier),
+			SkipFinalSnapshot:   aws.Bool(true),
 		},
 	)
 	if err != nil {
@@ -101,7 +101,7 @@ func deleteDocumentDBCluster(svc rds.RDS, cluster documentDBCluster, dryRun bool
 func DeleteExpiredDocumentDBClusters(svc rds.RDS, tagName string, dryRun bool) {
 	expiredClusters := listExpiredDocumentDBClusters(svc, tagName)
 
-	count, start:= utils.ElemToDeleteFormattedInfos("expired DocumentDB database", len(expiredClusters), *svc.Config.Region)
+	count, start := utils.ElemToDeleteFormattedInfos("expired DocumentDB database", len(expiredClusters), *svc.Config.Region)
 
 	log.Debug(count)
 
@@ -110,7 +110,6 @@ func DeleteExpiredDocumentDBClusters(svc rds.RDS, tagName string, dryRun bool) {
 	}
 
 	log.Debug(start)
-
 
 	for _, cluster := range expiredClusters {
 		deletionErr := deleteDocumentDBCluster(svc, cluster, dryRun)

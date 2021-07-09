@@ -24,8 +24,8 @@ type Tag struct {
 
 type MyTag struct {
 	_     struct{} `type:"structure"`
-	Key   string  `type:"string"`
-	Value string  `type:"string"`
+	Key   string   `type:"string"`
+	Value string   `type:"string"`
 }
 
 func GetEssentialTags(tagsInput interface{}, tagName string) (time.Time, int64, bool, string, string) {
@@ -37,63 +37,63 @@ func GetEssentialTags(tagsInput interface{}, tagName string) (time.Time, int64, 
 	var tags []MyTag
 
 	switch typedTags := tagsInput.(type) {
-		case []*rds.Tag:
-			for _, elem := range typedTags {
-				tags = append(tags, MyTag{Key: *elem.Key, Value: *elem.Value})
-			}
-		case []*ec2.Tag:
-			for _, elem := range typedTags {
-				tags = append(tags, MyTag{Key: *elem.Key, Value: *elem.Value})
-			}
-		case []*iam.Tag:
-			for _, elem := range typedTags {
-				tags = append(tags, MyTag{Key: *elem.Key, Value: *elem.Value})
-			}
-		case []*kms.Tag:
-			for _, elem := range typedTags {
-				tags = append(tags, MyTag{Key: *elem.TagKey, Value: *elem.TagValue})
-			}
-		case []*s3.Tag:
-			for _, elem := range typedTags {
-				tags = append(tags, MyTag{Key: *elem.Key, Value: *elem.Value})
-			}
-		case []*elbv2.Tag:
-			for _, elem := range typedTags {
-				tags = append(tags, MyTag{Key: *elem.Key, Value: *elem.Value})
-			}
-		case []*elasticache.Tag:
-			for _, elem := range typedTags {
-				tags = append(tags, MyTag{Key: *elem.Key, Value: *elem.Value})
-			}
-		case []*Tag:
-			for _, elem := range typedTags {
-				tags = append(tags, MyTag{Key: *elem.Key, Value: *elem.Value})
-			}
-		case map[string]*string:
-			for key, value := range typedTags {
-				tags = append(tags, MyTag{Key: key, Value: *value})
-			}
-		default:
-			log.Debugf("Can't parse tags %s.", tagsInput)
+	case []*rds.Tag:
+		for _, elem := range typedTags {
+			tags = append(tags, MyTag{Key: *elem.Key, Value: *elem.Value})
+		}
+	case []*ec2.Tag:
+		for _, elem := range typedTags {
+			tags = append(tags, MyTag{Key: *elem.Key, Value: *elem.Value})
+		}
+	case []*iam.Tag:
+		for _, elem := range typedTags {
+			tags = append(tags, MyTag{Key: *elem.Key, Value: *elem.Value})
+		}
+	case []*kms.Tag:
+		for _, elem := range typedTags {
+			tags = append(tags, MyTag{Key: *elem.TagKey, Value: *elem.TagValue})
+		}
+	case []*s3.Tag:
+		for _, elem := range typedTags {
+			tags = append(tags, MyTag{Key: *elem.Key, Value: *elem.Value})
+		}
+	case []*elbv2.Tag:
+		for _, elem := range typedTags {
+			tags = append(tags, MyTag{Key: *elem.Key, Value: *elem.Value})
+		}
+	case []*elasticache.Tag:
+		for _, elem := range typedTags {
+			tags = append(tags, MyTag{Key: *elem.Key, Value: *elem.Value})
+		}
+	case []*Tag:
+		for _, elem := range typedTags {
+			tags = append(tags, MyTag{Key: *elem.Key, Value: *elem.Value})
+		}
+	case map[string]*string:
+		for key, value := range typedTags {
+			tags = append(tags, MyTag{Key: key, Value: *value})
+		}
+	default:
+		log.Debugf("Can't parse tags %s.", tagsInput)
 	}
 
 	for i := range tags {
 		switch tags[i].Key {
-			case "creationDate":
-				creationDate = stringDateToTimeDate(tags[i].Value)
-			case "ttl":
-				result, _ := strconv.ParseInt(tags[i].Value, 10, 64)
-				ttl = result
-			case "do_not_delete":
-				result, _ := strconv.ParseBool(tags[i].Value)
-				isProtected = result
-			case "ClusterId":
-				clusterId = tags[i].Value
-			case tagName:
-				tag = tags[i].Value
-			default:
-				continue
-			}
+		case "creationDate":
+			creationDate = stringDateToTimeDate(tags[i].Value)
+		case "ttl":
+			result, _ := strconv.ParseInt(tags[i].Value, 10, 64)
+			ttl = result
+		case "do_not_delete":
+			result, _ := strconv.ParseBool(tags[i].Value)
+			isProtected = result
+		case "ClusterId":
+			clusterId = tags[i].Value
+		case tagName:
+			tag = tags[i].Value
+		default:
+			continue
+		}
 	}
 
 	return creationDate, ttl, isProtected, clusterId, tag
@@ -113,21 +113,19 @@ func CheckIfExpired(creationTime time.Time, ttl int64, resourceName string) bool
 	return time.Now().After(expirationTime)
 }
 
-func ElemToDeleteFormattedInfos(elemName string, arraySize int, region string) (string,string) {
-	count := fmt.Sprintf("There is no %s to delete in region %s.", elemName,region)
+func ElemToDeleteFormattedInfos(elemName string, arraySize int, region string) (string, string) {
+	count := fmt.Sprintf("There is no %s to delete in region %s.", elemName, region)
 	if arraySize == 1 {
-		count = fmt.Sprintf("There is 1 %s to delete in region %s.", elemName,region)
+		count = fmt.Sprintf("There is 1 %s to delete in region %s.", elemName, region)
 	}
 	if arraySize > 1 {
-		count = fmt.Sprintf("There are %d %ss to delete in region %s.", arraySize, elemName,region)
+		count = fmt.Sprintf("There are %d %ss to delete in region %s.", arraySize, elemName, region)
 	}
 
-	start := fmt.Sprintf("Starting %s deletion for region %s.", elemName,region)
-
+	start := fmt.Sprintf("Starting %s deletion for region %s.", elemName, region)
 
 	return count, start
 }
-
 
 func AwsStringChecker(elem interface{ String() string }) string {
 	if elem != nil {
@@ -145,24 +143,24 @@ func IsAssociatedToLivingCluster(tagsInput interface{}, svc eks.EKS) bool {
 	}
 
 	switch typedTags := tagsInput.(type) {
-		case []*elbv2.Tag:
-			for _, cluster := range result.Clusters {
-				for _, tag := range typedTags {
-					if strings.Contains(*tag.Key, "/cluster/") && strings.Contains(*tag.Key, *cluster) {
-						return true
-					}
+	case []*elbv2.Tag:
+		for _, cluster := range result.Clusters {
+			for _, tag := range typedTags {
+				if strings.Contains(*tag.Key, "/cluster/") && strings.Contains(*tag.Key, *cluster) {
+					return true
 				}
 			}
-		case []*ec2.Tag:
-			for _, cluster := range result.Clusters {
-				for _, tag := range typedTags {
-					if strings.Contains(*tag.Key, "/cluster/") && strings.Contains(*tag.Key, *cluster) {
-						return true
-					}
+		}
+	case []*ec2.Tag:
+		for _, cluster := range result.Clusters {
+			for _, tag := range typedTags {
+				if strings.Contains(*tag.Key, "/cluster/") && strings.Contains(*tag.Key, *cluster) {
+					return true
 				}
 			}
-		default:
-			log.Debugf("Can't parse tags %s.", tagsInput)
+		}
+	default:
+		log.Debugf("Can't parse tags %s.", tagsInput)
 	}
 
 	return false
@@ -170,20 +168,19 @@ func IsAssociatedToLivingCluster(tagsInput interface{}, svc eks.EKS) bool {
 
 func getSlicedArray(arrayToSlice []*string, sliceRange int) [][]*string {
 	var slicedArray [][]*string
-	slicesCount := len(arrayToSlice) / sliceRange + 1
+	slicesCount := len(arrayToSlice)/sliceRange + 1
 
 	if len(arrayToSlice) <= sliceRange {
 		slicedArray = append(slicedArray, arrayToSlice)
 	} else {
 		for i := 0; i < slicesCount; i++ {
-			if (i+1) * sliceRange > len(arrayToSlice) {
+			if (i+1)*sliceRange > len(arrayToSlice) {
 				slicedArray = append(slicedArray, arrayToSlice[i*sliceRange:len(arrayToSlice)-1])
 			} else {
 				slicedArray = append(slicedArray, arrayToSlice[i*sliceRange:(i+1)*sliceRange])
 			}
 		}
 	}
-
 
 	return slicedArray
 }
@@ -198,7 +195,3 @@ func stringDateToTimeDate(date string) time.Time {
 
 	return time.Date(int(year), time.Month(month), int(day), int(hour), int(minutes), int(seconds), 0, time.Local)
 }
-
-
-
-

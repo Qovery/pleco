@@ -36,15 +36,14 @@ func getRoles(iamSession *iam.IAM, tagName string) []Role {
 		instanceProfiles := getRoleInstanceProfile(iamSession, *role.RoleName)
 		creationDate, ttl, isProtected, _, _ := utils.GetEssentialTags(tags, tagName)
 		newRole := Role{
-			RoleName: 			*role.RoleName,
-			CreationDate: 		creationDate,
-			InstanceProfile: 	instanceProfiles,
-			ttl: 				ttl,
-			IsProtected: 		isProtected,
+			RoleName:        *role.RoleName,
+			CreationDate:    creationDate,
+			InstanceProfile: instanceProfiles,
+			ttl:             ttl,
+			IsProtected:     isProtected,
 		}
 
-
-			roles = append(roles, newRole)
+		roles = append(roles, newRole)
 	}
 
 	return roles
@@ -64,7 +63,7 @@ func getRoleTags(iamSession *iam.IAM, roleName string) []*iam.Tag {
 	return tags.Tags
 }
 
-func getRoleInstanceProfile(iamSession *iam.IAM, roleName string) []*iam.InstanceProfile{
+func getRoleInstanceProfile(iamSession *iam.IAM, roleName string) []*iam.InstanceProfile {
 	result, err := iamSession.ListInstanceProfilesForRole(
 		&iam.ListInstanceProfilesForRoleInput{
 			MaxItems: aws.Int64(1000),
@@ -78,14 +77,12 @@ func getRoleInstanceProfile(iamSession *iam.IAM, roleName string) []*iam.Instanc
 	return result.InstanceProfiles
 }
 
-
-
 func DeleteExpiredRoles(iamSession *iam.IAM, tagName string, dryRun bool) {
 	roles := getRoles(iamSession, tagName)
 	var expiredRoles []Role
 
 	for _, role := range roles {
-		if utils.CheckIfExpired(role.CreationDate, role.ttl, "iam role: " + role.RoleName) && !role.IsProtected {
+		if utils.CheckIfExpired(role.CreationDate, role.ttl, "iam role: "+role.RoleName) && !role.IsProtected {
 			expiredRoles = append(expiredRoles, role)
 		}
 	}
@@ -106,7 +103,6 @@ func DeleteExpiredRoles(iamSession *iam.IAM, tagName string, dryRun bool) {
 
 	log.Debug("Starting expired IAM roles deletion.")
 
-
 	for _, role := range expiredRoles {
 		HandleRolePolicies(iamSession, role.RoleName)
 		removeRoleFromInstanceProfile(iamSession, role.InstanceProfile, role.RoleName)
@@ -118,7 +114,7 @@ func DeleteExpiredRoles(iamSession *iam.IAM, tagName string, dryRun bool) {
 
 		if err != nil {
 			log.Errorf("Can't delete role %s : %s", role.RoleName, err)
-			}
+		}
 	}
 }
 
@@ -141,11 +137,11 @@ func removeRoleFromInstanceProfile(iamSession *iam.IAM, roleInstanceProfiles []*
 		_, err := iamSession.RemoveRoleFromInstanceProfile(
 			&iam.RemoveRoleFromInstanceProfileInput{
 				InstanceProfileName: aws.String(*instanceProfile.InstanceProfileName),
-				RoleName: aws.String(roleName),
+				RoleName:            aws.String(roleName),
 			})
 
 		if err != nil {
-			log.Errorf("Can't remove instance profile %s for role %s : %s", *instanceProfile.InstanceProfileName, roleName,  err)
+			log.Errorf("Can't remove instance profile %s for role %s : %s", *instanceProfile.InstanceProfileName, roleName, err)
 		}
 	}
 }

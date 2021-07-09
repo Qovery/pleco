@@ -52,21 +52,21 @@ func listExpiredRDSDatabases(svc rds.RDS, tagName string) []rdsDatabase {
 			continue
 		}
 
-		_, ttl, isProtected, _, _ := utils.GetEssentialTags(instance.TagList,tagName)
+		_, ttl, isProtected, _, _ := utils.GetEssentialTags(instance.TagList, tagName)
 		time, _ := time.Parse(time.RFC3339, instance.InstanceCreateTime.Format(time.RFC3339))
 
 		if instance.DBInstanceIdentifier != nil {
 			database := rdsDatabase{
-				DBInstanceIdentifier: 	*instance.DBInstanceIdentifier,
-				InstanceCreateTime:   	time,
-				DBInstanceStatus:     	*instance.DBInstanceStatus,
-				TTL:                  	int64(ttl),
-				IsProtected: 			isProtected,
-				SubnetGroup:			instance.DBSubnetGroup,
-				ParameterGroups:		instance.DBParameterGroups,
+				DBInstanceIdentifier: *instance.DBInstanceIdentifier,
+				InstanceCreateTime:   time,
+				DBInstanceStatus:     *instance.DBInstanceStatus,
+				TTL:                  int64(ttl),
+				IsProtected:          isProtected,
+				SubnetGroup:          instance.DBSubnetGroup,
+				ParameterGroups:      instance.DBParameterGroups,
 			}
 
-			if utils.CheckIfExpired(database.InstanceCreateTime, database.TTL, "rds Db: " + database.DBInstanceIdentifier) && !database.IsProtected {
+			if utils.CheckIfExpired(database.InstanceCreateTime, database.TTL, "rds Db: "+database.DBInstanceIdentifier) && !database.IsProtected {
 				expiredDatabases = append(expiredDatabases, database)
 			}
 		}
@@ -84,12 +84,11 @@ func DeleteRDSDatabase(svc rds.RDS, database rdsDatabase) {
 			database.DBInstanceIdentifier, *svc.Config.Region, database.TTL)
 	}
 
-
 	_, instanceErr := svc.DeleteDBInstance(
 		&rds.DeleteDBInstanceInput{
-			DBInstanceIdentifier:      aws.String(database.DBInstanceIdentifier),
-			DeleteAutomatedBackups:    aws.Bool(true),
-			SkipFinalSnapshot:         aws.Bool(true),
+			DBInstanceIdentifier:   aws.String(database.DBInstanceIdentifier),
+			DeleteAutomatedBackups: aws.Bool(true),
+			SkipFinalSnapshot:      aws.Bool(true),
 		},
 	)
 	if instanceErr != nil {
@@ -132,11 +131,11 @@ func GetRDSInstanceInfos(svc rds.RDS, databaseIdentifier string) (rdsDatabase, e
 func DeleteExpiredRDSDatabases(svc rds.RDS, tagName string, dryRun bool) {
 	expiredDatabases := listExpiredRDSDatabases(svc, tagName)
 
-	count, start:= utils.ElemToDeleteFormattedInfos("expired RDS database", len(expiredDatabases), *svc.Config.Region)
+	count, start := utils.ElemToDeleteFormattedInfos("expired RDS database", len(expiredDatabases), *svc.Config.Region)
 
 	log.Debug(count)
 
-	if dryRun || len(expiredDatabases) == 0 || expiredDatabases == nil{
+	if dryRun || len(expiredDatabases) == 0 || expiredDatabases == nil {
 		return
 	}
 

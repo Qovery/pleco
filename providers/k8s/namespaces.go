@@ -12,17 +12,17 @@ import (
 )
 
 type kubernetesNamespace struct {
-	Name string
+	Name                string
 	NamespaceCreateTime time.Time
-	Status string
-	TTL int64
+	Status              string
+	TTL                 int64
 }
 
 func listTaggedNamespaces(clientSet *kubernetes.Clientset, tagName string) ([]kubernetesNamespace, error) {
 	var taggedNamespaces []kubernetesNamespace
 
 	listOptions := metav1.ListOptions{
-		LabelSelector:       tagName,
+		LabelSelector: tagName,
 	}
 
 	log.Debugf("Listing all Kubernetes namespaces with %s label", tagName)
@@ -89,7 +89,7 @@ func DeleteExpiredNamespaces(clientSet *kubernetes.Clientset, tagName string, dr
 	}
 
 	for _, namespace := range namespaces {
-		if utils.CheckIfExpired(namespace.NamespaceCreateTime, namespace.TTL, "Namespace: " +namespace.Name) {
+		if utils.CheckIfExpired(namespace.NamespaceCreateTime, namespace.TTL, "Namespace: "+namespace.Name) {
 			err := deleteNamespace(clientSet, namespace, dryRun)
 			if err != nil {
 				log.Errorf("error while trying to delete namespace: %s", err)

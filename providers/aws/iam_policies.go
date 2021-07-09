@@ -10,7 +10,7 @@ import (
 
 type Policy struct {
 	Name string
-	Arn string
+	Arn  string
 }
 
 func getPolicies(iamSession *iam.IAM) []*iam.Policy {
@@ -30,7 +30,7 @@ func getPolicies(iamSession *iam.IAM) []*iam.Policy {
 func getPolicyVersions(iamSession *iam.IAM, policy iam.Policy) []*iam.PolicyVersion {
 	result, err := iamSession.ListPolicyVersions(
 		&iam.ListPolicyVersionsInput{
-			MaxItems: aws.Int64(1000),
+			MaxItems:  aws.Int64(1000),
 			PolicyArn: aws.String(*policy.Arn),
 		})
 
@@ -66,7 +66,7 @@ func DeleteDetachedPolicies(iamSession *iam.IAM, dryRun bool) {
 
 	for _, policy := range policies {
 		arn := *policy.Arn
-		if *policy.AttachmentCount == 0 && !strings.Contains(arn, ":aws:policy"){
+		if *policy.AttachmentCount == 0 && !strings.Contains(arn, ":aws:policy") {
 			detachedPolicies = append(detachedPolicies, *policy)
 		}
 	}
@@ -125,17 +125,17 @@ func getUserPolicies(iamSession *iam.IAM, userName string) []Policy {
 	}
 
 	var userPolicies []Policy
-	for _, policy := range attachedPolicies.AttachedPolicies{
+	for _, policy := range attachedPolicies.AttachedPolicies {
 		userPolicy := Policy{
-			Arn: *policy.PolicyArn,
+			Arn:  *policy.PolicyArn,
 			Name: *policy.PolicyName,
 		}
 		userPolicies = append(userPolicies, userPolicy)
 	}
 
-	for _, policyName := range policyNames.PolicyNames{
+	for _, policyName := range policyNames.PolicyNames {
 		userPolicy := Policy{
-			Arn: "",
+			Arn:  "",
 			Name: *policyName,
 		}
 		userPolicies = append(userPolicies, userPolicy)
@@ -147,9 +147,9 @@ func getUserPolicies(iamSession *iam.IAM, userName string) []Policy {
 func detachUserPolicies(iamSession *iam.IAM, userName string, policies []Policy) {
 	for _, policy := range policies {
 		if policy.Arn != "" {
-			_, err :=iamSession.DetachUserPolicy(
+			_, err := iamSession.DetachUserPolicy(
 				&iam.DetachUserPolicyInput{
-					UserName: aws.String(userName),
+					UserName:  aws.String(userName),
 					PolicyArn: aws.String(policy.Arn),
 				})
 
@@ -206,17 +206,17 @@ func getRolePolicies(iamSession *iam.IAM, roleName string) []Policy {
 	}
 
 	var rolePolicies []Policy
-	for _, policy := range attachedPolicies.AttachedPolicies{
+	for _, policy := range attachedPolicies.AttachedPolicies {
 		userPolicy := Policy{
-			Arn: *policy.PolicyArn,
+			Arn:  *policy.PolicyArn,
 			Name: *policy.PolicyName,
 		}
 		rolePolicies = append(rolePolicies, userPolicy)
 	}
 
-	for _, policyName := range policyNames.PolicyNames{
+	for _, policyName := range policyNames.PolicyNames {
 		userPolicy := Policy{
-			Arn: "",
+			Arn:  "",
 			Name: *policyName,
 		}
 		rolePolicies = append(rolePolicies, userPolicy)
@@ -225,19 +225,18 @@ func getRolePolicies(iamSession *iam.IAM, roleName string) []Policy {
 	return rolePolicies
 }
 
-
 func detachRolePolicies(iamSession *iam.IAM, roleName string, policies []Policy) {
 	for _, policy := range policies {
 		if policy.Arn != "" {
 			_, err := iamSession.DetachRolePolicy(
-				 &iam.DetachRolePolicyInput{
-					 RoleName: aws.String(roleName),
-					 PolicyArn: aws.String(policy.Arn),
-				 })
+				&iam.DetachRolePolicyInput{
+					RoleName:  aws.String(roleName),
+					PolicyArn: aws.String(policy.Arn),
+				})
 			if err != nil {
 				log.Errorf("Can not delete policiy %s for role %s", policy.Name, roleName)
 			}
-		 }
+		}
 	}
 }
 
@@ -246,7 +245,7 @@ func deleteRolePolicies(iamSession *iam.IAM, roleName string, policies []Policy)
 		if !strings.Contains(policy.Arn, ":aws:policy") {
 			_, err := iamSession.DeleteRolePolicy(
 				&iam.DeleteRolePolicyInput{
-					RoleName: aws.String(roleName),
+					RoleName:   aws.String(roleName),
 					PolicyName: aws.String(policy.Name),
 				})
 			if err != nil {

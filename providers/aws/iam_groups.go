@@ -33,7 +33,7 @@ func DeleteGroups(iamSession *iam.IAM, dryRun bool) {
 		_, err := iamSession.DeleteGroup(
 			&iam.DeleteGroupInput{
 				GroupName: aws.String(*group.GroupName),
-				})
+			})
 
 		if err != nil {
 			log.Errorf("Can't delete group %s : %s", *group.GroupName, err)
@@ -41,4 +41,3 @@ func DeleteGroups(iamSession *iam.IAM, dryRun bool) {
 	}
 
 }
-
