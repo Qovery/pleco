@@ -173,7 +173,7 @@ func deleteEKSCluster(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.ELBV2, c
 	}
 
 	// tag cloudwatch logs for deletion
-	err = TagLogsForDeletion(cloudwatchLogsSession, tagName, cluster.ClusterId)
+	err = TagLogsForDeletion(cloudwatchLogsSession, tagName, cluster.ClusterId, cluster.TTL)
 	if err != nil {
 		return err
 	}

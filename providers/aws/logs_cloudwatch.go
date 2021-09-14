@@ -32,14 +32,14 @@ func getCloudwatchLogs(svc cloudwatchlogs.CloudWatchLogs) []*cloudwatchlogs.LogG
 
 func getCompleteLogGroup(svc cloudwatchlogs.CloudWatchLogs, log cloudwatchlogs.LogGroup, tagName string) CompleteLogGroup {
 	tags := getLogGroupTag(svc, *log.LogGroupName)
-	creationDate, ttl, isprotected, clusterId, tag := utils.GetEssentialTags(tags, tagName)
+	_, ttl, isProtected, clusterId, tag := utils.GetEssentialTags(tags, tagName)
 
 	return CompleteLogGroup{
 		logGroupName: *log.LogGroupName,
-		creationDate: creationDate,
+		creationDate: time.Unix(*log.CreationTime / 1000, 0 ),
 		ttl:          ttl,
 		clusterId:    clusterId,
-		IsProtected:  isprotected,
+		IsProtected:  isProtected,
 		tag:          tag,
 	}
 }
@@ -121,10 +121,10 @@ func DeleteExpiredLogs(svc cloudwatchlogs.CloudWatchLogs, tagName string, dryRun
 
 }
 
-func addTtlToLogGroup(svc cloudwatchlogs.CloudWatchLogs, logGroupName string) (string, error) {
+func addTtlToLogGroup(svc cloudwatchlogs.CloudWatchLogs, logGroupName string, ttl int64) (string, error) {
 	input := &cloudwatchlogs.TagLogGroupInput{
 		LogGroupName: aws.String(logGroupName),
-		Tags:         aws.StringMap(map[string]string{"ttl": "1"}),
+		Tags:         aws.StringMap(map[string]string{"ttl": string(ttl)}),
 	}
 
 	result, err := svc.TagLogGroup(input)
@@ -133,19 +133,17 @@ func addTtlToLogGroup(svc cloudwatchlogs.CloudWatchLogs, logGroupName string) (s
 	return result.String(), err
 }
 
-func TagLogsForDeletion(svc cloudwatchlogs.CloudWatchLogs, tagName string, clusterId string) error {
+func TagLogsForDeletion(svc cloudwatchlogs.CloudWatchLogs, tagName string, clusterId string, ttl int64) error {
 	logs := getCloudwatchLogs(svc)
-	var numberOfLogsToTag int64
 
 	for _, log := range logs {
 		completeLogGroup := getCompleteLogGroup(svc, *log, tagName)
 
 		if completeLogGroup.ttl == 0 && strings.Contains(completeLogGroup.logGroupName, clusterId) {
-			_, err := addTtlToLogGroup(svc, completeLogGroup.logGroupName)
+			_, err := addTtlToLogGroup(svc, completeLogGroup.logGroupName, ttl)
 			if err != nil {
 				return err
 			}
-			numberOfLogsToTag++
 		}
 	}
 
