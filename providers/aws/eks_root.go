@@ -55,21 +55,30 @@ func AuthenticateToEks(clusterName string, clusterUrl string, roleArn string, se
 	return clientSet, nil
 }
 
-func listTaggedEKSClusters(svc eks.EKS, tagName string) ([]eksCluster, error) {
-	var taggedClusters []eksCluster
-	region := *svc.Config.Region
-
+func ListClusters(svc eks.EKS) ([]*string, error) {
 	input := &eks.ListClustersInput{}
 	result, err := svc.ListClusters(input)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(result.Clusters) == 0 {
+	return result.Clusters, nil
+}
+
+func listTaggedEKSClusters(svc eks.EKS, tagName string) ([]eksCluster, error) {
+	var taggedClusters []eksCluster
+	region := *svc.Config.Region
+
+	clusters, err := ListClusters(svc)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(clusters) == 0 {
 		return nil, nil
 	}
 
-	for _, cluster := range result.Clusters {
+	for _, cluster := range clusters {
 		currentCluster := eks.DescribeClusterInput{
 			Name: aws.String(*cluster),
 		}

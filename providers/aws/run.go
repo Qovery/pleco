@@ -115,6 +115,7 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 	// Cloudwatch
 	cloudwatchLogsEnabled, _ := cmd.Flags().GetBool("enable-cloudwatch-logs")
 	if cloudwatchLogsEnabled {
+		currentEKSSession = eks.New(currentSession)
 		currentCloudwatchLogsSession = cloudwatchlogs.New(currentSession)
 	}
 
@@ -189,6 +190,7 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 		if cloudwatchLogsEnabled {
 			logrus.Debugf("Listing all Cloudwatch logs in region %s.", *currentCloudwatchLogsSession.Config.Region)
 			DeleteExpiredLogs(*currentCloudwatchLogsSession, tagName, dryRun)
+			DeleteUnlinkedLogs(*currentCloudwatchLogsSession, *currentEKSSession, dryRun)
 		}
 
 		// check KMS

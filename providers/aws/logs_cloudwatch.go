@@ -5,6 +5,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go/service/eks"
 	log "github.com/sirupsen/logrus"
 	"strings"
 	"time"
@@ -148,4 +149,61 @@ func TagLogsForDeletion(svc cloudwatchlogs.CloudWatchLogs, tagName string, clust
 	}
 
 	return nil
+}
+
+func DeleteUnlinkedLogs(svc cloudwatchlogs.CloudWatchLogs, eks eks.EKS, dryRun bool) {
+	region := *eks.Config.Region
+	clusters, err := ListClusters(eks)
+	if err != nil {
+		log.Errorf("C'ant list cluster in region %s: %s", region, err.Error())
+	}
+
+	deletableLogs := getUnlinkedLogs(svc, clusters)
+
+	count, start := utils.ElemToDeleteFormattedInfos("unliked Cloudwatch log", len(deletableLogs), region)
+
+	log.Debug(count)
+
+	if dryRun || len(deletableLogs) == 0 {
+		return
+	}
+
+	log.Debug(start)
+
+	for _, deletableLog := range deletableLogs {
+		if deletableLog != "null" {
+			_, deletionErr := deleteCloudwatchLog(svc, deletableLog)
+			if deletionErr != nil {
+				log.Errorf("Deletion Cloudwatch error %s/%s: %s",
+					deletableLog, region, deletionErr)
+			}
+		}
+	}
+
+}
+
+func getUnlinkedLogs(svc cloudwatchlogs.CloudWatchLogs, clusters []*string) []string {
+	logs := getCloudwatchLogs(svc)
+	deletableLogs := make(map[string]string)
+	for _, cluster := range clusters {
+		for _, logGroup := range logs {
+			if strings.Contains(*logGroup.LogGroupName, "qovery") && deletableLogs[*logGroup.LogGroupName] != "null" {
+				clusterName := *cluster
+				if !strings.Contains(*logGroup.LogGroupName, clusterName[7:len(*cluster)])  {
+					deletableLogs[*logGroup.LogGroupName] = *logGroup.LogGroupName
+				} else {
+					deletableLogs[*logGroup.LogGroupName] = "null"
+				}
+			}
+		}
+	}
+
+	var unlinkedLogs []string
+	for _, deletableLog := range deletableLogs {
+		if deletableLog != "null" {
+			unlinkedLogs = append(unlinkedLogs, deletableLog)
+		}
+	}
+
+	return unlinkedLogs
 }
