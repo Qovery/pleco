@@ -118,5 +118,4 @@ func DeleteExpiredDocumentDBClusters(svc rds.RDS, tagName string, dryRun bool) {
 				cluster.DBClusterIdentifier, *svc.Config.Region, deletionErr.Error())
 		}
 	}
-
 }

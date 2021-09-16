@@ -127,14 +127,6 @@ func ElemToDeleteFormattedInfos(elemName string, arraySize int, region string) (
 	return count, start
 }
 
-func AwsStringChecker(elem interface{ String() string }) string {
-	if elem != nil {
-		return elem.String()
-	} else {
-		return ""
-	}
-}
-
 func IsAssociatedToLivingCluster(tagsInput interface{}, svc eks.EKS) bool {
 	result, clusterErr := svc.ListClusters(&eks.ListClustersInput{})
 	if clusterErr != nil {
