@@ -12,6 +12,7 @@ import (
 type VpcInfo struct {
 	VpcId            *string
 	SecurityGroups   []SecurityGroup
+	NatGateways		 []NatGateway
 	InternetGateways []InternetGateway
 	Subnets          []Subnet
 	RouteTables      []RouteTable
@@ -125,6 +126,7 @@ func deleteVPC(ec2Session ec2.EC2, VpcList []VpcInfo, dryRun bool) error {
 
 	for _, vpc := range VpcList {
 		DeleteSecurityGroupsByIds(ec2Session, vpc.SecurityGroups)
+		DeleteNatGatewaysByIds(ec2Session, vpc.NatGateways)
 		DeleteInternetGatewaysByIds(ec2Session, vpc.InternetGateways, *vpc.VpcId)
 		DeleteSubnetsByIds(ec2Session, vpc.Subnets)
 		DeleteRouteTablesByIds(ec2Session, vpc.RouteTables)
@@ -167,6 +169,8 @@ func getCompleteVpc(ec2Session ec2.EC2, vpc *VpcInfo, tagName string) {
 	var waitGroup sync.WaitGroup
 	waitGroup.Add(1)
 	go SetSecurityGroupsIdsByVpcId(ec2Session, vpc, &waitGroup, tagName)
+	waitGroup.Add(1)
+	go SetNatGatewaysIdsByVpcId(ec2Session, vpc, &waitGroup, tagName)
 	waitGroup.Add(1)
 	go SetInternetGatewaysIdsByVpcId(ec2Session, vpc, &waitGroup, tagName)
 	waitGroup.Add(1)
