@@ -153,7 +153,7 @@ func TagLogsForDeletion(svc cloudwatchlogs.CloudWatchLogs, tagName string, clust
 
 func DeleteUnlinkedLogs(svc cloudwatchlogs.CloudWatchLogs, eks eks.EKS, dryRun bool) {
 	region := *eks.Config.Region
-	clusters, err := ListClusters(eks)
+	clusters, err := ListClusters(eks,)
 	if err != nil {
 		log.Errorf("C'ant list cluster in region %s: %s", region, err.Error())
 	}
@@ -187,9 +187,8 @@ func getUnlinkedLogs(svc cloudwatchlogs.CloudWatchLogs, clusters []*string) []st
 	deletableLogs := make(map[string]string)
 	for _, cluster := range clusters {
 		for _, logGroup := range logs {
-			if strings.Contains(*logGroup.LogGroupName, "qovery") && deletableLogs[*logGroup.LogGroupName] != "null" {
-				clusterName := *cluster
-				if !strings.Contains(*logGroup.LogGroupName, clusterName[7:len(*cluster)])  {
+			if strings.Contains(*logGroup.LogGroupName, "/aws/eks/") && deletableLogs[*logGroup.LogGroupName] != "null" {
+				if !strings.Contains(*logGroup.LogGroupName, (*cluster)[strings.Index(*cluster, "-") + 1 : len(*cluster)])  {
 					deletableLogs[*logGroup.LogGroupName] = *logGroup.LogGroupName
 				} else {
 					deletableLogs[*logGroup.LogGroupName] = "null"

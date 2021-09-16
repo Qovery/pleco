@@ -65,7 +65,39 @@ func ListClusters(svc eks.EKS) ([]*string, error) {
 	return result.Clusters, nil
 }
 
-func listTaggedEKSClusters(svc eks.EKS, tagName string) ([]eksCluster, error) {
+func GetClusterDetails(svc eks.EKS, cluster *string, region string, tagName string) eksCluster {
+	currentCluster := eks.DescribeClusterInput{
+		Name: aws.String(*cluster),
+	}
+	clusterName := *currentCluster.Name
+
+	clusterInfo, err := svc.DescribeCluster(&currentCluster)
+	if err != nil {
+		log.Errorf("Error while trying to get info from cluster %v (%s)", clusterName, region)
+	}
+
+	creationDate, ttl, isProtected, _, _ := utils.GetEssentialTags(clusterInfo.Cluster.Tags, tagName)
+
+	nodeGroups, err := svc.ListNodegroups(&eks.ListNodegroupsInput{
+		ClusterName: &clusterName,
+	})
+
+	if err != nil {
+		log.Errorf("Error while trying to get node groups from cluster %s (%s): %s", clusterName, region, err)
+	}
+
+	return eksCluster{
+		ClusterCreateTime:     creationDate,
+		ClusterNodeGroupsName: nodeGroups.Nodegroups,
+		ClusterName:           clusterName,
+		ClusterId:             utils.AwsStringChecker(clusterInfo.Cluster.Identity),
+		Status:                *clusterInfo.Cluster.Status,
+		TTL:                   ttl,
+		IsProtected:           isProtected,
+	}
+}
+
+func ListTaggedEKSClusters(svc eks.EKS, tagName string) ([]eksCluster, error) {
 	var taggedClusters []eksCluster
 	region := *svc.Config.Region
 
@@ -79,43 +111,9 @@ func listTaggedEKSClusters(svc eks.EKS, tagName string) ([]eksCluster, error) {
 	}
 
 	for _, cluster := range clusters {
-		currentCluster := eks.DescribeClusterInput{
-			Name: aws.String(*cluster),
-		}
-		clusterName := *currentCluster.Name
+		detailCluster := GetClusterDetails(svc, cluster, region, tagName)
 
-		clusterInfo, err := svc.DescribeCluster(&currentCluster)
-		if err != nil {
-			log.Errorf("Error while trying to get info from cluster %v (%s)", clusterName, region)
-			continue
-		}
-
-		creationDate, ttl, isProtected, _, _ := utils.GetEssentialTags(clusterInfo.Cluster.Tags, tagName)
-
-		// ignore if creation is in progress to avoid nil fields
-		if *clusterInfo.Cluster.Status == "CREATING" {
-			log.Debugf("Can't perform action on cluster %v (%s), current status is: %s", clusterName, region, *clusterInfo.Cluster.Status)
-			continue
-		}
-
-		// get node groups
-		nodeGroups, err := svc.ListNodegroups(&eks.ListNodegroupsInput{
-			ClusterName: &clusterName,
-		})
-		if err != nil {
-			log.Errorf("Error while trying to get node groups from cluster %s (%s): %s", clusterName, region, err)
-			continue
-		}
-
-		taggedClusters = append(taggedClusters, eksCluster{
-			ClusterCreateTime:     creationDate,
-			ClusterNodeGroupsName: nodeGroups.Nodegroups,
-			ClusterName:           clusterName,
-			ClusterId:             utils.AwsStringChecker(clusterInfo.Cluster.Identity),
-			Status:                *clusterInfo.Cluster.Status,
-			TTL:                   ttl,
-			IsProtected:           isProtected,
-		})
+		taggedClusters = append(taggedClusters, detailCluster)
 	}
 
 	return taggedClusters, nil
@@ -229,7 +227,7 @@ func deleteNodeGroupStatus(svc eks.EKS, cluster eksCluster, nodeGroupName string
 }
 
 func DeleteExpiredEKSClusters(svc eks.EKS, ec2Session ec2.EC2, elbSession elbv2.ELBV2, cloudwatchLogsSession cloudwatchlogs.CloudWatchLogs, rdsSession rds.RDS, tagName string, dryRun bool) {
-	clusters, err := listTaggedEKSClusters(svc, tagName)
+	clusters, err := ListTaggedEKSClusters(svc, tagName)
 	region := svc.Config.Region
 	if err != nil {
 		log.Errorf("can't list EKS clusters: %s\n", err)
