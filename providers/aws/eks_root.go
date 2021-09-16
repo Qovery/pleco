@@ -86,11 +86,17 @@ func GetClusterDetails(svc eks.EKS, cluster *string, region string, tagName stri
 		log.Errorf("Error while trying to get node groups from cluster %s (%s): %s", clusterName, region, err)
 	}
 
+	var identity string
+
+	if clusterInfo.Cluster != nil && clusterInfo.Cluster.Identity != nil {
+		identity = clusterInfo.Cluster.Identity.String()
+	}
+
 	return eksCluster{
 		ClusterCreateTime:     creationDate,
 		ClusterNodeGroupsName: nodeGroups.Nodegroups,
 		ClusterName:           clusterName,
-		ClusterId:             utils.AwsStringChecker(clusterInfo.Cluster.Identity),
+		ClusterId:             identity,
 		Status:                *clusterInfo.Cluster.Status,
 		TTL:                   ttl,
 		IsProtected:           isProtected,
