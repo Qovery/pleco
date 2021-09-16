@@ -41,7 +41,7 @@ func init() {
 	startCmd.Flags().BoolP("enable-elasticache", "c", false, "Enable Elasticache watch")
 	startCmd.Flags().BoolP("enable-elb", "l", false, "Enable Elastic Load Balancers watch (true is eks is enabled)")
 	startCmd.Flags().BoolP("enable-ebs", "b", false, "Enable Elastic Volumes watch (true is eks is enabled)")
-	startCmd.Flags().BoolP("enable-vpc", "p", false, "Enable VPC and its children (internet gateways, route tables, subnets, security groups) watch")
+	startCmd.Flags().BoolP("enable-vpc", "p", false, "Enable VPC and its children (internet gateways, nat gateways, elastic ips, route tables, subnets, security groups) watch")
 	startCmd.Flags().BoolP("enable-s3", "s", false, "Enable S3 watch")
 	startCmd.Flags().BoolP("enable-cloudwatch-logs", "w", false, "Enable Cloudwatch Logs watch")
 	startCmd.Flags().BoolP("enable-kms", "n", false, "Enable KMS watch")
