@@ -16,6 +16,8 @@ NOTE: this project is used in Qovery's production environment
 
 ---
 ## Supported resources
+- [X] Kubernetes
+  - [X] Namespaces
 - [X] AWS 
   - [X] Document DB databases
   - [X] Document DB subnet groups
