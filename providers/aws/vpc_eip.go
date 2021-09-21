@@ -35,7 +35,7 @@ func getElasticIps(ec2Session *ec2.EC2, tagName string) []ElasticIp {
 	}
 
 	for _, key := range elasticIps.Addresses {
-		creationTime, ttl, isProtected, _, _ := utils.GetEssentialTags(key, tagName)
+		creationTime, ttl, isProtected, _, _ := utils.GetEssentialTags(key.Tags, tagName)
 		eip := ElasticIp{
 			Id:           *key.AssociationId,
 			Ip:           *key.PublicIp,
