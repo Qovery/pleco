@@ -183,6 +183,7 @@ func runPlecoInRegion(cmd *cobra.Command, region string, interval int64, dryRun 
 		// check VPC
 		if vpcEnabled {
 			logrus.Debugf("Listing all VPC resources in region %s.", *currentEC2Session.Config.Region)
+			DeleteExpiredElasticIps(currentEC2Session, tagName, dryRun)
 			DeleteExpiredVPC(*currentEC2Session, tagName, dryRun)
 		}
 

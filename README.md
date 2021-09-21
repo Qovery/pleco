@@ -40,6 +40,7 @@ NOTE: this project is used in Qovery's production environment
   - [X] VPC vpcs
   - [X] VPC internet gateways
   - [X] VPC nat gateways
+  - [X] VPC Elastic IP
   - [X] VPC route tables
   - [X] VPC subnets
   - [X] VPC security groups
