@@ -36,15 +36,15 @@ func getRepositoryImages(ecrSession *ecr.ECR, repositoryName string) []*ecr.Imag
 	return result.ImageDetails
 }
 
-func DeleteEmptyRepositories(ecrSession *ecr.ECR, drynRun bool) {
-	repositories := getRepositories(ecrSession)
-	region := ecrSession.Config.Region
+func DeleteEmptyRepositories(sessions *AWSSessions, options *AwsOption) {
+	repositories := getRepositories(sessions.ECR)
+	region := sessions.ECR.Config.Region
 	var emptyRepositoryNames []string
 	for _, repository := range repositories {
 		time, _ := time.Parse(time.RFC3339, repository.CreatedAt.Format(time.RFC3339))
 
 		if utils.CheckIfExpired(time, 600, "ECR repository: ") {
-			images := getRepositoryImages(ecrSession, *repository.RepositoryName)
+			images := getRepositoryImages(sessions.ECR, *repository.RepositoryName)
 
 			if len(images) == 0 {
 				emptyRepositoryNames = append(emptyRepositoryNames, *repository.RepositoryName)
@@ -63,14 +63,14 @@ func DeleteEmptyRepositories(ecrSession *ecr.ECR, drynRun bool) {
 
 	log.Debug(s)
 
-	if drynRun || len(emptyRepositoryNames) == 0 {
+	if options.DryRun || len(emptyRepositoryNames) == 0 {
 		return
 	}
 
 	log.Debugf("Starting ECR repositories deletion for region %s.", *region)
 
 	for _, repositoryName := range emptyRepositoryNames {
-		_, err := ecrSession.DeleteRepository(
+		_, err := sessions.ECR.DeleteRepository(
 			&ecr.DeleteRepositoryInput{
 				RepositoryName: aws.String(repositoryName),
 			})

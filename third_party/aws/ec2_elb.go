@@ -138,23 +138,23 @@ func deleteLoadBalancers(lbSession elbv2.ELBV2, loadBalancersList []ElasticLoadB
 	}
 }
 
-func DeleteExpiredLoadBalancers(eksSession eks.EKS, elbSession elbv2.ELBV2, tagName string, dryRun bool) {
-	expiredLoadBalancers, err := ListExpiredLoadBalancers(eksSession, elbSession, tagName)
-	region := elbSession.Config.Region
+func DeleteExpiredLoadBalancers(sessions *AWSSessions, options *AwsOption) {
+	expiredLoadBalancers, err := ListExpiredLoadBalancers(*sessions.EKS, *sessions.ELB, options.TagName)
+	region := *sessions.ELB.Config.Region
 	if err != nil {
 		log.Errorf("can't list Load Balancers: %s\n", err)
 		return
 	}
 
-	count, start := utils.ElemToDeleteFormattedInfos("expired ELB load balancer", len(expiredLoadBalancers), *region)
+	count, start := utils.ElemToDeleteFormattedInfos("expired ELB load balancer", len(expiredLoadBalancers), region)
 
 	log.Debug(count)
 
-	if dryRun || len(expiredLoadBalancers) == 0 {
+	if options.DryRun || len(expiredLoadBalancers) == 0 {
 		return
 	}
 
 	log.Debug(start)
 
-	deleteLoadBalancers(elbSession, expiredLoadBalancers, dryRun)
+	deleteLoadBalancers(*sessions.ELB, expiredLoadBalancers, options.DryRun)
 }

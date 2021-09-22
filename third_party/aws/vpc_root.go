@@ -16,6 +16,7 @@ type VpcInfo struct {
 	InternetGateways []InternetGateway
 	Subnets          []Subnet
 	RouteTables      []RouteTable
+	NatGateways      []NatGateway
 	Status           string
 	TTL              int64
 	Tag              string
@@ -144,9 +145,9 @@ func deleteVPC(ec2Session ec2.EC2, VpcList []VpcInfo, dryRun bool) error {
 	return nil
 }
 
-func DeleteExpiredVPC(ec2Session ec2.EC2, tagName string, dryRun bool) {
-	VPCs, err := listTaggedVPC(ec2Session, tagName)
-	region := ec2Session.Config.Region
+func DeleteExpiredVPC(sessions *AWSSessions, options *AwsOption) {
+	VPCs, err := listTaggedVPC(*sessions.EC2, options.TagName)
+	region := sessions.EC2.Config.Region
 	if err != nil {
 		log.Errorf("can't list VPC: %s\n", err)
 	}
@@ -155,13 +156,13 @@ func DeleteExpiredVPC(ec2Session ec2.EC2, tagName string, dryRun bool) {
 
 	log.Debug(count)
 
-	if dryRun || len(VPCs) == 0 {
+	if options.DryRun || len(VPCs) == 0 {
 		return
 	}
 
 	log.Debug(start)
 
-	_ = deleteVPC(ec2Session, VPCs, dryRun)
+	_ = deleteVPC(*sessions.EC2, VPCs, options.DryRun)
 
 }
 

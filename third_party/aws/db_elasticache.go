@@ -104,9 +104,9 @@ func deleteElasticacheCluster(svc elasticache.ElastiCache, cluster elasticacheCl
 	return nil
 }
 
-func DeleteExpiredElasticacheDatabases(svc elasticache.ElastiCache, tagName string, dryRun bool) {
-	clusters, err := listTaggedElasticacheDatabases(svc, tagName)
-	region := svc.Config.Region
+func DeleteExpiredElasticacheDatabases(sessions *AWSSessions, options *AwsOption) {
+	clusters, err := listTaggedElasticacheDatabases(*sessions.ElastiCache, options.TagName)
+	region := *sessions.ElastiCache.Config.Region
 	if err != nil {
 		log.Errorf("can't list Elasticache databases: %s\n", err)
 		return
@@ -119,21 +119,21 @@ func DeleteExpiredElasticacheDatabases(svc elasticache.ElastiCache, tagName stri
 		}
 	}
 
-	count, start := utils.ElemToDeleteFormattedInfos("expired Elasticache database", len(expiredClusters), *region)
+	count, start := utils.ElemToDeleteFormattedInfos("expired Elasticache database", len(expiredClusters), region)
 
 	log.Debug(count)
 
-	if dryRun || len(expiredClusters) == 0 {
+	if options.DryRun || len(expiredClusters) == 0 {
 		return
 	}
 
 	log.Debug(start)
 
 	for _, cluster := range expiredClusters {
-		deletionErr := deleteElasticacheCluster(svc, cluster)
+		deletionErr := deleteElasticacheCluster(*sessions.ElastiCache, cluster)
 		if deletionErr != nil {
 			log.Errorf("Deletion Elasticache cluster error %s/%s: %s",
-				cluster.ClusterIdentifier, *svc.Config.Region, err)
+				cluster.ClusterIdentifier, region, err)
 		}
 	}
 

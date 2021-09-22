@@ -5,7 +5,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
-	"github.com/aws/aws-sdk-go/service/eks"
 	log "github.com/sirupsen/logrus"
 	"strings"
 	"time"
@@ -37,7 +36,7 @@ func getCompleteLogGroup(svc cloudwatchlogs.CloudWatchLogs, log cloudwatchlogs.L
 
 	return CompleteLogGroup{
 		logGroupName: *log.LogGroupName,
-		creationDate: time.Unix(*log.CreationTime / 1000, 0 ),
+		creationDate: time.Unix(*log.CreationTime/1000, 0),
 		ttl:          ttl,
 		clusterId:    clusterId,
 		IsProtected:  isProtected,
@@ -91,32 +90,32 @@ func handleCloudwatchLogsError(err error) {
 	}
 }
 
-func DeleteExpiredLogs(svc cloudwatchlogs.CloudWatchLogs, tagName string, dryRun bool) {
-	logs := getCloudwatchLogs(svc)
-	region := svc.Config.Region
+func DeleteExpiredLogs(sessions *AWSSessions, options *AwsOption) {
+	logs := getCloudwatchLogs(*sessions.CloudWatchLogs)
+	region := *sessions.CloudWatchLogs.Config.Region
 	var expiredLogs []CompleteLogGroup
 	for _, log := range logs {
-		completeLogGroup := getCompleteLogGroup(svc, *log, tagName)
+		completeLogGroup := getCompleteLogGroup(*sessions.CloudWatchLogs, *log, options.TagName)
 		if utils.CheckIfExpired(completeLogGroup.creationDate, completeLogGroup.ttl, "log group: "+completeLogGroup.logGroupName) && !completeLogGroup.IsProtected {
 			expiredLogs = append(expiredLogs, completeLogGroup)
 		}
 	}
 
-	count, start := utils.ElemToDeleteFormattedInfos("expired Cloudwatch log", len(expiredLogs), *region)
+	count, start := utils.ElemToDeleteFormattedInfos("expired Cloudwatch log", len(expiredLogs), region)
 
 	log.Debug(count)
 
-	if dryRun || len(expiredLogs) == 0 {
+	if options.DryRun || len(expiredLogs) == 0 {
 		return
 	}
 
 	log.Debug(start)
 
 	for _, completeLog := range expiredLogs {
-		_, deletionErr := deleteCloudwatchLog(svc, completeLog.logGroupName)
+		_, deletionErr := deleteCloudwatchLog(*sessions.CloudWatchLogs, completeLog.logGroupName)
 		if deletionErr != nil {
 			log.Errorf("Deletion Cloudwatch error %s/%s: %s",
-				completeLog.logGroupName, *svc.Config.Region, deletionErr)
+				completeLog.logGroupName, region, deletionErr)
 		}
 	}
 
@@ -151,20 +150,20 @@ func TagLogsForDeletion(svc cloudwatchlogs.CloudWatchLogs, tagName string, clust
 	return nil
 }
 
-func DeleteUnlinkedLogs(svc cloudwatchlogs.CloudWatchLogs, eks eks.EKS, dryRun bool) {
-	region := *eks.Config.Region
-	clusters, err := ListClusters(eks)
+func DeleteUnlinkedLogs(sessions *AWSSessions, options *AwsOption) {
+	region := *sessions.EKS.Config.Region
+	clusters, err := ListClusters(*sessions.EKS)
 	if err != nil {
 		log.Errorf("C'ant list cluster in region %s: %s", region, err.Error())
 	}
 
-	deletableLogs := getUnlinkedLogs(svc, clusters)
+	deletableLogs := getUnlinkedLogs(*sessions.CloudWatchLogs, clusters)
 
 	count, start := utils.ElemToDeleteFormattedInfos("unliked Cloudwatch log", len(deletableLogs), region)
 
 	log.Debug(count)
 
-	if dryRun || len(deletableLogs) == 0 {
+	if options.DryRun || len(deletableLogs) == 0 {
 		return
 	}
 
@@ -172,7 +171,7 @@ func DeleteUnlinkedLogs(svc cloudwatchlogs.CloudWatchLogs, eks eks.EKS, dryRun b
 
 	for _, deletableLog := range deletableLogs {
 		if deletableLog != "null" {
-			_, deletionErr := deleteCloudwatchLog(svc, deletableLog)
+			_, deletionErr := deleteCloudwatchLog(*sessions.CloudWatchLogs, deletableLog)
 			if deletionErr != nil {
 				log.Errorf("Deletion Cloudwatch error %s/%s: %s",
 					deletableLog, region, deletionErr)
@@ -188,7 +187,7 @@ func getUnlinkedLogs(svc cloudwatchlogs.CloudWatchLogs, clusters []*string) []st
 	for _, cluster := range clusters {
 		for _, logGroup := range logs {
 			if strings.Contains(*logGroup.LogGroupName, "/aws/eks/") && deletableLogs[*logGroup.LogGroupName] != "null" {
-				if !strings.Contains(*logGroup.LogGroupName, (*cluster)[strings.Index(*cluster, "-") + 1 : len(*cluster)])  {
+				if !strings.Contains(*logGroup.LogGroupName, (*cluster)[strings.Index(*cluster, "-")+1:len(*cluster)]) {
 					deletableLogs[*logGroup.LogGroupName] = *logGroup.LogGroupName
 				} else {
 					deletableLogs[*logGroup.LogGroupName] = "null"

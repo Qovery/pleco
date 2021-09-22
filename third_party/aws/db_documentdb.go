@@ -98,24 +98,25 @@ func deleteDocumentDBCluster(svc rds.RDS, cluster documentDBCluster, dryRun bool
 	return nil
 }
 
-func DeleteExpiredDocumentDBClusters(svc rds.RDS, tagName string, dryRun bool) {
-	expiredClusters := listExpiredDocumentDBClusters(svc, tagName)
+func DeleteExpiredDocumentDBClusters(sessions *AWSSessions, options *AwsOption) {
+	region := *sessions.RDS.Config.Region
+	expiredClusters := listExpiredDocumentDBClusters(*sessions.RDS, options.TagName)
 
-	count, start := utils.ElemToDeleteFormattedInfos("expired DocumentDB database", len(expiredClusters), *svc.Config.Region)
+	count, start := utils.ElemToDeleteFormattedInfos("expired DocumentDB database", len(expiredClusters), region)
 
 	log.Debug(count)
 
-	if dryRun || len(expiredClusters) == 0 {
+	if options.DryRun || len(expiredClusters) == 0 {
 		return
 	}
 
 	log.Debug(start)
 
 	for _, cluster := range expiredClusters {
-		deletionErr := deleteDocumentDBCluster(svc, cluster, dryRun)
+		deletionErr := deleteDocumentDBCluster(*sessions.RDS, cluster, options.DryRun)
 		if deletionErr != nil {
 			log.Errorf("Deletion DocumentDB cluster error %s in %s: %s",
-				cluster.DBClusterIdentifier, *svc.Config.Region, deletionErr.Error())
+				cluster.DBClusterIdentifier, region, deletionErr.Error())
 		}
 	}
 }

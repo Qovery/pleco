@@ -10,7 +10,7 @@ import (
 
 type ElasticIp struct {
 	Id           string
-	Ip			 string
+	Ip           string
 	CreationDate time.Time
 	ttl          int64
 	IsProtected  bool
@@ -23,7 +23,7 @@ func getElasticIps(ec2Session *ec2.EC2, tagName string) []ElasticIp {
 		// only supporting EIP attached to VPC
 		Filters: []*ec2.Filter{
 			{
-				Name: aws.String("domain"),
+				Name:   aws.String("domain"),
 				Values: []*string{aws.String("vpc")},
 			},
 		},
@@ -72,8 +72,8 @@ func releaseElasticIp(ec2Session *ec2.EC2, allocationId string) error {
 	return nil
 }
 
-func DeleteExpiredElasticIps(ec2Session *ec2.EC2, tagName string, dryRun bool) {
-	elasticIps := getElasticIps(ec2Session, tagName)
+func DeleteExpiredElasticIps(sessions *AWSSessions, options *AwsOption) {
+	elasticIps := getElasticIps(sessions.EC2, options.TagName)
 
 	var expiredEips []ElasticIp
 	for _, eip := range elasticIps {
@@ -82,13 +82,13 @@ func DeleteExpiredElasticIps(ec2Session *ec2.EC2, tagName string, dryRun bool) {
 		}
 	}
 
-	if dryRun || len(expiredEips) == 0 {
+	if options.DryRun || len(expiredEips) == 0 {
 		return
 	}
 
 	for _, elasticIp := range expiredEips {
 		if !elasticIp.IsProtected {
-			releaseErr := releaseElasticIp(ec2Session, tagName)
+			releaseErr := releaseElasticIp(sessions.EC2, options.TagName)
 			if releaseErr != nil {
 				log.Errorf("Release EIP error %s/%s: %s", elasticIp.Ip, elasticIp.Id, releaseErr)
 			}

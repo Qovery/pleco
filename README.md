@@ -44,7 +44,12 @@ NOTE: this project is used in Qovery's production environment
   - [X] VPC route tables
   - [X] VPC subnets
   - [X] VPC security groups
-  - [X] S3 buckets 
+  - [X] S3 buckets
+- [X] SCALEWAY
+  - [X] Kubernetes clusters
+  - [X] Database instances
+  - [X] Load balancers
+  - [X] Namespaces
 - [ ] DIGITAL OCEAN
 - [ ] AZURE
 - [ ] GCP
@@ -57,17 +62,25 @@ You can find a helm chart [here](https://artifacthub.io/packages/helm/pleco/plec
 ---
 ## Requirements
 
-In order to make pleco check and clean expired aws resources you need to set the following environment variables:
+In order to make pleco check and clean expired resources you need to set the following environment variables:
+#### For AWS
 ```bash
 $ export AWS_ACCESS_KEY_ID=<access_key>
 $ export AWS_SECRET_ACCESS_KEY=<secret_key>
+```
+
+#### For Scaleway
+```bash
+$ export SCALEWAY_ACCESS_KEY=<access_key>
+$ export SCALEWAY_SECRET_KEY=<secret_key>
+$ export SCALEWAY_ORGANISATION_ID=<organization_id>
 ```
 ---
 ## Basic command
 
 A pleco command has the following structure:
 ```bash
-pleco start [options]
+pleco start <cloud_provider> [options]
 ```
 
 ### General options
@@ -120,5 +133,5 @@ Here are some the resources you can check:
 
 #### Example
 ```bash
-pleco start --level debug -i 240 -a eu-west-3 -e -r -m -c -l -b -p -s -w -n -u -z -o -y
+pleco start aws --level debug -i 240 -a eu-west-3 -e -r -m -c -l -b -p -s -w -n -u -z -o -y
 ```

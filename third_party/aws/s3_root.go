@@ -204,9 +204,9 @@ func deleteS3Buckets(s3session s3.S3, bucket string) error {
 	return nil
 }
 
-func DeleteExpiredBuckets(s3session s3.S3, tagName string, dryRun bool) {
-	buckets, err := listTaggedBuckets(s3session, tagName)
-	region := s3session.Config.Region
+func DeleteExpiredBuckets(sessions *AWSSessions, options *AwsOption) {
+	buckets, err := listTaggedBuckets(*sessions.S3, options.TagName)
+	region := sessions.S3.Config.Region
 	if err != nil {
 		log.Errorf("can't list S3 buckets: %s\n", err)
 		return
@@ -228,14 +228,14 @@ func DeleteExpiredBuckets(s3session s3.S3, tagName string, dryRun bool) {
 
 	log.Debug(s)
 
-	if dryRun || len(expiredBuckets) == 0 {
+	if options.DryRun || len(expiredBuckets) == 0 {
 		return
 	}
 
 	log.Debug("Starting expired S3 buckets deletion.")
 
 	for _, bucket := range expiredBuckets {
-		deletionErr := deleteS3Buckets(s3session, bucket.Name)
+		deletionErr := deleteS3Buckets(*sessions.S3, bucket.Name)
 		if deletionErr != nil {
 			log.Errorf("Deletion S3 Bucket %s/%s error: %s",
 				bucket.Name, *region, err)

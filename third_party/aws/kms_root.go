@@ -100,16 +100,16 @@ func handleKMSError(error error) {
 	}
 }
 
-func DeleteExpiredKeys(svc kms.KMS, tagName string, dryRun bool) {
-	keys := getKeys(svc)
-	region := svc.Config.Region
+func DeleteExpiredKeys(sessions *AWSSessions, options *AwsOption) {
+	keys := getKeys(*sessions.KMS)
+	region := sessions.KMS.Config.Region
 	var expiredKeys []CompleteKey
 	for _, key := range keys {
-		completeKey := getCompleteKey(svc, key.KeyId, tagName)
+		completeKey := getCompleteKey(*sessions.KMS, key.KeyId, options.TagName)
 
 		if completeKey.Status != "PendingDeletion" && completeKey.Status != "Disabled" &&
 			utils.CheckIfExpired(completeKey.CreationDate, completeKey.TTL, "kms key: "+completeKey.KeyId) && !completeKey.IsProtected {
-			if completeKey.Tag == tagName || tagName == "ttl" {
+			if completeKey.Tag == options.TagName || options.TagName == "ttl" {
 				expiredKeys = append(expiredKeys, completeKey)
 			}
 		}
@@ -119,14 +119,14 @@ func DeleteExpiredKeys(svc kms.KMS, tagName string, dryRun bool) {
 
 	log.Debug(count)
 
-	if dryRun || len(expiredKeys) == 0 {
+	if options.DryRun || len(expiredKeys) == 0 {
 		return
 	}
 
 	log.Debug(start)
 
 	for _, key := range expiredKeys {
-		_, deletionErr := deleteKey(svc, key.KeyId)
+		_, deletionErr := deleteKey(*sessions.KMS, key.KeyId)
 		if deletionErr != nil {
 			log.Errorf("Deletion KMS key error %s/%s: %s",
 				key.KeyId, *region, deletionErr)

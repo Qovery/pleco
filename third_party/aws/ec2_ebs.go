@@ -126,23 +126,23 @@ func listExpiredVolumes(eksSession eks.EKS, ec2Session ec2.EC2, tagName string) 
 	return expiredVolumes, nil
 }
 
-func DeleteExpiredVolumes(eksSession eks.EKS, ec2Session ec2.EC2, tagName string, dryRun bool) {
-	expiredVolumes, err := listExpiredVolumes(eksSession, ec2Session, tagName)
-	region := ec2Session.Config.Region
+func DeleteExpiredVolumes(sessions *AWSSessions, options *AwsOption) {
+	expiredVolumes, err := listExpiredVolumes(*sessions.EKS, *sessions.EC2, options.TagName)
+	region := *sessions.EC2.Config.Region
 	if err != nil {
 		log.Errorf("Can't list volumes: %s\n", err)
 		return
 	}
 
-	count, start := utils.ElemToDeleteFormattedInfos("expired EBS volume", len(expiredVolumes), *region)
+	count, start := utils.ElemToDeleteFormattedInfos("expired EBS volume", len(expiredVolumes), region)
 
 	log.Debug(count)
 
-	if dryRun || len(expiredVolumes) == 0 {
+	if options.DryRun || len(expiredVolumes) == 0 {
 		return
 	}
 
 	log.Debug(start)
 
-	deleteVolumes(ec2Session, expiredVolumes)
+	deleteVolumes(*sessions.EC2, expiredVolumes)
 }

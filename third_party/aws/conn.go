@@ -4,17 +4,18 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/sirupsen/logrus"
+	"os"
 )
 
-func CreateSession(region string) (*session.Session, error) {
+func CreateSession(region string) *session.Session {
 	sess, err := session.NewSession(&aws.Config{
 		Region: aws.String(region)},
 	)
 	if err != nil {
 		logrus.Errorf("Can't connect to AWS: %s", err)
-		return nil, err
+		os.Exit(1)
 	}
-	return sess, nil
+	return sess
 }
 
 func CreateSessionWithoutRegion() (*session.Session, error) {

@@ -52,9 +52,9 @@ func deleteKeyPair(ec2session *ec2.EC2, keyId string) error {
 	return err
 }
 
-func DeleteExpiredKeyPairs(ec2session *ec2.EC2, tagName string, dryRun bool) {
-	keys := getSshKeys(ec2session, tagName)
-	region := ec2session.Config.Region
+func DeleteExpiredKeyPairs(sessions *AWSSessions, options *AwsOption) {
+	keys := getSshKeys(sessions.EC2, options.TagName)
+	region := sessions.EC2.Config.Region
 	var expiredKeys []KeyPair
 	for _, key := range keys {
 		if utils.CheckIfExpired(key.CreationDate, key.ttl, "ec2 key pair: "+key.KeyId) && !key.IsProtected {
@@ -66,14 +66,14 @@ func DeleteExpiredKeyPairs(ec2session *ec2.EC2, tagName string, dryRun bool) {
 
 	log.Debug(count)
 
-	if dryRun || len(expiredKeys) == 0 {
+	if options.DryRun || len(expiredKeys) == 0 {
 		return
 	}
 
 	log.Debug(start)
 
 	for _, key := range expiredKeys {
-		deletionErr := deleteKeyPair(ec2session, key.KeyId)
+		deletionErr := deleteKeyPair(sessions.EC2, key.KeyId)
 		if deletionErr != nil {
 			log.Errorf("Deletion EC2 key pair error %s/%s: %s",
 				key.KeyName, *region, deletionErr)
