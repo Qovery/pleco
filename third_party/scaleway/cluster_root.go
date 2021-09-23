@@ -8,11 +8,11 @@ import (
 )
 
 type ScalewayCluster struct {
-	ID string
-	Name string
+	ID           string
+	Name         string
 	CreationDate time.Time
-	TTL int64
-	IsProtected bool
+	TTL          int64
+	IsProtected  bool
 }
 
 func DeleteExpiredClusters(sessions *ScalewaySessions, options *ScalewayOption) {
@@ -43,8 +43,8 @@ func listClusters(clusterAPI *k8s.API, tagName string) ([]ScalewayCluster, strin
 		log.Errorf("Can't list cluster for region %s: %s", input.Region, err.Error())
 	}
 
-	var clusters []ScalewayCluster
-	for _ , cluster := range result.Clusters {
+	clusters := []ScalewayCluster{}
+	for _, cluster := range result.Clusters {
 		_, ttl, isProtected, _, _ := utils.GetEssentialTags(cluster.Tags, tagName)
 		creationDate, _ := time.Parse(time.RFC3339, cluster.CreatedAt.Format(time.RFC3339))
 
@@ -57,7 +57,6 @@ func listClusters(clusterAPI *k8s.API, tagName string) ([]ScalewayCluster, strin
 		})
 	}
 
-
 	return clusters, input.Region.String()
 }
 
@@ -66,7 +65,7 @@ func getExpiredClusters(clusterAPI *k8s.API, tagName string) ([]ScalewayCluster,
 
 	expiredClusters := []ScalewayCluster{}
 	for _, cluster := range clusters {
-		if utils.CheckIfExpired(cluster.CreationDate, cluster.TTL, "cluster" + cluster.Name) {
+		if utils.CheckIfExpired(cluster.CreationDate, cluster.TTL, "cluster"+cluster.Name) && !cluster.IsProtected {
 			expiredClusters = append(expiredClusters, cluster)
 		}
 	}

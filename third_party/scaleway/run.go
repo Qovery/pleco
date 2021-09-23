@@ -35,14 +35,14 @@ type ScalewaySessions struct {
 
 type funcDeleteExpired func(sessions *ScalewaySessions, options *ScalewayOption)
 
-func RunPlecoScaleway(regions []string, interval int64, wg *sync.WaitGroup, options *ScalewayOption)  {
+func RunPlecoScaleway(regions []string, interval int64, wg *sync.WaitGroup, options *ScalewayOption) {
 	for _, region := range regions {
 		wg.Add(1)
 		go runPlecoInRegion(region, interval, wg, options)
 	}
 }
 
-func runPlecoInRegion(region string,interval int64, wg *sync.WaitGroup, options *ScalewayOption) {
+func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options *ScalewayOption) {
 	defer wg.Done()
 
 	sessions := &ScalewaySessions{}

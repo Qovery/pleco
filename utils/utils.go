@@ -75,7 +75,7 @@ func GetEssentialTags(tagsInput interface{}, tagName string) (time.Time, int64, 
 		}
 	case []string:
 		for _, value := range typedTags {
-			tags = append(tags, MyTag{Key: value[0:strings.Index(value,"=")], Value: value[strings.Index(value,"=") + 1:len(value)]})
+			tags = append(tags, MyTag{Key: value[0:strings.Index(value, "=")], Value: value[strings.Index(value, "=")+1 : len(value)]})
 		}
 	default:
 		log.Debugf("Can't parse tags %s.", tagsInput)
