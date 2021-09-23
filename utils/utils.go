@@ -118,15 +118,20 @@ func CheckIfExpired(creationTime time.Time, ttl int64, resourceName string) bool
 }
 
 func ElemToDeleteFormattedInfos(elemName string, arraySize int, region string) (string, string) {
-	count := fmt.Sprintf("There is no %s to delete in region %s.", elemName, region)
-	if arraySize == 1 {
-		count = fmt.Sprintf("There is 1 %s to delete in region %s.", elemName, region)
-	}
-	if arraySize > 1 {
-		count = fmt.Sprintf("There are %d %ss to delete in region %s.", arraySize, elemName, region)
+	regionString := fmt.Sprintf(" in region %s", region)
+	if region == "" {
+		regionString = ""
 	}
 
-	start := fmt.Sprintf("Starting %s deletion for region %s.", elemName, region)
+	count := fmt.Sprintf("There is no %s to delete%s.", elemName, regionString)
+	if arraySize == 1 {
+		count = fmt.Sprintf("There is 1 %s to delete%s.", elemName, regionString)
+	}
+	if arraySize > 1 {
+		count = fmt.Sprintf("There are %d %ss to delete%s.", arraySize, elemName, regionString)
+	}
+
+	start := fmt.Sprintf("Starting %s deletion%s.", elemName, regionString)
 
 	return count, start
 }

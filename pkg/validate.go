@@ -32,8 +32,8 @@ func checkEnvVars(cloudProvider string, cmd *cobra.Command) {
 	}
 
 	for _, envVar := range requiredEnvVars {
-		if env, ok := os.LookupEnv(envVar); !ok {
-			log.Fatalf("%s environment variable is required and not found", env)
+		if _, ok := os.LookupEnv(envVar); !ok {
+			log.Fatalf("%s environment variable is required and not found", envVar)
 		}
 	}
 }

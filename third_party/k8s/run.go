@@ -38,10 +38,7 @@ func runPlecoOnKube(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.Wa
 	// check Kubernetes
 	for {
 		if kubernetesEnabled {
-			err := DeleteExpiredNamespaces(k8sClientSet, tagName, dryRun)
-			if err != nil {
-				logrus.Error(err)
-			}
+			DeleteExpiredNamespaces(k8sClientSet, tagName, dryRun)
 		}
 		time.Sleep(time.Duration(interval) * time.Second)
 	}

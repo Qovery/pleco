@@ -6,6 +6,7 @@ import (
 	"github.com/Qovery/pleco/third_party/scaleway"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"strings"
 	"sync"
 )
 
@@ -17,6 +18,9 @@ func StartDaemon(cloudProvider string, disableDryRun bool, interval int64, cmd *
 	} else {
 		log.Info("Dry run mode enabled")
 	}
+
+	log.Infof("Cloud provider: %s", strings.ToUpper(cloudProvider))
+
 
 	checkEnvVars(cloudProvider, cmd)
 

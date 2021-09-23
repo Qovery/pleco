@@ -20,7 +20,6 @@ var startCmd = &cobra.Command{
 
 		fmt.Println("")
 		fmt.Println(" ____  _     _____ ____ ___  \n|  _ \\| |   | ____/ ___/ _ \\ \n| |_) | |   |  _|| |  | | | |\n|  __/| |___| |__| |__| |_| |\n|_|   |_____|_____\\____\\___/\nBy Qovery")
-		fmt.Println("")
 		log.Infof("Starting Pleco %s", GetCurrentVersion())
 
 		pkg.StartDaemon(args[0], disableDryRun, interval, cmd)

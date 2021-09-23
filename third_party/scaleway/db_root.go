@@ -18,7 +18,7 @@ type ScalewayDB struct {
 func DeleteExpiredDatabases(sessions *ScalewaySessions, options *ScalewayOption) {
 	expiredDatabases, region := getExpiredDatabases(sessions.Database, options.TagName)
 
-	count, start := utils.ElemToDeleteFormattedInfos("expired cluster", len(expiredDatabases), region)
+	count, start := utils.ElemToDeleteFormattedInfos("expired database", len(expiredDatabases), region)
 
 	log.Debug(count)
 
@@ -78,6 +78,6 @@ func deleteDb(dbAPI *rdb.API, db ScalewayDB) {
 		})
 
 	if err != nil {
-		log.Errorf("Can't delete cluster %s", db.Name)
+		log.Errorf("Can't delete database %s", db.Name)
 	}
 }
