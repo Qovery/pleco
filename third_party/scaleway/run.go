@@ -7,6 +7,7 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/api/rdb/v1"
 	"github.com/scaleway/scaleway-sdk-go/api/registry/v1"
 	"github.com/scaleway/scaleway-sdk-go/api/vpc/v1"
+	"github.com/scaleway/scaleway-sdk-go/scw"
 	"github.com/sirupsen/logrus"
 	"sync"
 	"time"
@@ -34,11 +35,18 @@ type ScalewaySessions struct {
 
 type funcDeleteExpired func(sessions *ScalewaySessions, options *ScalewayOption)
 
-func RunPlecoScaleway(interval int64, wg *sync.WaitGroup, options *ScalewayOption) {
+func RunPlecoScaleway(regions []string, interval int64, wg *sync.WaitGroup, options *ScalewayOption)  {
+	for _, region := range regions {
+		wg.Add(1)
+		go runPlecoInRegion(region, interval, wg, options)
+	}
+}
+
+func runPlecoInRegion(region string,interval int64, wg *sync.WaitGroup, options *ScalewayOption) {
 	defer wg.Done()
 
 	sessions := &ScalewaySessions{}
-	currentSession := CreateSession()
+	currentSession := CreateSession(scw.Region(region))
 	organization, _ := currentSession.GetDefaultOrganizationID()
 
 	logrus.Infof("Starting to check expired resources for organization %s.", organization)

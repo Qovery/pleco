@@ -6,8 +6,9 @@ import (
 	"os"
 )
 
-func CreateSession() *scw.Client {
+func CreateSession(region scw.Region) *scw.Client {
 	client, err := scw.NewClient(
+		scw.WithDefaultRegion(region),
 		scw.WithDefaultOrganizationID(os.Getenv("SCALEWAY_ORGANISATION_ID")),
 		scw.WithAuth(os.Getenv("SCALEWAY_ACCESS_KEY"), os.Getenv("SCALEWAY_SECRET_KEY")),
 	)
