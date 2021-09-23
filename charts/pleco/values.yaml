@@ -5,6 +5,8 @@ image:
   pullPolicy: IfNotPresent
   plecoImageTag: "0.9.0"
 
+cloudProvider: ""
+
 environmentVariables:
   LOG_LEVEL: "info"
   PLECO_IDENTIFIER: "tbd"
@@ -17,7 +19,9 @@ enabledFeatures:
   checkInterval: 120
   # Choose between in/out/off
   kubernetes: "in"
-  # AWS
+  s3: false
+
+awsFeatures:
   awsRegions: []
   # - eu-west-3
   # - us-east-2
@@ -28,12 +32,18 @@ enabledFeatures:
   elb: false
   ebs: false
   vpc: false
-  s3: false
   kms: false
   cloudwatchLogs: false
   iam: false
   sshKeys: false
   ecr: false
+
+sclawayFeatures:
+  scalewayRegions: []
+  cr: false
+  cluster: flase
+  lb: false
+  db: false
 
 imagePullSecrets: []
 nameOverride: ""

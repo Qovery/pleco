@@ -1,8 +1,8 @@
 package scaleway
 
 import (
-	"github.com/scaleway/scaleway-sdk-go/api/instance/v1"
 	"github.com/scaleway/scaleway-sdk-go/api/k8s/v1"
+	"github.com/scaleway/scaleway-sdk-go/api/lb/v1"
 	"github.com/scaleway/scaleway-sdk-go/api/rdb/v1"
 	"github.com/scaleway/scaleway-sdk-go/api/registry/v1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
@@ -15,17 +15,17 @@ type ScalewayOption struct {
 	TagName        string
 	DryRun         bool
 	EnableCluster  bool
-	EnableInstance bool
 	EnableDB       bool
 	EnableCR       bool
 	EnableBucket      bool
+	EnbaleLB bool
 }
 
 type ScalewaySessions struct {
 	Cluster      *k8s.API
 	Database     *rdb.API
-	Instance     *instance.API
 	Namespace    *registry.API
+	LoadBalancer *lb.API
 }
 
 type funcDeleteExpired func(sessions *ScalewaySessions, options *ScalewayOption)
@@ -66,10 +66,10 @@ func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteEmptyContainerRegistries)
 	}
 
-	if options.EnableInstance {
-		sessions.Instance = instance.NewAPI(currentSession)
+	if options.EnbaleLB {
+		sessions.LoadBalancer = lb.NewAPI(currentSession)
 
-		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredInstances)
+		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredLBs)
 	}
 
 	for _, check := range listServiceToCheckStatus {
