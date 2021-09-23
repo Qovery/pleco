@@ -80,7 +80,7 @@ func deleteNamespace(clientSet *kubernetes.Clientset, namespace kubernetesNamesp
 func DeleteExpiredNamespaces(clientSet *kubernetes.Clientset, tagName string, dryRun bool) {
 	namespaces := getExpiredNamespaces(clientSet, tagName)
 
-	count, start := utils.ElemToDeleteFormattedInfos("expired namespace", len(namespaces), "")
+	count, start := utils.ElemToDeleteFormattedInfos("expired Kubernetes namespace", len(namespaces), "")
 
 	log.Debug(count)
 

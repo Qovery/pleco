@@ -24,7 +24,6 @@ func StartDaemon(cloudProvider string, disableDryRun bool, interval int64, cmd *
 
 	checkEnvVars(cloudProvider, cmd)
 
-	// run Kubernetes check
 	k8s.RunPlecoKubernetes(cmd, interval, dryRun, &wg)
 
 	run(cloudProvider, dryRun, interval, cmd, &wg)
@@ -72,8 +71,7 @@ func startScaleway(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.Wai
 		TagName:       getCmdString(cmd, "tag-name"),
 		EnableCluster: getCmdBool(cmd, "enable-cluster"),
 		EnableDB:      getCmdBool(cmd, "enable-db"),
-		EnableCR:      getCmdBool(cmd, "enable-lb"),
-		EnableLB:      getCmdBool(cmd, "enable-cr"),
+		EnableCR:      getCmdBool(cmd, "enable-cr"),
 	}
 	scaleway.RunPlecoScaleway(regions, interval, wg, scalewayOptions)
 	wg.Done()
