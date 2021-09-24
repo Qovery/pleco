@@ -35,16 +35,19 @@ func getElasticIps(ec2Session *ec2.EC2, tagName string) []ElasticIp {
 
 	eips := []ElasticIp{}
 	for _, key := range elasticIps.Addresses {
-		creationTime, ttl, isProtected, _, _ := utils.GetEssentialTags(key.Tags, tagName)
-		eip := ElasticIp{
-			Id:           *key.AssociationId,
-			Ip:           *key.PublicIp,
-			CreationDate: creationTime,
-			ttl:          ttl,
-			IsProtected:  isProtected,
+		if key.AssociationId != nil && key.PublicIp != nil {
+			creationTime, ttl, isProtected, _, _ := utils.GetEssentialTags(key.Tags, tagName)
+			eip := ElasticIp{
+				Id:           *key.AssociationId,
+				Ip:           *key.PublicIp,
+				CreationDate: creationTime,
+				ttl:          ttl,
+				IsProtected:  isProtected,
+			}
+
+			eips = append(eips, eip)
 		}
 
-		eips = append(eips, eip)
 	}
 
 	return eips
@@ -82,16 +85,20 @@ func DeleteExpiredElasticIps(sessions *AWSSessions, options *AwsOption) {
 		}
 	}
 
+	count, start := utils.ElemToDeleteFormattedInfos("expired EIP", len(expiredEips), *sessions.EC2.Config.Region)
+
+	log.Debug(count)
+
 	if options.DryRun || len(expiredEips) == 0 {
 		return
 	}
 
+	log.Debug(start)
+
 	for _, elasticIp := range expiredEips {
-		if !elasticIp.IsProtected {
-			releaseErr := releaseElasticIp(sessions.EC2, options.TagName)
-			if releaseErr != nil {
-				log.Errorf("Release EIP error %s/%s: %s", elasticIp.Ip, elasticIp.Id, releaseErr)
-			}
+		releaseErr := releaseElasticIp(sessions.EC2, options.TagName)
+		if releaseErr != nil {
+			log.Errorf("Release EIP error %s/%s: %s", elasticIp.Ip, elasticIp.Id, releaseErr)
 		}
 	}
 }
