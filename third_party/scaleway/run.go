@@ -12,13 +12,13 @@ import (
 )
 
 type ScalewayOption struct {
-	TagName        string
-	DryRun         bool
-	EnableCluster  bool
-	EnableDB       bool
-	EnableCR       bool
-	EnableBucket      bool
-	EnbaleLB bool
+	TagName       string
+	DryRun        bool
+	EnableCluster bool
+	EnableDB      bool
+	EnableCR      bool
+	EnableBucket  bool
+	EnbaleLB      bool
 }
 
 type ScalewaySessions struct {

@@ -131,6 +131,7 @@ func deleteVPC(ec2Session ec2.EC2, VpcList []VpcInfo, dryRun bool) error {
 		DeleteInternetGatewaysByIds(ec2Session, vpc.InternetGateways, *vpc.VpcId)
 		DeleteSubnetsByIds(ec2Session, vpc.Subnets)
 		DeleteRouteTablesByIds(ec2Session, vpc.RouteTables)
+		DeleteNatGatewaysByIds(ec2Session, vpc.NatGateways)
 
 		_, deleteErr := ec2Session.DeleteVpc(
 			&ec2.DeleteVpcInput{
@@ -178,5 +179,7 @@ func getCompleteVpc(ec2Session ec2.EC2, vpc *VpcInfo, tagName string) {
 	go SetSubnetsIdsByVpcId(ec2Session, vpc, &waitGroup, tagName)
 	waitGroup.Add(1)
 	go SetRouteTablesIdsByVpcId(ec2Session, vpc, &waitGroup, tagName)
+	waitGroup.Add(1)
+	go SetNatGatewaysIdsByVpcId(ec2Session, vpc, &waitGroup, tagName)
 	waitGroup.Wait()
 }

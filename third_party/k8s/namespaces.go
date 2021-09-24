@@ -17,6 +17,7 @@ type kubernetesNamespace struct {
 	Status              string
 	TTL                 int64
 }
+
 func listNamespaces(clientSet *kubernetes.Clientset, tagName string) []v1.Namespace {
 	listOptions := metav1.ListOptions{
 		LabelSelector: tagName,
@@ -91,6 +92,6 @@ func DeleteExpiredNamespaces(clientSet *kubernetes.Clientset, tagName string, dr
 	log.Debug(start)
 
 	for _, namespace := range namespaces {
- 		deleteNamespace(clientSet, namespace, dryRun)
+		deleteNamespace(clientSet, namespace, dryRun)
 	}
 }

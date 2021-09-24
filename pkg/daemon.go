@@ -21,7 +21,6 @@ func StartDaemon(cloudProvider string, disableDryRun bool, interval int64, cmd *
 
 	log.Infof("Cloud provider: %s", strings.ToUpper(cloudProvider))
 
-
 	checkEnvVars(cloudProvider, cmd)
 
 	k8s.RunPlecoKubernetes(cmd, interval, dryRun, &wg)

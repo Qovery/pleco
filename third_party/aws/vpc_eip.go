@@ -17,7 +17,6 @@ type ElasticIp struct {
 }
 
 func getElasticIps(ec2Session *ec2.EC2, tagName string) []ElasticIp {
-	var eips []ElasticIp
 
 	input := &ec2.DescribeAddressesInput{
 		// only supporting EIP attached to VPC
@@ -34,6 +33,7 @@ func getElasticIps(ec2Session *ec2.EC2, tagName string) []ElasticIp {
 		log.Error(err)
 	}
 
+	eips := []ElasticIp{}
 	for _, key := range elasticIps.Addresses {
 		creationTime, ttl, isProtected, _, _ := utils.GetEssentialTags(key.Tags, tagName)
 		eip := ElasticIp{
@@ -75,7 +75,7 @@ func releaseElasticIp(ec2Session *ec2.EC2, allocationId string) error {
 func DeleteExpiredElasticIps(sessions *AWSSessions, options *AwsOption) {
 	elasticIps := getElasticIps(sessions.EC2, options.TagName)
 
-	var expiredEips []ElasticIp
+	expiredEips := []ElasticIp{}
 	for _, eip := range elasticIps {
 		if utils.CheckIfExpired(eip.CreationDate, eip.ttl, "eip: "+eip.Id) && !eip.IsProtected {
 			expiredEips = append(expiredEips, eip)
