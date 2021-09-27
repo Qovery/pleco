@@ -1,9 +1,9 @@
 package pkg
 
 import (
-	"github.com/Qovery/pleco/third_party/aws"
-	"github.com/Qovery/pleco/third_party/k8s"
-	"github.com/Qovery/pleco/third_party/scaleway"
+	"github.com/Qovery/pleco/pkg/aws"
+	"github.com/Qovery/pleco/pkg/k8s"
+	"github.com/Qovery/pleco/pkg/scaleway"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"strings"
@@ -66,11 +66,14 @@ func startAWS(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGrou
 func startScaleway(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGroup) {
 	regions, _ := cmd.Flags().GetStringSlice("scaleway-regions")
 	scalewayOptions := &scaleway.ScalewayOption{
-		DryRun:        dryRun,
 		TagName:       getCmdString(cmd, "tag-name"),
+		DryRun:        dryRun,
 		EnableCluster: getCmdBool(cmd, "enable-cluster"),
 		EnableDB:      getCmdBool(cmd, "enable-db"),
 		EnableCR:      getCmdBool(cmd, "enable-cr"),
+		EnableBucket:  getCmdBool(cmd, "enable-bucket"),
+		EnableLB:      getCmdBool(cmd, "enable-lb"),
+		EnableVolume:  getCmdBool(cmd, "enable-volume"),
 	}
 	scaleway.RunPlecoScaleway(regions, interval, wg, scalewayOptions)
 	wg.Done()

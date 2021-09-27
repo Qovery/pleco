@@ -50,6 +50,8 @@ NOTE: this project is used in Qovery's production environment
   - [X] Database instances
   - [X] Load balancers
   - [X] Namespaces
+  - [X] Detached volumes
+  - [ ] S3 Buckets
 - [ ] DIGITAL OCEAN
 - [ ] AZURE
 - [ ] GCP
