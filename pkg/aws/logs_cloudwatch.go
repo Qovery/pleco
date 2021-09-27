@@ -159,7 +159,7 @@ func DeleteUnlinkedLogs(sessions *AWSSessions, options *AwsOption) {
 
 	deletableLogs := getUnlinkedLogs(*sessions.CloudWatchLogs, clusters)
 
-	count, start := common.ElemToDeleteFormattedInfos("unliked Cloudwatch log", len(deletableLogs), region)
+	count, start := common.ElemToDeleteFormattedInfos("unlinked Cloudwatch log", len(deletableLogs), region)
 
 	log.Debug(count)
 
