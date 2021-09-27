@@ -36,5 +36,4 @@ func initScalewayFlags(startCmd *cobra.Command) {
 	startCmd.Flags().BoolP("enable-bucket", "s", false, "Enable buckets watch")
 	startCmd.Flags().BoolP("enable-lb", "l", false, "Enable load balancers watch")
 	startCmd.Flags().BoolP("enable-volume", "b", false, "Enable volumes watch")
-
 }

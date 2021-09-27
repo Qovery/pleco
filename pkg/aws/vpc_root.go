@@ -16,7 +16,6 @@ type VpcInfo struct {
 	InternetGateways []InternetGateway
 	Subnets          []Subnet
 	RouteTables      []RouteTable
-	NatGateways      []NatGateway
 	Status           string
 	TTL              int64
 	Tag              string

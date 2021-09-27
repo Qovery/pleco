@@ -65,7 +65,7 @@ func startAWS(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGrou
 }
 
 func startScaleway(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGroup) {
-	regions, _ := cmd.Flags().GetStringSlice("scaleway-regions")
+	regions, _ := cmd.Flags().GetStringSlice("scw-regions")
 	scalewayOptions := &scaleway.ScalewayOption{
 		TagName:       getCmdString(cmd, "tag-name"),
 		DryRun:        dryRun,
