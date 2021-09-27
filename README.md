@@ -137,3 +137,30 @@ Here are some the resources you can check:
 ```bash
 pleco start aws --level debug -i 240 -a eu-west-3 -e -r -m -c -l -b -p -s -w -n -u -z -o -y
 ```
+
+### Scaleway options
+#### Region selector
+When pleco's look for expired resources, it will do it by scaleway region.
+
+You can set region(s) with:
+```bash
+--scw-regions, -a <region(s)>
+```
+
+For exemple:
+```bash
+-a fr_par
+```
+
+#### Resources Selector
+When pleco is running you have to specify which resources expiration will be checked.
+
+Here are some the resources you can check:
+```bash
+--enable-cluster, -e # Enable cluster watch
+```
+
+#### Example
+```bash
+pleco start scaleway --level debug -i 240 -a fr-par -e -r -o -l -b -y
+```
