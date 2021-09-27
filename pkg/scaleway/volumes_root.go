@@ -33,7 +33,8 @@ func DeleteExpiredVolumes(sessions *ScalewaySessions, options *ScalewayOption) {
 }
 
 func getVolumes(volumeAPI *instance.API) ([]ScalewayVolume, string) {
-	input := &instance.ListVolumesRequest{}
+	input := &instance.ListVolumesRequest{
+	}
 	zone := input.Zone.String()
 	result, err := volumeAPI.ListVolumes(input)
 	if err != nil {
