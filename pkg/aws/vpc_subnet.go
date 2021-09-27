@@ -1,7 +1,7 @@
 package aws
 
 import (
-	"github.com/Qovery/pleco/pkg"
+	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	log "github.com/sirupsen/logrus"
@@ -41,7 +41,7 @@ func SetSubnetsIdsByVpcId(ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.Wait
 	subnets := getSubnetsByVpcId(ec2Session, *vpc.VpcId)
 
 	for _, subnet := range subnets {
-		creationDate, ttl, isProtected, _, _ := pkg.GetEssentialTags(subnet.Tags, tagName)
+		creationDate, ttl, isProtected, _, _ := common.GetEssentialTags(subnet.Tags, tagName)
 
 		var subnetStruct = Subnet{
 			Id:           *subnet.SubnetId,

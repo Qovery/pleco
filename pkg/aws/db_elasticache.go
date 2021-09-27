@@ -1,7 +1,7 @@
 package aws
 
 import (
-	"github.com/Qovery/pleco/pkg"
+	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/elasticache"
@@ -53,7 +53,7 @@ func listTaggedElasticacheDatabases(svc elasticache.ElastiCache, tagName string)
 			replicationGroupId = *cluster.ReplicationGroupId
 		}
 
-		_, ttl, isProtected, _, _ := pkg.GetEssentialTags(tags.TagList, tagName)
+		_, ttl, isProtected, _, _ := common.GetEssentialTags(tags.TagList, tagName)
 		time, _ := time.Parse(time.RFC3339, cluster.CacheClusterCreateTime.Format(time.RFC3339))
 
 		taggedClusters = append(taggedClusters, elasticacheCluster{
@@ -114,12 +114,12 @@ func DeleteExpiredElasticacheDatabases(sessions *AWSSessions, options *AwsOption
 
 	var expiredClusters []elasticacheCluster
 	for _, cluster := range clusters {
-		if pkg.CheckIfExpired(cluster.ClusterCreateTime, cluster.TTL, "elasticache: "+cluster.ClusterIdentifier) && !cluster.IsProtected {
+		if common.CheckIfExpired(cluster.ClusterCreateTime, cluster.TTL, "elasticache: "+cluster.ClusterIdentifier) && !cluster.IsProtected {
 			expiredClusters = append(expiredClusters, cluster)
 		}
 	}
 
-	count, start := pkg.ElemToDeleteFormattedInfos("expired Elasticache database", len(expiredClusters), region)
+	count, start := common.ElemToDeleteFormattedInfos("expired Elasticache database", len(expiredClusters), region)
 
 	log.Debug(count)
 

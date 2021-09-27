@@ -1,7 +1,7 @@
 package aws
 
 import (
-	"github.com/Qovery/pleco/pkg"
+	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	log "github.com/sirupsen/logrus"
@@ -42,7 +42,7 @@ func SetRouteTablesIdsByVpcId(ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.
 	routeTables := getRouteTablesByVpcId(ec2Session, *vpc.VpcId)
 
 	for _, routeTable := range routeTables {
-		creationDate, ttl, isProtected, _, _ := pkg.GetEssentialTags(routeTable.Tags, tagName)
+		creationDate, ttl, isProtected, _, _ := common.GetEssentialTags(routeTable.Tags, tagName)
 
 		var routeTableStruct = RouteTable{
 			Id:           *routeTable.RouteTableId,

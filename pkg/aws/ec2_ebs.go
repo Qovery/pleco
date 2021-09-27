@@ -2,7 +2,7 @@ package aws
 
 import (
 	"fmt"
-	"github.com/Qovery/pleco/pkg"
+	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/eks"
@@ -109,7 +109,7 @@ func listExpiredVolumes(eksSession eks.EKS, ec2Session ec2.EC2, tagName string) 
 			continue
 		}
 
-		creationDate, ttl, isProtected, _, _ := pkg.GetEssentialTags(currentVolume.Tags, tagName)
+		creationDate, ttl, isProtected, _, _ := common.GetEssentialTags(currentVolume.Tags, tagName)
 		volume := EBSVolume{
 			VolumeId:    *currentVolume.VolumeId,
 			CreatedTime: creationDate,
@@ -118,7 +118,7 @@ func listExpiredVolumes(eksSession eks.EKS, ec2Session ec2.EC2, tagName string) 
 			IsProtected: isProtected,
 		}
 
-		if !volume.IsProtected && (!pkg.IsAssociatedToLivingCluster(currentVolume.Tags, eksSession) || pkg.CheckIfExpired(volume.CreatedTime, volume.TTL, "EBS volume: "+volume.VolumeId)) {
+		if !volume.IsProtected && (!common.IsAssociatedToLivingCluster(currentVolume.Tags, eksSession) || common.CheckIfExpired(volume.CreatedTime, volume.TTL, "EBS volume: "+volume.VolumeId)) {
 			expiredVolumes = append(expiredVolumes, volume)
 		}
 	}
@@ -134,7 +134,7 @@ func DeleteExpiredVolumes(sessions *AWSSessions, options *AwsOption) {
 		return
 	}
 
-	count, start := pkg.ElemToDeleteFormattedInfos("expired EBS volume", len(expiredVolumes), region)
+	count, start := common.ElemToDeleteFormattedInfos("expired EBS volume", len(expiredVolumes), region)
 
 	log.Debug(count)
 

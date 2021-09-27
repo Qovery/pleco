@@ -2,7 +2,7 @@ package aws
 
 import (
 	"fmt"
-	"github.com/Qovery/pleco/pkg"
+	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ecr"
 	log "github.com/sirupsen/logrus"
@@ -43,7 +43,7 @@ func DeleteEmptyRepositories(sessions *AWSSessions, options *AwsOption) {
 	for _, repository := range repositories {
 		time, _ := time.Parse(time.RFC3339, repository.CreatedAt.Format(time.RFC3339))
 
-		if pkg.CheckIfExpired(time, 600, "ECR repository: ") {
+		if common.CheckIfExpired(time, 600, "ECR repository: ") {
 			images := getRepositoryImages(sessions.ECR, *repository.RepositoryName)
 
 			if len(images) == 0 {

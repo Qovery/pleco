@@ -1,7 +1,7 @@
 package scaleway
 
 import (
-	"github.com/Qovery/pleco/pkg"
+	"github.com/Qovery/pleco/pkg/common"
 	"github.com/scaleway/scaleway-sdk-go/api/k8s/v1"
 	log "github.com/sirupsen/logrus"
 	"time"
@@ -18,7 +18,7 @@ type ScalewayCluster struct {
 func DeleteExpiredClusters(sessions *ScalewaySessions, options *ScalewayOption) {
 	expiredClusters, region := getExpiredClusters(sessions.Cluster, options.TagName)
 
-	count, start := pkg.ElemToDeleteFormattedInfos("expired cluster", len(expiredClusters), region)
+	count, start := common.ElemToDeleteFormattedInfos("expired cluster", len(expiredClusters), region)
 
 	log.Debug(count)
 
@@ -45,7 +45,7 @@ func listClusters(clusterAPI *k8s.API, tagName string) ([]ScalewayCluster, strin
 
 	clusters := []ScalewayCluster{}
 	for _, cluster := range result.Clusters {
-		_, ttl, isProtected, _, _ := pkg.GetEssentialTags(cluster.Tags, tagName)
+		_, ttl, isProtected, _, _ := common.GetEssentialTags(cluster.Tags, tagName)
 		creationDate, _ := time.Parse(time.RFC3339, cluster.CreatedAt.Format(time.RFC3339))
 
 		clusters = append(clusters, ScalewayCluster{
@@ -65,7 +65,7 @@ func getExpiredClusters(clusterAPI *k8s.API, tagName string) ([]ScalewayCluster,
 
 	expiredClusters := []ScalewayCluster{}
 	for _, cluster := range clusters {
-		if pkg.CheckIfExpired(cluster.CreationDate, cluster.TTL, "cluster"+cluster.Name) && !cluster.IsProtected {
+		if common.CheckIfExpired(cluster.CreationDate, cluster.TTL, "cluster"+cluster.Name) && !cluster.IsProtected {
 			expiredClusters = append(expiredClusters, cluster)
 		}
 	}

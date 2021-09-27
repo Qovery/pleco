@@ -1,7 +1,7 @@
 package aws
 
 import (
-	"github.com/Qovery/pleco/pkg"
+	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	log "github.com/sirupsen/logrus"
@@ -44,7 +44,7 @@ func SetSecurityGroupsIdsByVpcId(ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sy
 
 	for _, securityGroup := range securityGroups {
 		if *securityGroup.GroupName != "default" {
-			creationDate, ttl, isProtected, _, _ := pkg.GetEssentialTags(securityGroup.Tags, tagName)
+			creationDate, ttl, isProtected, _, _ := common.GetEssentialTags(securityGroup.Tags, tagName)
 			var securityGroupStruct = SecurityGroup{
 				Id:                  *securityGroup.GroupId,
 				CreationDate:        creationDate,

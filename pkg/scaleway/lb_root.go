@@ -1,7 +1,7 @@
 package scaleway
 
 import (
-	"github.com/Qovery/pleco/pkg"
+	"github.com/Qovery/pleco/pkg/common"
 	"github.com/scaleway/scaleway-sdk-go/api/lb/v1"
 	log "github.com/sirupsen/logrus"
 	"time"
@@ -18,7 +18,7 @@ type ScalewayLB struct {
 func DeleteExpiredLBs(sessions *ScalewaySessions, options *ScalewayOption) {
 	expiredLBs, region := getExpiredLBs(sessions.LoadBalancer, options.TagName)
 
-	count, start := pkg.ElemToDeleteFormattedInfos("expired load balancer", len(expiredLBs), region)
+	count, start := common.ElemToDeleteFormattedInfos("expired load balancer", len(expiredLBs), region)
 
 	log.Debug(count)
 
@@ -42,7 +42,7 @@ func listLBs(lbAPI *lb.API, tagName string) ([]ScalewayLB, string) {
 
 	loadBalancers := []ScalewayLB{}
 	for _, lb := range result.LBs {
-		creationDate, ttl, isProtected, _, _ := pkg.GetEssentialTags(lb.Tags, tagName)
+		creationDate, ttl, isProtected, _, _ := common.GetEssentialTags(lb.Tags, tagName)
 		loadBalancers = append(loadBalancers, ScalewayLB{
 			ID:           lb.ID,
 			Name:         lb.Name,
@@ -60,7 +60,7 @@ func getExpiredLBs(lbAPI *lb.API, tagName string) ([]ScalewayLB, string) {
 
 	expiredLBs := []ScalewayLB{}
 	for _, lb := range lbs {
-		if pkg.CheckIfExpired(lb.CreationDate, lb.TTL, "load balancer"+lb.Name) && !lb.IsProtected {
+		if common.CheckIfExpired(lb.CreationDate, lb.TTL, "load balancer"+lb.Name) && !lb.IsProtected {
 			expiredLBs = append(expiredLBs, lb)
 		}
 	}

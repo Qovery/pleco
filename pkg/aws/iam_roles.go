@@ -2,7 +2,7 @@ package aws
 
 import (
 	"fmt"
-	"github.com/Qovery/pleco/pkg"
+	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
 	log "github.com/sirupsen/logrus"
@@ -34,7 +34,7 @@ func getRoles(iamSession *iam.IAM, tagName string) []Role {
 	for _, role := range result.Roles {
 		tags := getRoleTags(iamSession, *role.RoleName)
 		instanceProfiles := getRoleInstanceProfile(iamSession, *role.RoleName)
-		creationDate, ttl, isProtected, _, _ := pkg.GetEssentialTags(tags, tagName)
+		creationDate, ttl, isProtected, _, _ := common.GetEssentialTags(tags, tagName)
 		newRole := Role{
 			RoleName:        *role.RoleName,
 			CreationDate:    creationDate,
@@ -82,7 +82,7 @@ func DeleteExpiredRoles(iamSession *iam.IAM, tagName string, dryRun bool) {
 	var expiredRoles []Role
 
 	for _, role := range roles {
-		if pkg.CheckIfExpired(role.CreationDate, role.ttl, "iam role: "+role.RoleName) && !role.IsProtected {
+		if common.CheckIfExpired(role.CreationDate, role.ttl, "iam role: "+role.RoleName) && !role.IsProtected {
 			expiredRoles = append(expiredRoles, role)
 		}
 	}

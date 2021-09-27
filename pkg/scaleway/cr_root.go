@@ -1,7 +1,7 @@
 package scaleway
 
 import (
-	"github.com/Qovery/pleco/pkg"
+	"github.com/Qovery/pleco/pkg/common"
 	"github.com/scaleway/scaleway-sdk-go/api/registry/v1"
 	log "github.com/sirupsen/logrus"
 	"time"
@@ -10,7 +10,7 @@ import (
 func DeleteEmptyContainerRegistries(sessions *ScalewaySessions, options *ScalewayOption) {
 	emptyRegistries, region := getEmptyRegistries(sessions.Namespace)
 
-	count, start := pkg.ElemToDeleteFormattedInfos("empty Scaleway namespace", len(emptyRegistries), region)
+	count, start := common.ElemToDeleteFormattedInfos("empty Scaleway namespace", len(emptyRegistries), region)
 
 	log.Debug(count)
 

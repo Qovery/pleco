@@ -2,7 +2,7 @@ package aws
 
 import (
 	"fmt"
-	"github.com/Qovery/pleco/pkg"
+	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/elbv2"
@@ -80,12 +80,12 @@ func ListExpiredLoadBalancers(eksSession eks.EKS, lbSession elbv2.ELBV2, tagName
 			continue
 		}
 
-		creationDate, ttl, isProtected, _, _ := pkg.GetEssentialTags(result.TagDescriptions[0].Tags, tagName)
+		creationDate, ttl, isProtected, _, _ := common.GetEssentialTags(result.TagDescriptions[0].Tags, tagName)
 		currentLb.CreationDate = creationDate
 		currentLb.TTL = ttl
 		currentLb.IsProtected = isProtected
 
-		if !currentLb.IsProtected && (!pkg.IsAssociatedToLivingCluster(result.TagDescriptions[0].Tags, eksSession) || pkg.CheckIfExpired(currentLb.CreationDate, currentLb.TTL, "ELB "+currentLb.Name)) {
+		if !currentLb.IsProtected && (!common.IsAssociatedToLivingCluster(result.TagDescriptions[0].Tags, eksSession) || common.CheckIfExpired(currentLb.CreationDate, currentLb.TTL, "ELB "+currentLb.Name)) {
 			taggedLoadBalancers = append(taggedLoadBalancers, currentLb)
 		}
 	}
@@ -146,7 +146,7 @@ func DeleteExpiredLoadBalancers(sessions *AWSSessions, options *AwsOption) {
 		return
 	}
 
-	count, start := pkg.ElemToDeleteFormattedInfos("expired ELB load balancer", len(expiredLoadBalancers), region)
+	count, start := common.ElemToDeleteFormattedInfos("expired ELB load balancer", len(expiredLoadBalancers), region)
 
 	log.Debug(count)
 

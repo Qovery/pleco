@@ -1,7 +1,7 @@
 package aws
 
 import (
-	"github.com/Qovery/pleco/pkg"
+	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/rds"
@@ -52,7 +52,7 @@ func listExpiredRDSDatabases(svc rds.RDS, tagName string) []rdsDatabase {
 			continue
 		}
 
-		_, ttl, isProtected, _, _ := pkg.GetEssentialTags(instance.TagList, tagName)
+		_, ttl, isProtected, _, _ := common.GetEssentialTags(instance.TagList, tagName)
 		time, _ := time.Parse(time.RFC3339, instance.InstanceCreateTime.Format(time.RFC3339))
 
 		if instance.DBInstanceIdentifier != nil {
@@ -66,7 +66,7 @@ func listExpiredRDSDatabases(svc rds.RDS, tagName string) []rdsDatabase {
 				ParameterGroups:      instance.DBParameterGroups,
 			}
 
-			if pkg.CheckIfExpired(database.InstanceCreateTime, database.TTL, "rds Db: "+database.DBInstanceIdentifier) && !database.IsProtected {
+			if common.CheckIfExpired(database.InstanceCreateTime, database.TTL, "rds Db: "+database.DBInstanceIdentifier) && !database.IsProtected {
 				expiredDatabases = append(expiredDatabases, database)
 			}
 		}
@@ -132,7 +132,7 @@ func DeleteExpiredRDSDatabases(sessions *AWSSessions, options *AwsOption) {
 	expiredDatabases := listExpiredRDSDatabases(*sessions.RDS, options.TagName)
 	region := *sessions.RDS.Config.Region
 
-	count, start := pkg.ElemToDeleteFormattedInfos("expired RDS database", len(expiredDatabases), region)
+	count, start := common.ElemToDeleteFormattedInfos("expired RDS database", len(expiredDatabases), region)
 
 	log.Debug(count)
 

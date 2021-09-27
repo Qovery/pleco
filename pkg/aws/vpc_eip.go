@@ -1,7 +1,7 @@
 package aws
 
 import (
-	"github.com/Qovery/pleco/pkg"
+	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	log "github.com/sirupsen/logrus"
@@ -36,7 +36,7 @@ func getElasticIps(ec2Session *ec2.EC2, tagName string) []ElasticIp {
 	eips := []ElasticIp{}
 	for _, key := range elasticIps.Addresses {
 		if key.AssociationId != nil && key.PublicIp != nil {
-			creationTime, ttl, isProtected, _, _ := pkg.GetEssentialTags(key.Tags, tagName)
+			creationTime, ttl, isProtected, _, _ := common.GetEssentialTags(key.Tags, tagName)
 			eip := ElasticIp{
 				Id:           *key.AssociationId,
 				Ip:           *key.PublicIp,
@@ -80,12 +80,12 @@ func DeleteExpiredElasticIps(sessions *AWSSessions, options *AwsOption) {
 
 	expiredEips := []ElasticIp{}
 	for _, eip := range elasticIps {
-		if pkg.CheckIfExpired(eip.CreationDate, eip.ttl, "eip: "+eip.Id) && !eip.IsProtected {
+		if common.CheckIfExpired(eip.CreationDate, eip.ttl, "eip: "+eip.Id) && !eip.IsProtected {
 			expiredEips = append(expiredEips, eip)
 		}
 	}
 
-	count, start := pkg.ElemToDeleteFormattedInfos("expired EIP", len(expiredEips), *sessions.EC2.Config.Region)
+	count, start := common.ElemToDeleteFormattedInfos("expired EIP", len(expiredEips), *sessions.EC2.Config.Region)
 
 	log.Debug(count)
 

@@ -1,7 +1,7 @@
 package aws
 
 import (
-	"github.com/Qovery/pleco/pkg"
+	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/kms"
@@ -33,7 +33,7 @@ func getCompleteKey(svc kms.KMS, keyId *string, tagName string) CompleteKey {
 	tags := getKeyTags(svc, keyId)
 	metaData := getKeyMetadata(svc, keyId)
 
-	creationDate, ttl, isProtected, _, _ := pkg.GetEssentialTags(tags, tagName)
+	creationDate, ttl, isProtected, _, _ := common.GetEssentialTags(tags, tagName)
 
 	return CompleteKey{
 		KeyId:        *keyId,
@@ -108,14 +108,14 @@ func DeleteExpiredKeys(sessions *AWSSessions, options *AwsOption) {
 		completeKey := getCompleteKey(*sessions.KMS, key.KeyId, options.TagName)
 
 		if completeKey.Status != "PendingDeletion" && completeKey.Status != "Disabled" &&
-			pkg.CheckIfExpired(completeKey.CreationDate, completeKey.TTL, "kms key: "+completeKey.KeyId) && !completeKey.IsProtected {
+			common.CheckIfExpired(completeKey.CreationDate, completeKey.TTL, "kms key: "+completeKey.KeyId) && !completeKey.IsProtected {
 			if completeKey.Tag == options.TagName || options.TagName == "ttl" {
 				expiredKeys = append(expiredKeys, completeKey)
 			}
 		}
 	}
 
-	count, start := pkg.ElemToDeleteFormattedInfos("expired KMS key", len(expiredKeys), *region)
+	count, start := common.ElemToDeleteFormattedInfos("expired KMS key", len(expiredKeys), *region)
 
 	log.Debug(count)
 

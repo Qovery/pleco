@@ -1,7 +1,7 @@
 package aws
 
 import (
-	"github.com/Qovery/pleco/pkg"
+	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	log "github.com/sirupsen/logrus"
@@ -76,7 +76,7 @@ func listTaggedVPC(ec2Session ec2.EC2, tagName string) ([]VpcInfo, error) {
 	var VPCs = getVPCs(ec2Session, tagName)
 
 	for _, vpc := range VPCs {
-		creationDate, ttl, isprotected, _, _ := pkg.GetEssentialTags(vpc.Tags, tagName)
+		creationDate, ttl, isprotected, _, _ := common.GetEssentialTags(vpc.Tags, tagName)
 		taggedVpc := VpcInfo{
 			VpcId:        vpc.VpcId,
 			Status:       *vpc.State,
@@ -105,7 +105,7 @@ func listTaggedVPC(ec2Session ec2.EC2, tagName string) ([]VpcInfo, error) {
 			getCompleteVpc(ec2Session, &taggedVpc, tagName)
 		}
 
-		if pkg.CheckIfExpired(taggedVpc.CreationDate, taggedVpc.TTL, "vpc: "+*taggedVpc.VpcId) && !taggedVpc.IsProtected {
+		if common.CheckIfExpired(taggedVpc.CreationDate, taggedVpc.TTL, "vpc: "+*taggedVpc.VpcId) && !taggedVpc.IsProtected {
 			taggedVPCs = append(taggedVPCs, taggedVpc)
 		}
 
@@ -153,7 +153,7 @@ func DeleteExpiredVPC(sessions *AWSSessions, options *AwsOption) {
 		log.Errorf("can't list VPC: %s\n", err)
 	}
 
-	count, start := pkg.ElemToDeleteFormattedInfos("tagged VPC resource", len(VPCs), *region)
+	count, start := common.ElemToDeleteFormattedInfos("tagged VPC resource", len(VPCs), *region)
 
 	log.Debug(count)
 

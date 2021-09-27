@@ -1,7 +1,7 @@
 package scaleway
 
 import (
-	"github.com/Qovery/pleco/pkg"
+	"github.com/Qovery/pleco/pkg/common"
 	"github.com/scaleway/scaleway-sdk-go/api/rdb/v1"
 	log "github.com/sirupsen/logrus"
 	"time"
@@ -18,7 +18,7 @@ type ScalewayDB struct {
 func DeleteExpiredDatabases(sessions *ScalewaySessions, options *ScalewayOption) {
 	expiredDatabases, region := getExpiredDatabases(sessions.Database, options.TagName)
 
-	count, start := pkg.ElemToDeleteFormattedInfos("expired database", len(expiredDatabases), region)
+	count, start := common.ElemToDeleteFormattedInfos("expired database", len(expiredDatabases), region)
 
 	log.Debug(count)
 
@@ -38,7 +38,7 @@ func getExpiredDatabases(dbAPI *rdb.API, tagName string) ([]ScalewayDB, string) 
 
 	expiredDbs := []ScalewayDB{}
 	for _, db := range databases {
-		if pkg.CheckIfExpired(db.CreationDate, db.TTL, "database"+db.Name) && !db.IsProtected {
+		if common.CheckIfExpired(db.CreationDate, db.TTL, "database"+db.Name) && !db.IsProtected {
 			expiredDbs = append(expiredDbs, db)
 		}
 	}
@@ -56,7 +56,7 @@ func listDatabases(dbAPI *rdb.API, tagName string) ([]ScalewayDB, string) {
 
 	databases := []ScalewayDB{}
 	for _, db := range result.Instances {
-		_, ttl, isProtected, _, _ := pkg.GetEssentialTags(db.Tags, tagName)
+		_, ttl, isProtected, _, _ := common.GetEssentialTags(db.Tags, tagName)
 		creationDate, _ := time.Parse(time.RFC3339, db.CreatedAt.Format(time.RFC3339))
 
 		databases = append(databases, ScalewayDB{

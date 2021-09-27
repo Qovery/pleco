@@ -2,7 +2,7 @@ package k8s
 
 import (
 	"context"
-	"github.com/Qovery/pleco/pkg"
+	"github.com/Qovery/pleco/pkg/common"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -50,7 +50,7 @@ func getExpiredNamespaces(clientSet *kubernetes.Clientset, tagName string) []kub
 					continue
 				}
 				creationDate, _ := time.Parse(time.RFC3339, namespace.CreationTimestamp.Time.Format(time.RFC3339))
-				if pkg.CheckIfExpired(creationDate, int64(ttlValue), "Namespace: "+namespace.Name) {
+				if common.CheckIfExpired(creationDate, int64(ttlValue), "Namespace: "+namespace.Name) {
 					expiredNamespaces = append(expiredNamespaces, kubernetesNamespace{
 						Name:                namespace.Name,
 						NamespaceCreateTime: namespace.CreationTimestamp.Time,
@@ -81,7 +81,7 @@ func deleteNamespace(clientSet *kubernetes.Clientset, namespace kubernetesNamesp
 func DeleteExpiredNamespaces(clientSet *kubernetes.Clientset, tagName string, dryRun bool) {
 	namespaces := getExpiredNamespaces(clientSet, tagName)
 
-	count, start := pkg.ElemToDeleteFormattedInfos("expired Kubernetes namespace", len(namespaces), "")
+	count, start := common.ElemToDeleteFormattedInfos("expired Kubernetes namespace", len(namespaces), "")
 
 	log.Debug(count)
 

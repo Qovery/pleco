@@ -1,7 +1,7 @@
 package aws
 
 import (
-	"github.com/Qovery/pleco/pkg"
+	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	log "github.com/sirupsen/logrus"
@@ -28,7 +28,7 @@ func getSshKeys(ec2session *ec2.EC2, tagName string) []KeyPair {
 
 	var keys []KeyPair
 	for _, key := range result.KeyPairs {
-		creationTime, ttl, isProtected, _, _ := pkg.GetEssentialTags(key.Tags, tagName)
+		creationTime, ttl, isProtected, _, _ := common.GetEssentialTags(key.Tags, tagName)
 		newKey := KeyPair{
 			KeyName:      *key.KeyName,
 			KeyId:        *key.KeyPairId,
@@ -57,12 +57,12 @@ func DeleteExpiredKeyPairs(sessions *AWSSessions, options *AwsOption) {
 	region := sessions.EC2.Config.Region
 	var expiredKeys []KeyPair
 	for _, key := range keys {
-		if pkg.CheckIfExpired(key.CreationDate, key.ttl, "ec2 key pair: "+key.KeyId) && !key.IsProtected {
+		if common.CheckIfExpired(key.CreationDate, key.ttl, "ec2 key pair: "+key.KeyId) && !key.IsProtected {
 			expiredKeys = append(expiredKeys, key)
 		}
 	}
 
-	count, start := pkg.ElemToDeleteFormattedInfos("expired ELB load balancer", len(expiredKeys), *region)
+	count, start := common.ElemToDeleteFormattedInfos("expired ELB load balancer", len(expiredKeys), *region)
 
 	log.Debug(count)
 

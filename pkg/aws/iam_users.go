@@ -2,7 +2,7 @@ package aws
 
 import (
 	"fmt"
-	"github.com/Qovery/pleco/pkg"
+	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
 	log "github.com/sirupsen/logrus"
@@ -32,7 +32,7 @@ func getUsers(iamSession *iam.IAM, tagName string) []User {
 
 	for _, user := range result.Users {
 		tags := getUserTags(iamSession, *user.UserName)
-		creationDate, ttl, isProtected, _, _ := pkg.GetEssentialTags(tags, tagName)
+		creationDate, ttl, isProtected, _, _ := common.GetEssentialTags(tags, tagName)
 		newUser := User{
 			UserName:     *user.UserName,
 			CreationDate: creationDate,
@@ -105,7 +105,7 @@ func DeleteExpiredUsers(iamSession *iam.IAM, tagName string, dryRun bool) {
 	var expiredUsers []User
 
 	for _, user := range users {
-		if pkg.CheckIfExpired(user.CreationDate, user.ttl, "iam user: "+user.UserName) && !user.IsProtected {
+		if common.CheckIfExpired(user.CreationDate, user.ttl, "iam user: "+user.UserName) && !user.IsProtected {
 			expiredUsers = append(expiredUsers, user)
 		}
 	}

@@ -2,7 +2,7 @@ package aws
 
 import (
 	"fmt"
-	"github.com/Qovery/pleco/pkg"
+	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	log "github.com/sirupsen/logrus"
@@ -54,7 +54,7 @@ func listTaggedBuckets(s3Session s3.S3, tagName string) ([]s3Bucket, error) {
 			continue
 		}
 
-		creationDate, ttl, isProtected, _, _ := pkg.GetEssentialTags(bucketTags.TagSet, tagName)
+		creationDate, ttl, isProtected, _, _ := common.GetEssentialTags(bucketTags.TagSet, tagName)
 
 		taggedS3Buckets = append(taggedS3Buckets, s3Bucket{
 			Name:        *bucket.Name,
@@ -213,7 +213,7 @@ func DeleteExpiredBuckets(sessions *AWSSessions, options *AwsOption) {
 	}
 	var expiredBuckets []s3Bucket
 	for _, bucket := range buckets {
-		if pkg.CheckIfExpired(bucket.CreateTime, bucket.TTL, "S3 bucket: "+bucket.Name) && !bucket.IsProtected {
+		if common.CheckIfExpired(bucket.CreateTime, bucket.TTL, "S3 bucket: "+bucket.Name) && !bucket.IsProtected {
 			expiredBuckets = append(expiredBuckets, bucket)
 		}
 	}

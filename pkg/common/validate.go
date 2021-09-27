@@ -1,4 +1,4 @@
-package pkg
+package common
 
 import (
 	"github.com/spf13/cobra"
@@ -14,7 +14,7 @@ func isUsed(cmd *cobra.Command, serviceName string) bool {
 	return false
 }
 
-func checkEnvVars(cloudProvider string, cmd *cobra.Command) {
+func CheckEnvVars(cloudProvider string, cmd *cobra.Command) {
 	var requiredEnvVars []string
 
 	switch cloudProvider {

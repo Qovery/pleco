@@ -1,7 +1,7 @@
 package aws
 
 import (
-	"github.com/Qovery/pleco/pkg"
+	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
@@ -32,7 +32,7 @@ func getCloudwatchLogs(svc cloudwatchlogs.CloudWatchLogs) []*cloudwatchlogs.LogG
 
 func getCompleteLogGroup(svc cloudwatchlogs.CloudWatchLogs, log cloudwatchlogs.LogGroup, tagName string) CompleteLogGroup {
 	tags := getLogGroupTag(svc, *log.LogGroupName)
-	_, ttl, isProtected, clusterId, tag := pkg.GetEssentialTags(tags, tagName)
+	_, ttl, isProtected, clusterId, tag := common.GetEssentialTags(tags, tagName)
 
 	return CompleteLogGroup{
 		logGroupName: *log.LogGroupName,
@@ -96,12 +96,12 @@ func DeleteExpiredLogs(sessions *AWSSessions, options *AwsOption) {
 	var expiredLogs []CompleteLogGroup
 	for _, log := range logs {
 		completeLogGroup := getCompleteLogGroup(*sessions.CloudWatchLogs, *log, options.TagName)
-		if pkg.CheckIfExpired(completeLogGroup.creationDate, completeLogGroup.ttl, "log group: "+completeLogGroup.logGroupName) && !completeLogGroup.IsProtected {
+		if common.CheckIfExpired(completeLogGroup.creationDate, completeLogGroup.ttl, "log group: "+completeLogGroup.logGroupName) && !completeLogGroup.IsProtected {
 			expiredLogs = append(expiredLogs, completeLogGroup)
 		}
 	}
 
-	count, start := pkg.ElemToDeleteFormattedInfos("expired Cloudwatch log", len(expiredLogs), region)
+	count, start := common.ElemToDeleteFormattedInfos("expired Cloudwatch log", len(expiredLogs), region)
 
 	log.Debug(count)
 
@@ -159,7 +159,7 @@ func DeleteUnlinkedLogs(sessions *AWSSessions, options *AwsOption) {
 
 	deletableLogs := getUnlinkedLogs(*sessions.CloudWatchLogs, clusters)
 
-	count, start := pkg.ElemToDeleteFormattedInfos("unliked Cloudwatch log", len(deletableLogs), region)
+	count, start := common.ElemToDeleteFormattedInfos("unliked Cloudwatch log", len(deletableLogs), region)
 
 	log.Debug(count)
 

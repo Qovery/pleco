@@ -1,7 +1,7 @@
 package aws
 
 import (
-	"github.com/Qovery/pleco/pkg"
+	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	log "github.com/sirupsen/logrus"
@@ -40,7 +40,7 @@ func SetNatGatewaysIdsByVpcId(ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.
 	gateways := getNatGatewaysByVpcId(ec2Session, *vpc.VpcId)
 	natGateways := []NatGateway{}
 	for _, gateway := range gateways {
-		creationDate, ttl, isProtected, _, _ := pkg.GetEssentialTags(gateway.Tags, tagName)
+		creationDate, ttl, isProtected, _, _ := common.GetEssentialTags(gateway.Tags, tagName)
 
 		var gatewayStruct = NatGateway{
 			Id:           *gateway.NatGatewayId,

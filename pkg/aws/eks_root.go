@@ -2,7 +2,7 @@ package aws
 
 import (
 	"fmt"
-	"github.com/Qovery/pleco/pkg"
+	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
@@ -76,7 +76,7 @@ func GetClusterDetails(svc eks.EKS, cluster *string, region string, tagName stri
 		log.Errorf("Error while trying to get info from cluster %v (%s)", clusterName, region)
 	}
 
-	creationDate, ttl, isProtected, _, _ := pkg.GetEssentialTags(clusterInfo.Cluster.Tags, tagName)
+	creationDate, ttl, isProtected, _, _ := common.GetEssentialTags(clusterInfo.Cluster.Tags, tagName)
 
 	nodeGroups, err := svc.ListNodegroups(&eks.ListNodegroupsInput{
 		ClusterName: &clusterName,
@@ -242,12 +242,12 @@ func DeleteExpiredEKSClusters(sessions *AWSSessions, options *AwsOption) {
 
 	var expiredCluster []eksCluster
 	for _, cluster := range clusters {
-		if pkg.CheckIfExpired(cluster.ClusterCreateTime, cluster.TTL, "eks cluster: "+cluster.ClusterName) && !cluster.IsProtected {
+		if common.CheckIfExpired(cluster.ClusterCreateTime, cluster.TTL, "eks cluster: "+cluster.ClusterName) && !cluster.IsProtected {
 			expiredCluster = append(expiredCluster, cluster)
 		}
 	}
 
-	count, start := pkg.ElemToDeleteFormattedInfos("expired EKS cluster", len(expiredCluster), region)
+	count, start := common.ElemToDeleteFormattedInfos("expired EKS cluster", len(expiredCluster), region)
 
 	log.Debug(count)
 

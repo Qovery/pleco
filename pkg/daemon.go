@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"github.com/Qovery/pleco/pkg/aws"
+	"github.com/Qovery/pleco/pkg/common"
 	"github.com/Qovery/pleco/pkg/k8s"
 	"github.com/Qovery/pleco/pkg/scaleway"
 	log "github.com/sirupsen/logrus"
@@ -21,7 +22,7 @@ func StartDaemon(cloudProvider string, disableDryRun bool, interval int64, cmd *
 
 	log.Infof("Cloud provider: %s", strings.ToUpper(cloudProvider))
 
-	checkEnvVars(cloudProvider, cmd)
+	common.CheckEnvVars(cloudProvider, cmd)
 
 	k8s.RunPlecoKubernetes(cmd, interval, dryRun, &wg)
 

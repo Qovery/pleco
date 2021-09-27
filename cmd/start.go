@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/Qovery/pleco/pkg"
+	"github.com/Qovery/pleco/pkg/common"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"os"
@@ -34,5 +35,5 @@ func init() {
 	startCmd.Flags().StringP("tag-name", "t", "ttl", "Set the tag name to check for deletion")
 	startCmd.Flags().StringP("kube-conn", "k", "off", "Kubernetes connection method, choose between : off/in/out")
 
-	pkg.InitFlags(os.Args[2], startCmd)
+	common.InitFlags(os.Args[2], startCmd)
 }

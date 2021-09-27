@@ -1,7 +1,7 @@
 package aws
 
 import (
-	"github.com/Qovery/pleco/pkg"
+	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/rds"
 	log "github.com/sirupsen/logrus"
@@ -38,10 +38,10 @@ func listExpiredDocumentDBClusters(svc rds.RDS, tagName string) []documentDBClus
 			instances = append(instances, *instance.DBInstanceIdentifier)
 		}
 
-		_, ttl, isProtected, _, _ := pkg.GetEssentialTags(cluster.TagList, tagName)
+		_, ttl, isProtected, _, _ := common.GetEssentialTags(cluster.TagList, tagName)
 		time, _ := time.Parse(time.RFC3339, cluster.ClusterCreateTime.Format(time.RFC3339))
 
-		if pkg.CheckIfExpired(time, ttl, "document Db: "+*cluster.DBClusterIdentifier) && !isProtected {
+		if common.CheckIfExpired(time, ttl, "document Db: "+*cluster.DBClusterIdentifier) && !isProtected {
 			expiredClusters = append(expiredClusters, documentDBCluster{
 				DBClusterIdentifier: *cluster.DBClusterIdentifier,
 				DBClusterMembers:    instances,
@@ -102,7 +102,7 @@ func DeleteExpiredDocumentDBClusters(sessions *AWSSessions, options *AwsOption) 
 	region := *sessions.RDS.Config.Region
 	expiredClusters := listExpiredDocumentDBClusters(*sessions.RDS, options.TagName)
 
-	count, start := pkg.ElemToDeleteFormattedInfos("expired DocumentDB database", len(expiredClusters), region)
+	count, start := common.ElemToDeleteFormattedInfos("expired DocumentDB database", len(expiredClusters), region)
 
 	log.Debug(count)
 
