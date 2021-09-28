@@ -48,11 +48,9 @@ jobs:
           go-version: 1.17.x
       -
         name: Run golangci-lint
-        uses: actions-contrib/golangci-lint@v1
-        env:
-          GOROOT: ""
+        uses: golangci/golangci-lint-action@v2
         with:
-          args: "run --timeout 5m0s"
+          args: "--timeout 5m0s"
       -
         name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v1
