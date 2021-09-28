@@ -4,6 +4,8 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"github.com/sirupsen/logrus"
 	"os"
+	"strconv"
+	"time"
 )
 
 func CreateSession(zone scw.Zone) *scw.Client {
@@ -24,4 +26,18 @@ func CreateSession(zone scw.Zone) *scw.Client {
 	}
 
 	return client
+}
+
+func volumeTimeout() time.Duration {
+	env, ok := os.LookupEnv("SCW_VOLUME_TIMEOUT")
+	if ok {
+		timeout, err := strconv.Atoi(env)
+		if err != nil {
+			logrus.Errorf("Can't parse VOLUME_TIMEOUT variable. Set to default (2 hours)")
+			return 2
+		}
+		return time.Duration(timeout)
+	}
+
+	return 2
 }

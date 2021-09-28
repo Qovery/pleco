@@ -69,7 +69,7 @@ func getDetachedVolumes(volumeAPI *instance.API) ([]ScalewayVolume, string) {
 
 	detachedVolumes := []ScalewayVolume{}
 	for _, volume := range volumes {
-		if volume.UpdatedAt.Add(2*time.Hour).Before(time.Now()) && volume.ServerId == "null" {
+		if volume.UpdatedAt.Add(volumeTimeout() * time.Hour).Before(time.Now()) && volume.ServerId == "null" {
 			detachedVolumes = append(detachedVolumes, volume)
 		}
 	}

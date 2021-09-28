@@ -10,9 +10,13 @@ cloudProvider: ""
 environmentVariables:
   LOG_LEVEL: "info"
   PLECO_IDENTIFIER: "tbd"
+  # KUBECONFIG: ""
+  # AWS
   # AWS_ACCESS_KEY_ID: ""
   # AWS_SECRET_ACCESS_KEY: ""
-  # KUBECONFIG: ""
+  # Scaleway
+
+  SCW_VOLUME_TIMEOUT
 
 enabledFeatures:
   disableDryRun: false

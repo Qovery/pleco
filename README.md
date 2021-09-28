@@ -76,6 +76,7 @@ $ export AWS_SECRET_ACCESS_KEY=<secret_key>
 $ export SCALEWAY_ACCESS_KEY=<access_key>
 $ export SCALEWAY_SECRET_KEY=<secret_key>
 $ export SCALEWAY_ORGANISATION_ID=<organization_id>
+$ export SCW_VOLUME_TIMEOUT=<delay_before_detached_volume_deletion_in_hours> # default is 2 hours
 ```
 ---
 ## Basic command
