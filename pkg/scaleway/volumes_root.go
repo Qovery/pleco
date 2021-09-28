@@ -1,6 +1,7 @@
 package scaleway
 
 import (
+	"fmt"
 	"github.com/Qovery/pleco/pkg/common"
 	"github.com/scaleway/scaleway-sdk-go/api/instance/v1"
 	log "github.com/sirupsen/logrus"
@@ -17,7 +18,7 @@ type ScalewayVolume struct {
 func DeleteExpiredVolumes(sessions *ScalewaySessions, options *ScalewayOptions) {
 	expiredVolumes, zone := getDetachedVolumes(sessions.Volume)
 
-	count, start := common.ElemToDeleteFormattedInfos("detached volume", len(expiredVolumes), zone)
+	count, start := common.ElemToDeleteFormattedInfos(fmt.Sprintf("detached (%d hours delay) volume", volumeTimeout()), len(expiredVolumes), zone)
 
 	log.Debug(count)
 

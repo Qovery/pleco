@@ -15,8 +15,11 @@ environmentVariables:
   # AWS_ACCESS_KEY_ID: ""
   # AWS_SECRET_ACCESS_KEY: ""
   # Scaleway
+  #  SCW_ACCESS_KEY: ""
+  #  SCW_SECRET_KEY: ""
+  #  SCW_ORGANISATION_ID: ""
+  #  SCW_VOLUME_TIMEOUT: ""
 
-  SCW_VOLUME_TIMEOUT
 
 enabledFeatures:
   disableDryRun: false

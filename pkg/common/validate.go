@@ -65,9 +65,9 @@ func checkAWSEnvVars(cmd *cobra.Command) []string {
 
 func checkScalewayEnvVars(cmd *cobra.Command) []string {
 	var requiredEnvVars = []string{
-		"SCALEWAY_ORGANISATION_ID",
-		"SCALEWAY_ACCESS_KEY",
-		"SCALEWAY_SECRET_KEY",
+		"SCW_ORGANISATION_ID",
+		"SCW_ACCESS_KEY",
+		"SCW_SECRET_KEY",
 	}
 
 	if isUsed(cmd, "cluster") ||

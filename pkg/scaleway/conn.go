@@ -17,8 +17,8 @@ func CreateSession(zone scw.Zone) *scw.Client {
 	client, err := scw.NewClient(
 		scw.WithDefaultZone(zone),
 		scw.WithDefaultRegion(region),
-		scw.WithDefaultOrganizationID(os.Getenv("SCALEWAY_ORGANISATION_ID")),
-		scw.WithAuth(os.Getenv("SCALEWAY_ACCESS_KEY"), os.Getenv("SCALEWAY_SECRET_KEY")),
+		scw.WithDefaultOrganizationID(os.Getenv("SCW_ORGANISATION_ID")),
+		scw.WithAuth(os.Getenv("SCW_ACCESS_KEY"), os.Getenv("SCW_SECRET_KEY")),
 	)
 	if err != nil {
 		logrus.Errorf("Can't connect to Scaleway: %s", err)
