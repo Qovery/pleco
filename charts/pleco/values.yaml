@@ -51,6 +51,8 @@ sclawayFeatures:
   cluster: flase
   lb: false
   db: false
+  s3: false
+  bucket: false
 
 imagePullSecrets: []
 nameOverride: ""
