@@ -33,14 +33,14 @@ func getCompleteKey(svc kms.KMS, keyId *string, tagName string) CompleteKey {
 	tags := getKeyTags(svc, keyId)
 	metaData := getKeyMetadata(svc, keyId)
 
-	creationDate, ttl, isProtected, _, _ := common.GetEssentialTags(tags, tagName)
+	essentialTags := common.GetEssentialTags(tags, tagName)
 
 	return CompleteKey{
 		KeyId:        *keyId,
 		Status:       *metaData.KeyMetadata.KeyState,
-		CreationDate: creationDate,
-		TTL:          ttl,
-		IsProtected:  isProtected,
+		CreationDate: essentialTags.CreationDate,
+		TTL:          essentialTags.TTL,
+		IsProtected:  essentialTags.IsProtected,
 	}
 }
 
@@ -100,7 +100,7 @@ func handleKMSError(error error) {
 	}
 }
 
-func DeleteExpiredKeys(sessions *AWSSessions, options *AwsOption) {
+func DeleteExpiredKeys(sessions *AWSSessions, options *AwsOptions) {
 	keys := getKeys(*sessions.KMS)
 	region := sessions.KMS.Config.Region
 	var expiredKeys []CompleteKey

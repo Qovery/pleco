@@ -41,13 +41,13 @@ func SetSubnetsIdsByVpcId(ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.Wait
 	subnets := getSubnetsByVpcId(ec2Session, *vpc.VpcId)
 
 	for _, subnet := range subnets {
-		creationDate, ttl, isProtected, _, _ := common.GetEssentialTags(subnet.Tags, tagName)
+		essentialTags := common.GetEssentialTags(subnet.Tags, tagName)
 
 		var subnetStruct = Subnet{
 			Id:           *subnet.SubnetId,
-			CreationDate: creationDate,
-			ttl:          ttl,
-			IsProtected:  isProtected,
+			CreationDate: essentialTags.CreationDate,
+			ttl:          essentialTags.TTL,
+			IsProtected:  essentialTags.IsProtected,
 		}
 		subnetsStruct = append(subnetsStruct, subnetStruct)
 	}

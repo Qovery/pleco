@@ -44,12 +44,12 @@ func SetSecurityGroupsIdsByVpcId(ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sy
 
 	for _, securityGroup := range securityGroups {
 		if *securityGroup.GroupName != "default" {
-			creationDate, ttl, isProtected, _, _ := common.GetEssentialTags(securityGroup.Tags, tagName)
+			essentialTags := common.GetEssentialTags(securityGroup.Tags, tagName)
 			var securityGroupStruct = SecurityGroup{
 				Id:                  *securityGroup.GroupId,
-				CreationDate:        creationDate,
-				ttl:                 ttl,
-				IsProtected:         isProtected,
+				CreationDate:        essentialTags.CreationDate,
+				ttl:                 essentialTags.TTL,
+				IsProtected:         essentialTags.IsProtected,
 				IpPermissionIngress: securityGroup.IpPermissions,
 				IpPermissionEgress:  securityGroup.IpPermissionsEgress,
 			}

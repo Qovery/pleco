@@ -28,12 +28,15 @@ type MyTag struct {
 	Value string   `type:"string"`
 }
 
-func GetEssentialTags(tagsInput interface{}, tagName string) (time.Time, int64, bool, string, string) {
-	var creationDate = time.Time{}
-	var ttl int64
-	var isProtected bool
-	var clusterId string
-	var tag string
+type EssentialTags struct {
+	CreationDate time.Time
+	TTL          int64
+	IsProtected  bool
+	ClusterId    string
+	Tag          string
+}
+
+func GetEssentialTags(tagsInput interface{}, tagName string) EssentialTags {
 	var tags []MyTag
 
 	switch typedTags := tagsInput.(type) {
@@ -76,33 +79,35 @@ func GetEssentialTags(tagsInput interface{}, tagName string) (time.Time, int64, 
 	case []string:
 		for _, value := range typedTags {
 			if strings.Contains(value, "=") {
-				tags = append(tags, MyTag{Key: value[0:strings.Index(value, "=")], Value: value[strings.Index(value, "=")+1 : len(value)]})
+				val := strings.SplitN(value, "=", 2)
+				tags = append(tags, MyTag{Key: val[0], Value: val[1]})
 			}
 		}
 	default:
 		log.Debugf("Can't parse tags %s.", tagsInput)
 	}
 
+	essentialTags := EssentialTags{}
 	for i := range tags {
 		switch tags[i].Key {
 		case "creationDate":
-			creationDate = stringDateToTimeDate(tags[i].Value)
+			essentialTags.CreationDate = stringDateToTimeDate(tags[i].Value)
 		case "ttl":
 			result, _ := strconv.ParseInt(tags[i].Value, 10, 64)
-			ttl = result
+			essentialTags.TTL = result
 		case "do_not_delete":
 			result, _ := strconv.ParseBool(tags[i].Value)
-			isProtected = result
+			essentialTags.IsProtected = result
 		case "ClusterId":
-			clusterId = tags[i].Value
+			essentialTags.ClusterId = tags[i].Value
 		case tagName:
-			tag = tags[i].Value
+			essentialTags.Tag = tags[i].Value
 		default:
 			continue
 		}
 	}
 
-	return creationDate, ttl, isProtected, clusterId, tag
+	return essentialTags
 }
 
 func CheckIfExpired(creationTime time.Time, ttl int64, resourceName string) bool {

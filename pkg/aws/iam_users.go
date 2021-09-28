@@ -32,12 +32,12 @@ func getUsers(iamSession *iam.IAM, tagName string) []User {
 
 	for _, user := range result.Users {
 		tags := getUserTags(iamSession, *user.UserName)
-		creationDate, ttl, isProtected, _, _ := common.GetEssentialTags(tags, tagName)
+		essentialTags := common.GetEssentialTags(tags, tagName)
 		newUser := User{
 			UserName:     *user.UserName,
-			CreationDate: creationDate,
-			ttl:          ttl,
-			IsProtected:  isProtected,
+			CreationDate: essentialTags.CreationDate,
+			ttl:          essentialTags.TTL,
+			IsProtected:  essentialTags.IsProtected,
 		}
 
 		users = append(users, newUser)

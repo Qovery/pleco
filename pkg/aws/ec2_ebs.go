@@ -109,13 +109,13 @@ func listExpiredVolumes(eksSession eks.EKS, ec2Session ec2.EC2, tagName string) 
 			continue
 		}
 
-		creationDate, ttl, isProtected, _, _ := common.GetEssentialTags(currentVolume.Tags, tagName)
+		essentialTags := common.GetEssentialTags(currentVolume.Tags, tagName)
 		volume := EBSVolume{
 			VolumeId:    *currentVolume.VolumeId,
-			CreatedTime: creationDate,
+			CreatedTime: essentialTags.CreationDate,
 			Status:      *currentVolume.State,
-			TTL:         ttl,
-			IsProtected: isProtected,
+			TTL:         essentialTags.TTL,
+			IsProtected: essentialTags.IsProtected,
 		}
 
 		if !volume.IsProtected && (!common.IsAssociatedToLivingCluster(currentVolume.Tags, eksSession) || common.CheckIfExpired(volume.CreatedTime, volume.TTL, "EBS volume: "+volume.VolumeId)) {
@@ -126,7 +126,7 @@ func listExpiredVolumes(eksSession eks.EKS, ec2Session ec2.EC2, tagName string) 
 	return expiredVolumes, nil
 }
 
-func DeleteExpiredVolumes(sessions *AWSSessions, options *AwsOption) {
+func DeleteExpiredVolumes(sessions *AWSSessions, options *AwsOptions) {
 	expiredVolumes, err := listExpiredVolumes(*sessions.EKS, *sessions.EC2, options.TagName)
 	region := *sessions.EC2.Config.Region
 	if err != nil {

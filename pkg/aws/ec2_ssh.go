@@ -28,13 +28,13 @@ func getSshKeys(ec2session *ec2.EC2, tagName string) []KeyPair {
 
 	var keys []KeyPair
 	for _, key := range result.KeyPairs {
-		creationTime, ttl, isProtected, _, _ := common.GetEssentialTags(key.Tags, tagName)
+		essentialTags := common.GetEssentialTags(key.Tags, tagName)
 		newKey := KeyPair{
 			KeyName:      *key.KeyName,
 			KeyId:        *key.KeyPairId,
-			CreationDate: creationTime,
-			ttl:          ttl,
-			IsProtected:  isProtected,
+			CreationDate: essentialTags.CreationDate,
+			ttl:          essentialTags.TTL,
+			IsProtected:  essentialTags.IsProtected,
 		}
 
 		keys = append(keys, newKey)
@@ -52,7 +52,7 @@ func deleteKeyPair(ec2session *ec2.EC2, keyId string) error {
 	return err
 }
 
-func DeleteExpiredKeyPairs(sessions *AWSSessions, options *AwsOption) {
+func DeleteExpiredKeyPairs(sessions *AWSSessions, options *AwsOptions) {
 	keys := getSshKeys(sessions.EC2, options.TagName)
 	region := sessions.EC2.Config.Region
 	var expiredKeys []KeyPair

@@ -34,13 +34,13 @@ func getRoles(iamSession *iam.IAM, tagName string) []Role {
 	for _, role := range result.Roles {
 		tags := getRoleTags(iamSession, *role.RoleName)
 		instanceProfiles := getRoleInstanceProfile(iamSession, *role.RoleName)
-		creationDate, ttl, isProtected, _, _ := common.GetEssentialTags(tags, tagName)
+		essentialTags := common.GetEssentialTags(tags, tagName)
 		newRole := Role{
 			RoleName:        *role.RoleName,
-			CreationDate:    creationDate,
+			CreationDate:    essentialTags.CreationDate,
 			InstanceProfile: instanceProfiles,
-			ttl:             ttl,
-			IsProtected:     isProtected,
+			ttl:             essentialTags.TTL,
+			IsProtected:     essentialTags.IsProtected,
 		}
 
 		roles = append(roles, newRole)

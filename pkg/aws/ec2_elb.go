@@ -80,10 +80,10 @@ func ListExpiredLoadBalancers(eksSession eks.EKS, lbSession elbv2.ELBV2, tagName
 			continue
 		}
 
-		creationDate, ttl, isProtected, _, _ := common.GetEssentialTags(result.TagDescriptions[0].Tags, tagName)
-		currentLb.CreationDate = creationDate
-		currentLb.TTL = ttl
-		currentLb.IsProtected = isProtected
+		essentialTags := common.GetEssentialTags(result.TagDescriptions[0].Tags, tagName)
+		currentLb.CreationDate = essentialTags.CreationDate
+		currentLb.TTL = essentialTags.TTL
+		currentLb.IsProtected = essentialTags.IsProtected
 
 		if !currentLb.IsProtected && (!common.IsAssociatedToLivingCluster(result.TagDescriptions[0].Tags, eksSession) || common.CheckIfExpired(currentLb.CreationDate, currentLb.TTL, "ELB "+currentLb.Name)) {
 			taggedLoadBalancers = append(taggedLoadBalancers, currentLb)
@@ -138,7 +138,7 @@ func deleteLoadBalancers(lbSession elbv2.ELBV2, loadBalancersList []ElasticLoadB
 	}
 }
 
-func DeleteExpiredLoadBalancers(sessions *AWSSessions, options *AwsOption) {
+func DeleteExpiredLoadBalancers(sessions *AWSSessions, options *AwsOptions) {
 	expiredLoadBalancers, err := ListExpiredLoadBalancers(*sessions.EKS, *sessions.ELB, options.TagName)
 	region := *sessions.ELB.Config.Region
 	if err != nil {

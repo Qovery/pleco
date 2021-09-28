@@ -15,7 +15,7 @@ type ScalewayCluster struct {
 	IsProtected  bool
 }
 
-func DeleteExpiredClusters(sessions *ScalewaySessions, options *ScalewayOption) {
+func DeleteExpiredClusters(sessions *ScalewaySessions, options *ScalewayOptions) {
 	expiredClusters, region := getExpiredClusters(sessions.Cluster, options.TagName)
 
 	count, start := common.ElemToDeleteFormattedInfos("expired cluster", len(expiredClusters), region)
@@ -45,15 +45,15 @@ func listClusters(clusterAPI *k8s.API, tagName string) ([]ScalewayCluster, strin
 
 	clusters := []ScalewayCluster{}
 	for _, cluster := range result.Clusters {
-		_, ttl, isProtected, _, _ := common.GetEssentialTags(cluster.Tags, tagName)
+		essentialTags := common.GetEssentialTags(cluster.Tags, tagName)
 		creationDate, _ := time.Parse(time.RFC3339, cluster.CreatedAt.Format(time.RFC3339))
 
 		clusters = append(clusters, ScalewayCluster{
 			ID:           cluster.ID,
 			Name:         cluster.Name,
 			CreationDate: creationDate,
-			TTL:          ttl,
-			IsProtected:  isProtected,
+			TTL:          essentialTags.TTL,
+			IsProtected:  essentialTags.IsProtected,
 		})
 	}
 

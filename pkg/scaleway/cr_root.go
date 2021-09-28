@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func DeleteEmptyContainerRegistries(sessions *ScalewaySessions, options *ScalewayOption) {
+func DeleteEmptyContainerRegistries(sessions *ScalewaySessions, options *ScalewayOptions) {
 	emptyRegistries, region := getEmptyRegistries(sessions.Namespace)
 
 	count, start := common.ElemToDeleteFormattedInfos("empty Scaleway namespace", len(emptyRegistries), region)

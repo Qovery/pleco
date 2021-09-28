@@ -41,13 +41,13 @@ func SetInternetGatewaysIdsByVpcId(ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *
 	gateways := getInternetGatewaysByVpcId(ec2Session, *vpc.VpcId)
 
 	for _, gateway := range gateways {
-		creationDate, ttl, isProtected, _, _ := common.GetEssentialTags(gateway.Tags, tagName)
+		essentialTags := common.GetEssentialTags(gateway.Tags, tagName)
 
 		var gatewayStruct = InternetGateway{
 			Id:           *gateway.InternetGatewayId,
-			CreationDate: creationDate,
-			ttl:          ttl,
-			IsProtected:  isProtected,
+			CreationDate: essentialTags.CreationDate,
+			ttl:          essentialTags.TTL,
+			IsProtected:  essentialTags.IsProtected,
 		}
 
 		internetGateways = append(internetGateways, gatewayStruct)

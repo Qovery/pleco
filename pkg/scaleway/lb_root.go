@@ -15,7 +15,7 @@ type ScalewayLB struct {
 	IsProtected  bool
 }
 
-func DeleteExpiredLBs(sessions *ScalewaySessions, options *ScalewayOption) {
+func DeleteExpiredLBs(sessions *ScalewaySessions, options *ScalewayOptions) {
 	expiredLBs, region := getExpiredLBs(sessions.LoadBalancer, options.TagName)
 
 	count, start := common.ElemToDeleteFormattedInfos("expired load balancer", len(expiredLBs), region)
@@ -42,13 +42,13 @@ func listLBs(lbAPI *lb.API, tagName string) ([]ScalewayLB, string) {
 
 	loadBalancers := []ScalewayLB{}
 	for _, lb := range result.LBs {
-		creationDate, ttl, isProtected, _, _ := common.GetEssentialTags(lb.Tags, tagName)
+		essentialTags := common.GetEssentialTags(lb.Tags, tagName)
 		loadBalancers = append(loadBalancers, ScalewayLB{
 			ID:           lb.ID,
 			Name:         lb.Name,
-			CreationDate: creationDate,
-			TTL:          ttl,
-			IsProtected:  isProtected,
+			CreationDate: essentialTags.CreationDate,
+			TTL:          essentialTags.TTL,
+			IsProtected:  essentialTags.IsProtected,
 		})
 	}
 

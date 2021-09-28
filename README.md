@@ -119,7 +119,7 @@ You can set region(s) with:
 --aws-regions, -a <region(s)>
 ```
 
-For exemple:
+For example:
 ```bash
 -a eu-west-3,us-east-2
 ```
@@ -127,7 +127,7 @@ For exemple:
 #### Resources Selector
 When pleco is running you have to specify which resources expiration will be checked.
 
-Here are some the resources you can check:
+Here are some of the resources you can check:
 ```bash
 --enable-eks, -e # Enable EKS watch
 --enable-iam, -u # Enable IAM watch (groups, policies, roles, users)
@@ -140,22 +140,22 @@ pleco start aws --level debug -i 240 -a eu-west-3 -e -r -m -c -l -b -p -s -w -n 
 
 ### Scaleway options
 #### Region selector
-When pleco's look for expired resources, it will do it by scaleway region.
+When pleco's look for expired resources, it will do it by [scaleway zone](https://registry.terraform.io/providers/scaleway/scaleway/latest/docs/guides/regions_and_zones).
 
-You can set region(s) with:
+You can set zone(s) with:
 ```bash
---scw-regions, -a <region(s)>
+--scw-zones, -a <zone(s)>
 ```
 
-For exemple:
+For example:
 ```bash
--a fr_par
+-a fr-par-1
 ```
 
 #### Resources Selector
 When pleco is running you have to specify which resources expiration will be checked.
 
-Here are some the resources you can check:
+Here are some of the resources you can check:
 ```bash
 --enable-cluster, -e # Enable cluster watch
 ```

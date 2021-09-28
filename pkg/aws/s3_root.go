@@ -54,13 +54,13 @@ func listTaggedBuckets(s3Session s3.S3, tagName string) ([]s3Bucket, error) {
 			continue
 		}
 
-		creationDate, ttl, isProtected, _, _ := common.GetEssentialTags(bucketTags.TagSet, tagName)
+		essentialTags := common.GetEssentialTags(bucketTags.TagSet, tagName)
 
 		taggedS3Buckets = append(taggedS3Buckets, s3Bucket{
 			Name:        *bucket.Name,
-			CreateTime:  creationDate,
-			TTL:         ttl,
-			IsProtected: isProtected,
+			CreateTime:  essentialTags.CreationDate,
+			TTL:         essentialTags.TTL,
+			IsProtected: essentialTags.IsProtected,
 		})
 	}
 
@@ -204,7 +204,7 @@ func deleteS3Buckets(s3session s3.S3, bucket string) error {
 	return nil
 }
 
-func DeleteExpiredBuckets(sessions *AWSSessions, options *AwsOption) {
+func DeleteExpiredBuckets(sessions *AWSSessions, options *AwsOptions) {
 	buckets, err := listTaggedBuckets(*sessions.S3, options.TagName)
 	region := sessions.S3.Config.Region
 	if err != nil {

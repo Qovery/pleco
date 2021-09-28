@@ -53,7 +53,7 @@ func listTaggedElasticacheDatabases(svc elasticache.ElastiCache, tagName string)
 			replicationGroupId = *cluster.ReplicationGroupId
 		}
 
-		_, ttl, isProtected, _, _ := common.GetEssentialTags(tags.TagList, tagName)
+		essentialTags := common.GetEssentialTags(tags.TagList, tagName)
 		time, _ := time.Parse(time.RFC3339, cluster.CacheClusterCreateTime.Format(time.RFC3339))
 
 		taggedClusters = append(taggedClusters, elasticacheCluster{
@@ -61,8 +61,8 @@ func listTaggedElasticacheDatabases(svc elasticache.ElastiCache, tagName string)
 			ReplicationGroupId: replicationGroupId,
 			ClusterCreateTime:  time,
 			ClusterStatus:      *cluster.CacheClusterStatus,
-			TTL:                ttl,
-			IsProtected:        isProtected,
+			TTL:                essentialTags.TTL,
+			IsProtected:        essentialTags.IsProtected,
 		})
 
 	}
@@ -104,7 +104,7 @@ func deleteElasticacheCluster(svc elasticache.ElastiCache, cluster elasticacheCl
 	return nil
 }
 
-func DeleteExpiredElasticacheDatabases(sessions *AWSSessions, options *AwsOption) {
+func DeleteExpiredElasticacheDatabases(sessions *AWSSessions, options *AwsOptions) {
 	clusters, err := listTaggedElasticacheDatabases(*sessions.ElastiCache, options.TagName)
 	region := *sessions.ElastiCache.Config.Region
 	if err != nil {

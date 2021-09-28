@@ -42,14 +42,14 @@ func SetRouteTablesIdsByVpcId(ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.
 	routeTables := getRouteTablesByVpcId(ec2Session, *vpc.VpcId)
 
 	for _, routeTable := range routeTables {
-		creationDate, ttl, isProtected, _, _ := common.GetEssentialTags(routeTable.Tags, tagName)
+		essentialTags := common.GetEssentialTags(routeTable.Tags, tagName)
 
 		var routeTableStruct = RouteTable{
 			Id:           *routeTable.RouteTableId,
-			CreationDate: creationDate,
-			ttl:          ttl,
+			CreationDate: essentialTags.CreationDate,
+			ttl:          essentialTags.TTL,
 			Associations: routeTable.Associations,
-			IsProtected:  isProtected,
+			IsProtected:  essentialTags.IsProtected,
 		}
 		routeTablesStruct = append(routeTablesStruct, routeTableStruct)
 	}

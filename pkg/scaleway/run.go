@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-type ScalewayOption struct {
+type ScalewayOptions struct {
 	TagName       string
 	DryRun        bool
 	EnableCluster bool
@@ -33,16 +33,16 @@ type ScalewaySessions struct {
 	Bucket       *s3.S3
 }
 
-type funcDeleteExpired func(sessions *ScalewaySessions, options *ScalewayOption)
+type funcDeleteExpired func(sessions *ScalewaySessions, options *ScalewayOptions)
 
-func RunPlecoScaleway(zones []string, interval int64, wg *sync.WaitGroup, options *ScalewayOption) {
+func RunPlecoScaleway(zones []string, interval int64, wg *sync.WaitGroup, options *ScalewayOptions) {
 	for _, zone := range zones {
 		wg.Add(1)
 		go runPlecoInRegion(zone, interval, wg, options)
 	}
 }
 
-func runPlecoInRegion(zone string, interval int64, wg *sync.WaitGroup, options *ScalewayOption) {
+func runPlecoInRegion(zone string, interval int64, wg *sync.WaitGroup, options *ScalewayOptions) {
 	defer wg.Done()
 
 	sessions := &ScalewaySessions{}

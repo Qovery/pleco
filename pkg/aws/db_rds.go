@@ -52,7 +52,7 @@ func listExpiredRDSDatabases(svc rds.RDS, tagName string) []rdsDatabase {
 			continue
 		}
 
-		_, ttl, isProtected, _, _ := common.GetEssentialTags(instance.TagList, tagName)
+		essentialTags := common.GetEssentialTags(instance.TagList, tagName)
 		time, _ := time.Parse(time.RFC3339, instance.InstanceCreateTime.Format(time.RFC3339))
 
 		if instance.DBInstanceIdentifier != nil {
@@ -60,8 +60,8 @@ func listExpiredRDSDatabases(svc rds.RDS, tagName string) []rdsDatabase {
 				DBInstanceIdentifier: *instance.DBInstanceIdentifier,
 				InstanceCreateTime:   time,
 				DBInstanceStatus:     *instance.DBInstanceStatus,
-				TTL:                  int64(ttl),
-				IsProtected:          isProtected,
+				TTL:                  essentialTags.TTL,
+				IsProtected:          essentialTags.IsProtected,
 				SubnetGroup:          instance.DBSubnetGroup,
 				ParameterGroups:      instance.DBParameterGroups,
 			}
@@ -128,7 +128,7 @@ func GetRDSInstanceInfos(svc rds.RDS, databaseIdentifier string) (rdsDatabase, e
 	}, nil
 }
 
-func DeleteExpiredRDSDatabases(sessions *AWSSessions, options *AwsOption) {
+func DeleteExpiredRDSDatabases(sessions *AWSSessions, options *AwsOptions) {
 	expiredDatabases := listExpiredRDSDatabases(*sessions.RDS, options.TagName)
 	region := *sessions.RDS.Config.Region
 

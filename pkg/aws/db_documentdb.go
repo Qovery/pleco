@@ -38,17 +38,17 @@ func listExpiredDocumentDBClusters(svc rds.RDS, tagName string) []documentDBClus
 			instances = append(instances, *instance.DBInstanceIdentifier)
 		}
 
-		_, ttl, isProtected, _, _ := common.GetEssentialTags(cluster.TagList, tagName)
+		essentialTags := common.GetEssentialTags(cluster.TagList, tagName)
 		time, _ := time.Parse(time.RFC3339, cluster.ClusterCreateTime.Format(time.RFC3339))
 
-		if common.CheckIfExpired(time, ttl, "document Db: "+*cluster.DBClusterIdentifier) && !isProtected {
+		if common.CheckIfExpired(time, essentialTags.TTL, "document Db: "+*cluster.DBClusterIdentifier) && !essentialTags.IsProtected {
 			expiredClusters = append(expiredClusters, documentDBCluster{
 				DBClusterIdentifier: *cluster.DBClusterIdentifier,
 				DBClusterMembers:    instances,
 				ClusterCreateTime:   time,
 				Status:              *cluster.Status,
-				TTL:                 ttl,
-				IsProtected:         isProtected,
+				TTL:                 essentialTags.TTL,
+				IsProtected:         essentialTags.IsProtected,
 			})
 		}
 	}
@@ -98,7 +98,7 @@ func deleteDocumentDBCluster(svc rds.RDS, cluster documentDBCluster, dryRun bool
 	return nil
 }
 
-func DeleteExpiredDocumentDBClusters(sessions *AWSSessions, options *AwsOption) {
+func DeleteExpiredDocumentDBClusters(sessions *AWSSessions, options *AwsOptions) {
 	region := *sessions.RDS.Config.Region
 	expiredClusters := listExpiredDocumentDBClusters(*sessions.RDS, options.TagName)
 

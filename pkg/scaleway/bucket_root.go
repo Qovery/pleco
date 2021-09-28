@@ -1,5 +1,5 @@
 package scaleway
 
-func DeleteExpiredBuckets(sessions *ScalewaySessions, options *ScalewayOption) {
+func DeleteExpiredBuckets(sessions *ScalewaySessions, options *ScalewayOptions) {
 
 }

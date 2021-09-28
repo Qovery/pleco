@@ -40,13 +40,13 @@ func SetNatGatewaysIdsByVpcId(ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.
 	gateways := getNatGatewaysByVpcId(ec2Session, *vpc.VpcId)
 	natGateways := []NatGateway{}
 	for _, gateway := range gateways {
-		creationDate, ttl, isProtected, _, _ := common.GetEssentialTags(gateway.Tags, tagName)
+		essentialTags := common.GetEssentialTags(gateway.Tags, tagName)
 
 		var gatewayStruct = NatGateway{
 			Id:           *gateway.NatGatewayId,
-			CreationDate: creationDate,
-			ttl:          ttl,
-			IsProtected:  isProtected,
+			CreationDate: essentialTags.CreationDate,
+			ttl:          essentialTags.TTL,
+			IsProtected:  essentialTags.IsProtected,
 		}
 
 		natGateways = append(natGateways, gatewayStruct)

@@ -11,10 +11,10 @@ type ScalewayVolume struct {
 	ID        string
 	Name      string
 	UpdatedAt time.Time
-	ServerId     string
+	ServerId  string
 }
 
-func DeleteExpiredVolumes(sessions *ScalewaySessions, options *ScalewayOption) {
+func DeleteExpiredVolumes(sessions *ScalewaySessions, options *ScalewayOptions) {
 	expiredVolumes, zone := getDetachedVolumes(sessions.Volume)
 
 	count, start := common.ElemToDeleteFormattedInfos("detached volume", len(expiredVolumes), zone)
@@ -33,8 +33,7 @@ func DeleteExpiredVolumes(sessions *ScalewaySessions, options *ScalewayOption) {
 }
 
 func getVolumes(volumeAPI *instance.API) ([]ScalewayVolume, string) {
-	input := &instance.ListVolumesRequest{
-	}
+	input := &instance.ListVolumesRequest{}
 	zone := input.Zone.String()
 	result, err := volumeAPI.ListVolumes(input)
 	if err != nil {
@@ -49,7 +48,7 @@ func getVolumes(volumeAPI *instance.API) ([]ScalewayVolume, string) {
 				ID:        volume.ID,
 				Name:      volume.Name,
 				UpdatedAt: creationDate,
-				ServerId:   "null",
+				ServerId:  "null",
 			})
 			continue
 		}
@@ -58,7 +57,7 @@ func getVolumes(volumeAPI *instance.API) ([]ScalewayVolume, string) {
 			ID:        volume.ID,
 			Name:      volume.Name,
 			UpdatedAt: creationDate,
-			ServerId:     volume.Server.ID,
+			ServerId:  volume.Server.ID,
 		})
 	}
 

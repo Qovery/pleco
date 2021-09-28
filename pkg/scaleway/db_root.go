@@ -15,7 +15,7 @@ type ScalewayDB struct {
 	IsProtected  bool
 }
 
-func DeleteExpiredDatabases(sessions *ScalewaySessions, options *ScalewayOption) {
+func DeleteExpiredDatabases(sessions *ScalewaySessions, options *ScalewayOptions) {
 	expiredDatabases, region := getExpiredDatabases(sessions.Database, options.TagName)
 
 	count, start := common.ElemToDeleteFormattedInfos("expired database", len(expiredDatabases), region)
@@ -29,7 +29,7 @@ func DeleteExpiredDatabases(sessions *ScalewaySessions, options *ScalewayOption)
 	log.Debug(start)
 
 	for _, expiredDb := range expiredDatabases {
-		deleteDb(sessions.Database, expiredDb)
+		deleteDB(sessions.Database, expiredDb)
 	}
 }
 
@@ -56,22 +56,22 @@ func listDatabases(dbAPI *rdb.API, tagName string) ([]ScalewayDB, string) {
 
 	databases := []ScalewayDB{}
 	for _, db := range result.Instances {
-		_, ttl, isProtected, _, _ := common.GetEssentialTags(db.Tags, tagName)
+		essentialTags := common.GetEssentialTags(db.Tags, tagName)
 		creationDate, _ := time.Parse(time.RFC3339, db.CreatedAt.Format(time.RFC3339))
 
 		databases = append(databases, ScalewayDB{
 			ID:           db.ID,
 			Name:         db.Name,
 			CreationDate: creationDate,
-			TTL:          ttl,
-			IsProtected:  isProtected,
+			TTL:          essentialTags.TTL,
+			IsProtected:  essentialTags.IsProtected,
 		})
 	}
 
 	return databases, input.Region.String()
 }
 
-func deleteDb(dbAPI *rdb.API, db ScalewayDB) {
+func deleteDB(dbAPI *rdb.API, db ScalewayDB) {
 	_, err := dbAPI.DeleteInstance(
 		&rdb.DeleteInstanceRequest{
 			InstanceID: db.ID,

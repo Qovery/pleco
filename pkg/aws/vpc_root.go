@@ -12,7 +12,7 @@ import (
 type VpcInfo struct {
 	VpcId            *string
 	SecurityGroups   []SecurityGroup
-	NatGateways		 []NatGateway
+	NatGateways      []NatGateway
 	InternetGateways []InternetGateway
 	Subnets          []Subnet
 	RouteTables      []RouteTable
@@ -75,13 +75,13 @@ func listTaggedVPC(ec2Session ec2.EC2, tagName string) ([]VpcInfo, error) {
 	var VPCs = getVPCs(ec2Session, tagName)
 
 	for _, vpc := range VPCs {
-		creationDate, ttl, isprotected, _, _ := common.GetEssentialTags(vpc.Tags, tagName)
+		essentialTags := common.GetEssentialTags(vpc.Tags, tagName)
 		taggedVpc := VpcInfo{
 			VpcId:        vpc.VpcId,
 			Status:       *vpc.State,
-			CreationDate: creationDate,
-			TTL:          ttl,
-			IsProtected:  isprotected,
+			CreationDate: essentialTags.CreationDate,
+			TTL:          essentialTags.TTL,
+			IsProtected:  essentialTags.IsProtected,
 		}
 
 		if *vpc.State != "available" {
@@ -145,7 +145,7 @@ func deleteVPC(ec2Session ec2.EC2, VpcList []VpcInfo, dryRun bool) error {
 	return nil
 }
 
-func DeleteExpiredVPC(sessions *AWSSessions, options *AwsOption) {
+func DeleteExpiredVPC(sessions *AWSSessions, options *AwsOptions) {
 	VPCs, err := listTaggedVPC(*sessions.EC2, options.TagName)
 	region := sessions.EC2.Config.Region
 	if err != nil {

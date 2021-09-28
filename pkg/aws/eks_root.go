@@ -76,7 +76,7 @@ func GetClusterDetails(svc eks.EKS, cluster *string, region string, tagName stri
 		log.Errorf("Error while trying to get info from cluster %v (%s)", clusterName, region)
 	}
 
-	creationDate, ttl, isProtected, _, _ := common.GetEssentialTags(clusterInfo.Cluster.Tags, tagName)
+	essentialTags := common.GetEssentialTags(clusterInfo.Cluster.Tags, tagName)
 
 	nodeGroups, err := svc.ListNodegroups(&eks.ListNodegroupsInput{
 		ClusterName: &clusterName,
@@ -93,13 +93,13 @@ func GetClusterDetails(svc eks.EKS, cluster *string, region string, tagName stri
 	}
 
 	return eksCluster{
-		ClusterCreateTime:     creationDate,
+		ClusterCreateTime:     essentialTags.CreationDate,
 		ClusterNodeGroupsName: nodeGroups.Nodegroups,
 		ClusterName:           clusterName,
 		ClusterId:             identity,
 		Status:                *clusterInfo.Cluster.Status,
-		TTL:                   ttl,
-		IsProtected:           isProtected,
+		TTL:                   essentialTags.TTL,
+		IsProtected:           essentialTags.IsProtected,
 	}
 }
 
@@ -232,7 +232,7 @@ func deleteNodeGroupStatus(svc eks.EKS, cluster eksCluster, nodeGroupName string
 	return nil
 }
 
-func DeleteExpiredEKSClusters(sessions *AWSSessions, options *AwsOption) {
+func DeleteExpiredEKSClusters(sessions *AWSSessions, options *AwsOptions) {
 	clusters, err := ListTaggedEKSClusters(*sessions.EKS, options.TagName)
 	region := *sessions.EKS.Config.Region
 	if err != nil {

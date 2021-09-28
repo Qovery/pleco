@@ -32,15 +32,15 @@ func getCloudwatchLogs(svc cloudwatchlogs.CloudWatchLogs) []*cloudwatchlogs.LogG
 
 func getCompleteLogGroup(svc cloudwatchlogs.CloudWatchLogs, log cloudwatchlogs.LogGroup, tagName string) CompleteLogGroup {
 	tags := getLogGroupTag(svc, *log.LogGroupName)
-	_, ttl, isProtected, clusterId, tag := common.GetEssentialTags(tags, tagName)
+	essentialTags := common.GetEssentialTags(tags, tagName)
 
 	return CompleteLogGroup{
 		logGroupName: *log.LogGroupName,
 		creationDate: time.Unix(*log.CreationTime/1000, 0),
-		ttl:          ttl,
-		clusterId:    clusterId,
-		IsProtected:  isProtected,
-		tag:          tag,
+		ttl:          essentialTags.TTL,
+		clusterId:    essentialTags.ClusterId,
+		IsProtected:  essentialTags.IsProtected,
+		tag:          essentialTags.Tag,
 	}
 }
 
@@ -90,7 +90,7 @@ func handleCloudwatchLogsError(err error) {
 	}
 }
 
-func DeleteExpiredLogs(sessions *AWSSessions, options *AwsOption) {
+func DeleteExpiredLogs(sessions *AWSSessions, options *AwsOptions) {
 	logs := getCloudwatchLogs(*sessions.CloudWatchLogs)
 	region := *sessions.CloudWatchLogs.Config.Region
 	var expiredLogs []CompleteLogGroup
@@ -150,11 +150,11 @@ func TagLogsForDeletion(svc cloudwatchlogs.CloudWatchLogs, tagName string, clust
 	return nil
 }
 
-func DeleteUnlinkedLogs(sessions *AWSSessions, options *AwsOption) {
+func DeleteUnlinkedLogs(sessions *AWSSessions, options *AwsOptions) {
 	region := *sessions.EKS.Config.Region
 	clusters, err := ListClusters(*sessions.EKS)
 	if err != nil {
-		log.Errorf("C'ant list cluster in region %s: %s", region, err.Error())
+		log.Errorf("Can't list cluster in region %s: %s", region, err.Error())
 	}
 
 	deletableLogs := getUnlinkedLogs(*sessions.CloudWatchLogs, clusters)

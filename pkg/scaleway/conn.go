@@ -25,4 +25,3 @@ func CreateSession(zone scw.Zone) *scw.Client {
 
 	return client
 }
-
