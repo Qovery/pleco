@@ -47,9 +47,8 @@ func runPlecoInRegion(zone string, interval int64, wg *sync.WaitGroup, options *
 
 	sessions := &ScalewaySessions{}
 	currentSession := CreateSession(scw.Zone(zone))
-	organization, _ := currentSession.GetDefaultOrganizationID()
 
-	logrus.Infof("Starting to check expired resources for organization %s.", organization)
+	logrus.Info("Starting to check Scaleway expired resources.")
 
 	var listServiceToCheckStatus []funcDeleteExpired
 
