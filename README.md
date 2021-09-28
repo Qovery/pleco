@@ -44,7 +44,14 @@ NOTE: this project is used in Qovery's production environment
   - [X] VPC route tables
   - [X] VPC subnets
   - [X] VPC security groups
-  - [X] S3 buckets 
+  - [X] S3 buckets
+- [X] SCALEWAY
+  - [X] Kubernetes clusters
+  - [X] Database instances
+  - [X] Load balancers
+  - [X] Namespaces
+  - [X] Detached volumes
+  - [ ] S3 Buckets
 - [ ] DIGITAL OCEAN
 - [ ] AZURE
 - [ ] GCP
@@ -57,17 +64,26 @@ You can find a helm chart [here](https://artifacthub.io/packages/helm/pleco/plec
 ---
 ## Requirements
 
-In order to make pleco check and clean expired aws resources you need to set the following environment variables:
+In order to make pleco check and clean expired resources you need to set the following environment variables:
+#### For AWS
 ```bash
 $ export AWS_ACCESS_KEY_ID=<access_key>
 $ export AWS_SECRET_ACCESS_KEY=<secret_key>
+```
+
+#### For Scaleway
+```bash
+$ export SCALEWAY_ACCESS_KEY=<access_key>
+$ export SCALEWAY_SECRET_KEY=<secret_key>
+$ export SCALEWAY_ORGANISATION_ID=<organization_id>
+$ export SCW_VOLUME_TIMEOUT=<delay_before_detached_volume_deletion_in_hours> # default is 2 hours
 ```
 ---
 ## Basic command
 
 A pleco command has the following structure:
 ```bash
-pleco start [options]
+pleco start <cloud_provider> [options]
 ```
 
 ### General options
@@ -104,7 +120,7 @@ You can set region(s) with:
 --aws-regions, -a <region(s)>
 ```
 
-For exemple:
+For example:
 ```bash
 -a eu-west-3,us-east-2
 ```
@@ -112,7 +128,7 @@ For exemple:
 #### Resources Selector
 When pleco is running you have to specify which resources expiration will be checked.
 
-Here are some the resources you can check:
+Here are some of the resources you can check:
 ```bash
 --enable-eks, -e # Enable EKS watch
 --enable-iam, -u # Enable IAM watch (groups, policies, roles, users)
@@ -120,5 +136,32 @@ Here are some the resources you can check:
 
 #### Example
 ```bash
-pleco start --level debug -i 240 -a eu-west-3 -e -r -m -c -l -b -p -s -w -n -u -z -o -y
+pleco start aws --level debug -i 240 -a eu-west-3 -e -r -m -c -l -b -p -s -w -n -u -z -o -y
+```
+
+### Scaleway options
+#### Region selector
+When pleco's look for expired resources, it will do it by [scaleway zone](https://registry.terraform.io/providers/scaleway/scaleway/latest/docs/guides/regions_and_zones).
+
+You can set zone(s) with:
+```bash
+--scw-zones, -a <zone(s)>
+```
+
+For example:
+```bash
+-a fr-par-1
+```
+
+#### Resources Selector
+When pleco is running you have to specify which resources expiration will be checked.
+
+Here are some of the resources you can check:
+```bash
+--enable-cluster, -e # Enable cluster watch
+```
+
+#### Example
+```bash
+pleco start scaleway --level debug -i 240 -a fr-par -e -r -o -l -b -y
 ```
