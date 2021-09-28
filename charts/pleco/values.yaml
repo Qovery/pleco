@@ -3,7 +3,7 @@ replicaCount: 1
 image:
   repository: qoveryrd/pleco
   pullPolicy: IfNotPresent
-  plecoImageTag: "0.9.2"
+  plecoImageTag: "0.9.3"
 
 cloudProvider: ""
 
@@ -17,7 +17,6 @@ environmentVariables:
   # Scaleway
   #  SCW_ACCESS_KEY: ""
   #  SCW_SECRET_KEY: ""
-  #  SCW_ORGANISATION_ID: ""
   #  SCW_VOLUME_TIMEOUT: ""
 
 

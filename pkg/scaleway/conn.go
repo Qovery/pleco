@@ -17,7 +17,6 @@ func CreateSession(zone scw.Zone) *scw.Client {
 	client, err := scw.NewClient(
 		scw.WithDefaultZone(zone),
 		scw.WithDefaultRegion(region),
-		scw.WithDefaultOrganizationID(os.Getenv("SCW_ORGANISATION_ID")),
 		scw.WithAuth(os.Getenv("SCW_ACCESS_KEY"), os.Getenv("SCW_SECRET_KEY")),
 	)
 	if err != nil {
