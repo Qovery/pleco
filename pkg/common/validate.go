@@ -75,7 +75,7 @@ func checkScalewayEnvVars(cmd *cobra.Command) []string {
 		isUsed(cmd, "s3") ||
 		isUsed(cmd, "cr") ||
 		isUsed(cmd, "lb") ||
-		isUsed(cmd, "bucket") {
+		isUsed(cmd, "volume") {
 		return requiredEnvVars
 	}
 

@@ -33,7 +33,7 @@ func initScalewayFlags(startCmd *cobra.Command) {
 	startCmd.Flags().BoolP("enable-cluster", "e", false, "Enable Kubernetes clusters watch")
 	startCmd.Flags().BoolP("enable-db", "r", false, "Enable databases watch")
 	startCmd.Flags().BoolP("enable-cr", "o", false, "Enable containers registries watch")
-	startCmd.Flags().BoolP("enable-bucket", "s", false, "Enable buckets watch")
+	startCmd.Flags().BoolP("enable-s3", "s", false, "Enable buckets watch")
 	startCmd.Flags().BoolP("enable-lb", "l", false, "Enable load balancers watch")
 	startCmd.Flags().BoolP("enable-volume", "b", false, "Enable volumes watch")
 }

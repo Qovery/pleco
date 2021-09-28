@@ -72,7 +72,7 @@ func startScaleway(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.Wai
 		EnableCluster: getCmdBool(cmd, "enable-cluster"),
 		EnableDB:      getCmdBool(cmd, "enable-db"),
 		EnableCR:      getCmdBool(cmd, "enable-cr"),
-		EnableBucket:  getCmdBool(cmd, "enable-bucket"),
+		EnableBucket:  getCmdBool(cmd, "enable-s3"),
 		EnableLB:      getCmdBool(cmd, "enable-lb"),
 		EnableVolume:  getCmdBool(cmd, "enable-volume"),
 	}
