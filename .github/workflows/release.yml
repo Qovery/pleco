@@ -45,7 +45,7 @@ jobs:
         name: Set up Go
         uses: actions/setup-go@main
         with:
-          go-version: 1.15.x
+          go-version: 1.17.x
       -
         # TODO: fix linter
 #        name: Run golangci-lint

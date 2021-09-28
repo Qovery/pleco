@@ -1,6 +1,6 @@
 module github.com/Qovery/pleco/cmd
 
-go 1.16
+go 1.17
 
 replace (
 	github.com/Qovery/pleco/pkg => ../pkg
