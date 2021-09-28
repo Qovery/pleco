@@ -47,14 +47,13 @@ jobs:
         with:
           go-version: 1.17.x
       -
-        # TODO: fix linter
-#        name: Run golangci-lint
-#        uses: actions-contrib/golangci-lint@v1
-#        env:
-#          GOROOT: ""
-#        with:
-#          args: "run --timeout 5m0s"
-#      -
+        name: Run golangci-lint
+        uses: actions-contrib/golangci-lint@v1
+        env:
+          GOROOT: ""
+        with:
+          args: "run --timeout 5m0s"
+      -
         name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v1
         with:
