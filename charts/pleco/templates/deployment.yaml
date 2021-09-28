@@ -99,7 +99,7 @@ spec:
 #            Scaleway features
             {{ if eq .Values.cloudProvider "scaleway" }}
             {{ if .Values.sclawayFeatures.scalewayRegions }}
-            - --scaleway-regions
+            - --scw-zones
             - "{{ join "," .Values.enabledFeatures.scalewayRegions }}"
             {{ end }}
             {{ if eq .Values.sclawayFeatures.cr true}}
