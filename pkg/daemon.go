@@ -65,7 +65,7 @@ func startAWS(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGrou
 }
 
 func startScaleway(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGroup) {
-	regions, _ := cmd.Flags().GetStringSlice("scw-regions")
+	zones, _ := cmd.Flags().GetStringSlice("scw-zones")
 	scalewayOptions := &scaleway.ScalewayOption{
 		TagName:       getCmdString(cmd, "tag-name"),
 		DryRun:        dryRun,
@@ -76,7 +76,7 @@ func startScaleway(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.Wai
 		EnableLB:      getCmdBool(cmd, "enable-lb"),
 		EnableVolume:  getCmdBool(cmd, "enable-volume"),
 	}
-	scaleway.RunPlecoScaleway(regions, interval, wg, scalewayOptions)
+	scaleway.RunPlecoScaleway(zones, interval, wg, scalewayOptions)
 	wg.Done()
 }
 

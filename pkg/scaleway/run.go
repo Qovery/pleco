@@ -35,18 +35,18 @@ type ScalewaySessions struct {
 
 type funcDeleteExpired func(sessions *ScalewaySessions, options *ScalewayOption)
 
-func RunPlecoScaleway(regions []string, interval int64, wg *sync.WaitGroup, options *ScalewayOption) {
-	for _, region := range regions {
+func RunPlecoScaleway(zones []string, interval int64, wg *sync.WaitGroup, options *ScalewayOption) {
+	for _, zone := range zones {
 		wg.Add(1)
-		go runPlecoInRegion(region, interval, wg, options)
+		go runPlecoInRegion(zone, interval, wg, options)
 	}
 }
 
-func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options *ScalewayOption) {
+func runPlecoInRegion(zone string, interval int64, wg *sync.WaitGroup, options *ScalewayOption) {
 	defer wg.Done()
 
 	sessions := &ScalewaySessions{}
-	currentSession := CreateSession(scw.Region(region))
+	currentSession := CreateSession(scw.Zone(zone))
 	organization, _ := currentSession.GetDefaultOrganizationID()
 
 	logrus.Infof("Starting to check expired resources for organization %s.", organization)

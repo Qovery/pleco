@@ -6,9 +6,14 @@ import (
 	"os"
 )
 
-func CreateSession(region scw.Region) *scw.Client {
+func CreateSession(zone scw.Zone) *scw.Client {
+	region, zoneErr := zone.Region()
+	if zoneErr != nil {
+		logrus.Fatalf("Unknown zone %s: %s", zone.String(), zoneErr.Error())
+	}
+
 	client, err := scw.NewClient(
-		scw.WithDefaultZone(getRegionZone(region)),
+		scw.WithDefaultZone(zone),
 		scw.WithDefaultRegion(region),
 		scw.WithDefaultOrganizationID(os.Getenv("SCALEWAY_ORGANISATION_ID")),
 		scw.WithAuth(os.Getenv("SCALEWAY_ACCESS_KEY"), os.Getenv("SCALEWAY_SECRET_KEY")),
@@ -21,16 +26,3 @@ func CreateSession(region scw.Region) *scw.Client {
 	return client
 }
 
-func getRegionZone(region scw.Region) scw.Zone {
-	switch region {
-	case scw.RegionFrPar:
-		return scw.ZoneFrPar1
-	case scw.RegionNlAms:
-		return scw.ZoneNlAms1
-	case scw.RegionPlWaw:
-		return scw.ZonePlWaw1
-	default:
-		logrus.Errorf("No zone for region %s", region.String())
-		return ""
-	}
-}
