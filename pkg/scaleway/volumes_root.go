@@ -16,9 +16,9 @@ type ScalewayVolume struct {
 }
 
 func DeleteExpiredVolumes(sessions *ScalewaySessions, options *ScalewayOptions) {
-	expiredVolumes, zone := getDetachedVolumes(sessions.Volume)
+	expiredVolumes := getDetachedVolumes(sessions.Volume, options.Zone)
 
-	count, start := common.ElemToDeleteFormattedInfos(fmt.Sprintf("detached (%d hours delay) volume", volumeTimeout()), len(expiredVolumes), zone)
+	count, start := common.ElemToDeleteFormattedInfos(fmt.Sprintf("detached (%d hours delay) volume", volumeTimeout()), len(expiredVolumes), options.Zone, true)
 
 	log.Debug(count)
 
@@ -33,9 +33,8 @@ func DeleteExpiredVolumes(sessions *ScalewaySessions, options *ScalewayOptions) 
 	}
 }
 
-func getVolumes(volumeAPI *instance.API) ([]ScalewayVolume, string) {
+func getVolumes(volumeAPI *instance.API, zone string) []ScalewayVolume {
 	input := &instance.ListVolumesRequest{}
-	zone := input.Zone.String()
 	result, err := volumeAPI.ListVolumes(input)
 	if err != nil {
 		log.Errorf("Can't list volumes in zone %s: %s", zone, err.Error())
@@ -62,20 +61,20 @@ func getVolumes(volumeAPI *instance.API) ([]ScalewayVolume, string) {
 		})
 	}
 
-	return volumes, zone
+	return volumes
 }
 
-func getDetachedVolumes(volumeAPI *instance.API) ([]ScalewayVolume, string) {
-	volumes, zone := getVolumes(volumeAPI)
+func getDetachedVolumes(volumeAPI *instance.API, zone string) []ScalewayVolume {
+	volumes := getVolumes(volumeAPI, zone)
 
 	detachedVolumes := []ScalewayVolume{}
 	for _, volume := range volumes {
-		if volume.UpdatedAt.Add(volumeTimeout() * time.Hour).Before(time.Now()) && volume.ServerId == "null" {
+		if volume.UpdatedAt.Add(volumeTimeout()*time.Hour).Before(time.Now()) && volume.ServerId == "null" {
 			detachedVolumes = append(detachedVolumes, volume)
 		}
 	}
 
-	return detachedVolumes, zone
+	return detachedVolumes
 }
 
 func deleteVolume(volumeAPI *instance.API, detachedVolume ScalewayVolume) {

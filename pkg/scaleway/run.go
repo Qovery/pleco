@@ -16,6 +16,7 @@ import (
 type ScalewayOptions struct {
 	TagName       string
 	DryRun        bool
+	Zone          string
 	EnableCluster bool
 	EnableDB      bool
 	EnableCR      bool
@@ -47,8 +48,9 @@ func runPlecoInRegion(zone string, interval int64, wg *sync.WaitGroup, options *
 
 	sessions := &ScalewaySessions{}
 	currentSession := CreateSession(scw.Zone(zone))
+	options.Zone = zone
 
-	logrus.Info("Starting to check Scaleway expired resources.")
+	logrus.Infof("Starting to check expired resources in zone %s.", zone)
 
 	var listServiceToCheckStatus []funcDeleteExpired
 
@@ -88,9 +90,12 @@ func runPlecoInRegion(zone string, interval int64, wg *sync.WaitGroup, options *
 		//listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredBuckets)
 	}
 
-	for _, check := range listServiceToCheckStatus {
-		check(sessions, options)
+	for {
+		for _, check := range listServiceToCheckStatus {
+			check(sessions, options)
+		}
+
+		time.Sleep(time.Duration(interval) * time.Second)
 	}
 
-	time.Sleep(time.Duration(interval) * time.Second)
 }

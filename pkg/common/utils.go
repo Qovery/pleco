@@ -124,10 +124,14 @@ func CheckIfExpired(creationTime time.Time, ttl int64, resourceName string) bool
 	return time.Now().After(expirationTime)
 }
 
-func ElemToDeleteFormattedInfos(elemName string, arraySize int, region string) (string, string) {
+func ElemToDeleteFormattedInfos(elemName string, arraySize int, region string, isZone ...bool) (string, string) {
 	regionString := fmt.Sprintf(" in region %s", region)
 	if region == "" {
 		regionString = ""
+	}
+
+	if isZone != nil && isZone[0] {
+		regionString = fmt.Sprintf(" in zone %s", region)
 	}
 
 	count := fmt.Sprintf("There is no %s to delete%s.", elemName, regionString)

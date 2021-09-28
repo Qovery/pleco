@@ -172,11 +172,14 @@ func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteEmptyRepositories)
 	}
 
-	for _, check := range listServiceToCheckStatus {
-		check(sessions, options)
+	for {
+		for _, check := range listServiceToCheckStatus {
+			check(sessions, options)
+		}
+
+		time.Sleep(time.Duration(interval) * time.Second)
 	}
 
-	time.Sleep(time.Duration(interval) * time.Second)
 }
 
 func runPlecoInGlobal(cmd *cobra.Command, interval int64, wg *sync.WaitGroup, currentSession *session.Session, options *AwsOptions) {
