@@ -38,6 +38,7 @@ func listLBs(lbAPI *lb.API, tagName string) ([]ScalewayLB, string) {
 	result, err := lbAPI.ListLBs(input)
 	if err != nil {
 		log.Errorf("Can't list load balancers in region %s: %s", input.Region.String(), err.Error())
+		return []ScalewayLB{},  input.Region.String()
 	}
 
 	loadBalancers := []ScalewayLB{}
@@ -76,6 +77,6 @@ func deleteLB(lbAPI *lb.API, loadBalancer ScalewayLB) {
 	)
 
 	if err != nil {
-		log.Errorf("Can't delete load balancer %s", loadBalancer.Name)
+		log.Errorf("Can't delete load balancer %s: %s", loadBalancer.Name, err.Error())
 	}
 }

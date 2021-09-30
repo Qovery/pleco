@@ -16,6 +16,7 @@ func StartDaemon(cloudProvider string, disableDryRun bool, interval int64, cmd *
 	dryRun := true
 	if disableDryRun {
 		dryRun = false
+		log.Warn("Dry run mode disabled")
 	} else {
 		log.Info("Dry run mode enabled")
 	}

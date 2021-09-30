@@ -1,7 +1,7 @@
 package scaleway
 
 import (
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/minio/minio-go/v7"
 	"github.com/scaleway/scaleway-sdk-go/api/instance/v1"
 	"github.com/scaleway/scaleway-sdk-go/api/k8s/v1"
 	"github.com/scaleway/scaleway-sdk-go/api/lb/v1"
@@ -17,6 +17,7 @@ type ScalewayOptions struct {
 	TagName       string
 	DryRun        bool
 	Zone          string
+	Region scw.Region
 	EnableCluster bool
 	EnableDB      bool
 	EnableCR      bool
@@ -31,7 +32,7 @@ type ScalewaySessions struct {
 	Namespace    *registry.API
 	LoadBalancer *lb.API
 	Volume       *instance.API
-	Bucket       *s3.S3
+	Bucket       *minio.Client
 }
 
 type funcDeleteExpired func(sessions *ScalewaySessions, options *ScalewayOptions)
@@ -45,10 +46,11 @@ func RunPlecoScaleway(zones []string, interval int64, wg *sync.WaitGroup, option
 
 func runPlecoInRegion(zone string, interval int64, wg *sync.WaitGroup, options *ScalewayOptions) {
 	defer wg.Done()
-
+	scwZone := scw.Zone(zone)
 	sessions := &ScalewaySessions{}
-	currentSession := CreateSession(scw.Zone(zone))
+	currentSession := CreateSession(scwZone)
 	options.Zone = zone
+	options.Region, _ = scwZone.Region()
 
 	logrus.Infof("Starting to check expired resources in zone %s.", zone)
 
@@ -85,9 +87,9 @@ func runPlecoInRegion(zone string, interval int64, wg *sync.WaitGroup, options *
 	}
 
 	if options.EnableBucket {
-		//sessions.Bucket =
+		sessions.Bucket = CreateMinIOSession(currentSession)
 
-		//listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredBuckets)
+		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredBuckets)
 	}
 
 	for {

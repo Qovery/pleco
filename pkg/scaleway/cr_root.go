@@ -30,6 +30,7 @@ func listRegistries(registryAPI *registry.API) ([]*registry.Namespace, string) {
 	result, err := registryAPI.ListNamespaces(input)
 	if err != nil {
 		log.Errorf("Can't list container registries for region %s: %s", input.Region, err.Error())
+		return []*registry.Namespace{}, input.Region.String()
 	}
 
 	return result.Namespaces, input.Region.String()
@@ -56,6 +57,6 @@ func deleteRegistry(registryAPI *registry.API, reg *registry.Namespace) {
 	)
 
 	if err != nil {
-		log.Errorf("Can't delete container registry %s", reg.Name)
+		log.Errorf("Can't delete container registry %s: %s", reg.Name, err.Error())
 	}
 }

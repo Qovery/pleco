@@ -38,6 +38,7 @@ func getVolumes(volumeAPI *instance.API, zone string) []ScalewayVolume {
 	result, err := volumeAPI.ListVolumes(input)
 	if err != nil {
 		log.Errorf("Can't list volumes in zone %s: %s", zone, err.Error())
+		return []ScalewayVolume{}
 	}
 
 	volumes := []ScalewayVolume{}

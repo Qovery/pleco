@@ -41,6 +41,7 @@ func listClusters(clusterAPI *k8s.API, tagName string) ([]ScalewayCluster, strin
 
 	if err != nil {
 		log.Errorf("Can't list cluster for region %s: %s", input.Region, err.Error())
+		return []ScalewayCluster{}, input.Region.String()
 	}
 
 	clusters := []ScalewayCluster{}
@@ -80,6 +81,6 @@ func deleteCluster(clusterAPI *k8s.API, cluster ScalewayCluster) {
 		})
 
 	if err != nil {
-		log.Errorf("Can't delete cluster %s", cluster.Name)
+		log.Errorf("Can't delete cluster %s: %s", cluster.Name, err.Error())
 	}
 }

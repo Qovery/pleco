@@ -52,6 +52,7 @@ func listDatabases(dbAPI *rdb.API, tagName string) ([]ScalewayDB, string) {
 
 	if err != nil {
 		log.Errorf("Can't list databases for region %s: %s", input.Region, err.Error())
+		return []ScalewayDB{}, input.Region.String()
 	}
 
 	databases := []ScalewayDB{}
@@ -78,6 +79,6 @@ func deleteDB(dbAPI *rdb.API, db ScalewayDB) {
 		})
 
 	if err != nil {
-		log.Errorf("Can't delete database %s", db.Name)
+		log.Errorf("Can't delete database %s: %s", db.Name, err.Error())
 	}
 }

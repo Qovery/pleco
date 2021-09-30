@@ -1,8 +1,12 @@
 package scaleway
 
 import (
+	"fmt"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"github.com/sirupsen/logrus"
+	"log"
 	"os"
 	"strconv"
 	"time"
@@ -25,6 +29,23 @@ func CreateSession(zone scw.Zone) *scw.Client {
 	}
 
 	return client
+}
+
+func CreateMinIOSession(scwSession *scw.Client) *minio.Client {
+	region, _:= scwSession.GetDefaultRegion()
+	endpoint := fmt.Sprintf("s3.%s.scw.cloud", region)
+	access, _ := scwSession.GetAccessKey()
+	secret, _ := scwSession.GetSecretKey()
+
+	minioClient, err := minio.New(endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(access, secret, ""),
+		Region: string(region),
+	})
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	return minioClient
 }
 
 func volumeTimeout() time.Duration {

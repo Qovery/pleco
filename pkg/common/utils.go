@@ -111,7 +111,7 @@ func GetEssentialTags(tagsInput interface{}, tagName string) EssentialTags {
 }
 
 func CheckIfExpired(creationTime time.Time, ttl int64, resourceName string) bool {
-	expirationTime := creationTime.Add(time.Duration(ttl) * time.Second)
+	expirationTime := creationTime.UTC().Add(time.Duration(ttl) * time.Second)
 	if ttl == 0 {
 		return false
 	}
@@ -121,7 +121,7 @@ func CheckIfExpired(creationTime time.Time, ttl int64, resourceName string) bool
 		return false
 	}
 
-	return time.Now().After(expirationTime)
+	return time.Now().UTC().After(expirationTime)
 }
 
 func ElemToDeleteFormattedInfos(elemName string, arraySize int, region string, isZone ...bool) (string, string) {
