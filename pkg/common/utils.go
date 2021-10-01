@@ -205,5 +205,5 @@ func stringDateToTimeDate(date string) time.Time {
 	minutes, _ := strconv.ParseInt(date[14:16], 10, 32)
 	seconds, _ := strconv.ParseInt(date[17:18], 10, 32)
 
-	return time.Date(int(year), time.Month(month), int(day), int(hour), int(minutes), int(seconds), 0, time.Local)
+	return time.Date(int(year), time.Month(month), int(day), int(hour), int(minutes), int(seconds), 0, time.UTC)
 }

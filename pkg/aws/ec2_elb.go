@@ -14,6 +14,7 @@ type ElasticLoadBalancer struct {
 	Arn          string
 	Name         string
 	Status       string
+	VpcId string
 	IsProtected  bool
 	CreationDate time.Time
 	TTL          int64
@@ -112,6 +113,7 @@ func ListLoadBalancers(lbSession elbv2.ELBV2) ([]ElasticLoadBalancer, error) {
 			Arn:    *currentLb.LoadBalancerArn,
 			Name:   *currentLb.LoadBalancerName,
 			Status: *currentLb.State.Code,
+			VpcId: *currentLb.VpcId,
 		})
 	}
 
@@ -157,4 +159,28 @@ func DeleteExpiredLoadBalancers(sessions *AWSSessions, options *AwsOptions) {
 	log.Debug(start)
 
 	deleteLoadBalancers(*sessions.ELB, expiredLoadBalancers, options.DryRun)
+}
+
+func getLoadBalancerByVpId(lbSession elbv2.ELBV2, vpc VpcInfo) ElasticLoadBalancer {
+	lbs, err := ListLoadBalancers(lbSession)
+	if err != nil {
+		log.Errorf("can't list Load Balancers: %s\n", err)
+		return ElasticLoadBalancer{}
+	}
+
+	for _, lb := range lbs {
+		if lb.VpcId == *vpc.VpcId {
+			return lb
+		}
+	}
+
+	return ElasticLoadBalancer{}
+}
+
+func DeleteLoadBalancerByVpcId(lbSession elbv2.ELBV2, vpc VpcInfo, dryRun bool) {
+	lb := getLoadBalancerByVpId(lbSession, vpc)
+	if lb.Arn != "" {
+		deleteLoadBalancers(lbSession, []ElasticLoadBalancer{lb}, dryRun)
+		time.Sleep(30 * time.Second)
+	}
 }

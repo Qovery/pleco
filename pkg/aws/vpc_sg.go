@@ -80,24 +80,28 @@ func DeleteSecurityGroupsByIds(ec2Session ec2.EC2, securityGroups []SecurityGrou
 }
 
 func deleteIpPermissions(ec2Session ec2.EC2, securityGroup SecurityGroup) {
-	_, ingressErr := ec2Session.RevokeSecurityGroupIngress(
-		&ec2.RevokeSecurityGroupIngressInput{
-			GroupId:       aws.String(securityGroup.Id),
-			IpPermissions: securityGroup.IpPermissionIngress,
-		})
-
-	if ingressErr != nil {
-		log.Error("Ingress Perms : " + ingressErr.Error())
+	if securityGroup.IpPermissionIngress != nil {
+		_, ingressErr := ec2Session.RevokeSecurityGroupIngress(
+			&ec2.RevokeSecurityGroupIngressInput{
+				GroupId:       aws.String(securityGroup.Id),
+				IpPermissions: securityGroup.IpPermissionIngress,
+			})
+		if ingressErr != nil {
+			log.Error("Ingress Perms : " + ingressErr.Error())
+		}
 	}
 
-	_, egressErr := ec2Session.RevokeSecurityGroupEgress(
-		&ec2.RevokeSecurityGroupEgressInput{
-			GroupId:       aws.String(securityGroup.Id),
-			IpPermissions: securityGroup.IpPermissionEgress,
-		})
+	if securityGroup.IpPermissionEgress != nil {
+		_, egressErr := ec2Session.RevokeSecurityGroupEgress(
+			&ec2.RevokeSecurityGroupEgressInput{
+				GroupId:       aws.String(securityGroup.Id),
+				IpPermissions: securityGroup.IpPermissionEgress,
+			})
 
-	if egressErr != nil {
-		log.Error("Egress Perms : " + egressErr.Error())
+		if egressErr != nil {
+			log.Error("Egress Perms : " + egressErr.Error())
+		}
 	}
-
 }
+
+

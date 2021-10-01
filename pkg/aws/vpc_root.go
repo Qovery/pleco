@@ -16,6 +16,8 @@ type VpcInfo struct {
 	InternetGateways []InternetGateway
 	Subnets          []Subnet
 	RouteTables      []RouteTable
+	ElasticIps []ElasticIp
+	NetworkInterfaces []NetworkInterface
 	Status           string
 	TTL              int64
 	Tag              string
@@ -113,7 +115,7 @@ func listTaggedVPC(ec2Session ec2.EC2, tagName string) ([]VpcInfo, error) {
 	return taggedVPCs, nil
 }
 
-func deleteVPC(ec2Session ec2.EC2, VpcList []VpcInfo, dryRun bool) error {
+func deleteVPC(sessions *AWSSessions, VpcList []VpcInfo, dryRun bool) error {
 	if dryRun {
 		return nil
 	}
@@ -122,9 +124,13 @@ func deleteVPC(ec2Session ec2.EC2, VpcList []VpcInfo, dryRun bool) error {
 		return nil
 	}
 
-	region := *ec2Session.Config.Region
+	ec2Session := *sessions.EC2
+	region := ec2Session.Config.Region
 
 	for _, vpc := range VpcList {
+		DeleteLoadBalancerByVpcId(*sessions.ELB, vpc, dryRun)
+		DeleteNetworkInterfacesByVpcId(ec2Session, *vpc.VpcId)
+		ReleaseElasticIps(ec2Session, vpc.ElasticIps)
 		DeleteSecurityGroupsByIds(ec2Session, vpc.SecurityGroups)
 		DeleteNatGatewaysByIds(ec2Session, vpc.NatGateways)
 		DeleteInternetGatewaysByIds(ec2Session, vpc.InternetGateways, *vpc.VpcId)
@@ -162,7 +168,7 @@ func DeleteExpiredVPC(sessions *AWSSessions, options *AwsOptions) {
 
 	log.Debug(start)
 
-	_ = deleteVPC(*sessions.EC2, VPCs, options.DryRun)
+	_ = deleteVPC(sessions, VPCs, options.DryRun)
 
 }
 
@@ -170,6 +176,10 @@ func getCompleteVpc(ec2Session ec2.EC2, vpc *VpcInfo, tagName string) {
 	var waitGroup sync.WaitGroup
 	waitGroup.Add(1)
 	go SetSecurityGroupsIdsByVpcId(ec2Session, vpc, &waitGroup, tagName)
+	waitGroup.Add(1)
+	go SetNetworkInterfacesByVpcId(ec2Session, vpc, &waitGroup)
+	waitGroup.Add(1)
+	go SetElasticIpsByVpcId(ec2Session, vpc, &waitGroup, tagName)
 	waitGroup.Add(1)
 	go SetNatGatewaysIdsByVpcId(ec2Session, vpc, &waitGroup, tagName)
 	waitGroup.Add(1)

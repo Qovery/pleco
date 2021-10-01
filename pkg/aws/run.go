@@ -81,24 +81,19 @@ func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options
 
 	// RDS
 	if options.EnableRDS {
-		options.EnableRDS = true
 		sessions.RDS = RdsSession(*currentSession, region)
-
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredRDSDatabases)
 	}
 
 	// DocumentDB connection
 	if options.EnableDocumentDB {
-		options.EnableRDS = true
 		sessions.RDS = RdsSession(*currentSession, region)
-
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredDocumentDBClusters)
 	}
 
 	// Elasticache connection
 	if options.EnableElastiCache {
 		sessions.ElastiCache = ElasticacheSession(*currentSession, region)
-
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredElasticacheDatabases)
 	}
 
@@ -119,56 +114,44 @@ func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options
 	if options.EnableELB {
 		sessions.EKS = eks.New(currentSession)
 		sessions.ELB = elbv2.New(currentSession)
-
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredLoadBalancers)
 	}
 
 	// EBS connection
 	if options.EnableEBS {
-		options.EnableEBS = true
 		sessions.EKS = eks.New(currentSession)
 		sessions.EC2 = ec2.New(currentSession)
-
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredVolumes)
 	}
 
 	// VPC
 	if options.EnableVPC {
-		options.EnableEBS = true
 		sessions.EC2 = ec2.New(currentSession)
-		sessions.RDS = RdsSession(*currentSession, region)
-
+		sessions.ELB = elbv2.New(currentSession)
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredVPC, DeleteExpiredElasticIps)
 	}
 
 	// Cloudwatch
 	if options.EnableCloudWatchLogs {
 		sessions.CloudWatchLogs = cloudwatchlogs.New(currentSession)
-		sessions.EKS = eks.New(currentSession)
-
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredLogs, DeleteUnlinkedLogs)
 	}
 
 	// KMS
 	if options.EnableKMS {
 		sessions.KMS = kms.New(currentSession)
-
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredKeys)
 	}
 
 	// SSH
 	if options.EnableSSH {
-		options.EnableEBS = true
 		sessions.EC2 = ec2.New(currentSession)
-
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredKeyPairs)
 	}
 
 	// ECR
 	if options.EnableECR {
-		options.EnableEBS = true
 		sessions.ECR = ecr.New(currentSession)
-
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteEmptyRepositories)
 	}
 
