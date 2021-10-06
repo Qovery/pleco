@@ -24,6 +24,7 @@ type ScalewayOptions struct {
 	EnableBucket  bool
 	EnableLB      bool
 	EnableVolume  bool
+	EnableSG      bool
 }
 
 type ScalewaySessions struct {
@@ -33,6 +34,7 @@ type ScalewaySessions struct {
 	LoadBalancer *lb.API
 	Volume       *instance.API
 	Bucket       *minio.Client
+	SG           *instance.API
 }
 
 type funcDeleteExpired func(sessions *ScalewaySessions, options *ScalewayOptions)
@@ -93,6 +95,12 @@ func runPlecoInZone(zone string, interval int64, wg *sync.WaitGroup, options *Sc
 		sessions.Volume = instance.NewAPI(currentSession)
 
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredVolumes)
+	}
+
+	if options.EnableSG {
+		sessions.SG = instance.NewAPI(currentSession)
+
+		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteDetachedSecurityGroups)
 	}
 
 	for {

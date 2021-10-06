@@ -53,6 +53,7 @@ sclawayFeatures:
   lb: false
   db: false
   volume: false
+  sg: false
 
 imagePullSecrets: []
 nameOverride: ""

@@ -117,6 +117,9 @@ spec:
             {{ if eq .Values.sclawayFeatures.volume true }}
             - --enable-volume
             {{ end }}
+            {{ if eq .Values.sclawayFeatures.sg true }}
+            - --enable-volume
+            {{ end }}
             {{- end }}
           env:
             - name: "AWS_EXECUTION_ENV"
