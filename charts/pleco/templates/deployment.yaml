@@ -98,9 +98,9 @@ spec:
 
 #            Scaleway features
             {{ if eq .Values.cloudProvider "scaleway" }}
-            {{ if .Values.scwFeatures.scalewayZones }}
+            {{ if .Values.scwFeatures.scwZones }}
             - --scw-zones
-            - "{{ join "," .Values.scwFeatures.scalewayZones }}"
+            - "{{ join "," .Values.scwFeatures.scwZones }}"
             {{ end }}
             {{ if eq .Values.scwFeatures.cr true}}
             - --enable-cr
