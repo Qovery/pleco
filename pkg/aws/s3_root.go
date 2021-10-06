@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	log "github.com/sirupsen/logrus"
+	"strings"
 	"time"
 )
 
@@ -49,7 +50,7 @@ func listTaggedBuckets(s3Session s3.S3, tagName string) ([]s3Bucket, error) {
 				Bucket: aws.String(*bucket.Name),
 			})
 
-		if tagErr != nil {
+		if tagErr != nil && !strings.Contains(tagErr.Error(), "NoSuchTagSet"){
 			log.Errorf("Tag error for bucket %s: %s", *bucket.Name, tagErr.Error())
 			continue
 		}
