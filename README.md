@@ -52,6 +52,7 @@ NOTE: this project is used in Qovery's production environment
   - [X] Namespaces
   - [X] Detached volumes
   - [X] S3 Buckets
+  - [X] Unused Security Groups
 - [ ] DIGITAL OCEAN
 - [ ] AZURE
 - [ ] GCP
@@ -163,5 +164,5 @@ Here are some of the resources you can check:
 
 #### Example
 ```bash
-pleco start scaleway --level debug -i 240 -a fr-par -e -r -o -l -b -y
+pleco start scaleway --level debug -i 240 -a fr-par -e -r -o -l -b -s -p -y
 ```
