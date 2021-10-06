@@ -47,7 +47,6 @@ func listBuckets(bucketApi *minio.Client, tagName string, region scw.Region) []S
 	for _, bucket := range buckets {
 		objectsInfos := listBucketObjects(bucketApi, ctx, bucket.Name)
 
-
 		creationDate, _ := time.Parse(time.RFC3339, bucket.CreationDate.Format(time.RFC3339))
 		scwBuckets = append(scwBuckets, ScalewatBucket{
 			Name:         bucket.Name,
@@ -76,7 +75,7 @@ func getExpiredBuckets(bucketApi *minio.Client, tagName string, region scw.Regio
 
 	expiredBuckets := []ScalewatBucket{}
 	for _, bucket := range buckets {
-		if len(bucket.ObjectsInfos) == 0 && bucket.CreationDate.Add(168 * time.Hour).Before(time.Now()) {
+		if len(bucket.ObjectsInfos) == 0 && bucket.CreationDate.Add(168*time.Hour).Before(time.Now()) {
 			expiredBuckets = append(expiredBuckets, bucket)
 		}
 	}

@@ -10,19 +10,19 @@ import (
 )
 
 type VpcInfo struct {
-	VpcId            *string
-	SecurityGroups   []SecurityGroup
-	NatGateways      []NatGateway
-	InternetGateways []InternetGateway
-	Subnets          []Subnet
-	RouteTables      []RouteTable
-	ElasticIps []ElasticIp
+	VpcId             *string
+	SecurityGroups    []SecurityGroup
+	NatGateways       []NatGateway
+	InternetGateways  []InternetGateway
+	Subnets           []Subnet
+	RouteTables       []RouteTable
+	ElasticIps        []ElasticIp
 	NetworkInterfaces []NetworkInterface
-	Status           string
-	TTL              int64
-	Tag              string
-	CreationDate     time.Time
-	IsProtected      bool
+	Status            string
+	TTL               int64
+	Tag               string
+	CreationDate      time.Time
+	IsProtected       bool
 }
 
 func GetVpcsIdsByClusterNameTag(ec2Session ec2.EC2, clusterName string) []*string {

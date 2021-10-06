@@ -8,8 +8,8 @@ import (
 )
 
 type NetworkInterface struct {
-	Id string
-	VpcId string
+	Id           string
+	VpcId        string
 	AttachmentId string
 }
 
@@ -26,7 +26,7 @@ func DeleteNetworkInterfacesByVpcId(ec2Session ec2.EC2, vpcId string) {
 }
 
 func listNetworkInterfacesByVpcId(ec2Session ec2.EC2, vpcId string) []NetworkInterface {
-	result , err := ec2Session.DescribeNetworkInterfaces(&ec2.DescribeNetworkInterfacesInput{
+	result, err := ec2Session.DescribeNetworkInterfaces(&ec2.DescribeNetworkInterfacesInput{
 		Filters: []*ec2.Filter{
 			{
 				Name:   aws.String("vpc-id"),
@@ -38,11 +38,11 @@ func listNetworkInterfacesByVpcId(ec2Session ec2.EC2, vpcId string) []NetworkInt
 		logrus.Errorf("Can't list Network interface in region %s: %s.", *ec2Session.Config.Region, err.Error())
 	}
 
-	NIs :=  []NetworkInterface{}
+	NIs := []NetworkInterface{}
 	for _, ni := range result.NetworkInterfaces {
 		NI := NetworkInterface{
-			Id: *ni.NetworkInterfaceId,
-			VpcId:        *ni.VpcId,
+			Id:    *ni.NetworkInterfaceId,
+			VpcId: *ni.VpcId,
 		}
 
 		if ni.Attachment != nil {

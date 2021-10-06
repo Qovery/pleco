@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-func CreateSession(zone scw.Zone) *scw.Client {
+func CreateSessionWithZone(zone scw.Zone) *scw.Client {
 	region, zoneErr := zone.Region()
 	if zoneErr != nil {
 		logrus.Fatalf("Unknown zone %s: %s", zone.String(), zoneErr.Error())
@@ -31,8 +31,21 @@ func CreateSession(zone scw.Zone) *scw.Client {
 	return client
 }
 
+func CreateSessionWithRegion(region scw.Region) *scw.Client {
+	client, err := scw.NewClient(
+		scw.WithDefaultRegion(region),
+		scw.WithAuth(os.Getenv("SCW_ACCESS_KEY"), os.Getenv("SCW_SECRET_KEY")),
+	)
+	if err != nil {
+		logrus.Errorf("Can't connect to Scaleway: %s", err)
+		os.Exit(1)
+	}
+
+	return client
+}
+
 func CreateMinIOSession(scwSession *scw.Client) *minio.Client {
-	region, _:= scwSession.GetDefaultRegion()
+	region, _ := scwSession.GetDefaultRegion()
 	endpoint := fmt.Sprintf("s3.%s.scw.cloud", region)
 	access, _ := scwSession.GetAccessKey()
 	secret, _ := scwSession.GetSecretKey()
@@ -60,4 +73,15 @@ func volumeTimeout() time.Duration {
 	}
 
 	return 2
+}
+
+func GetRegionfromZone(zone string) string {
+	scwZone := scw.Zone(zone)
+	scwRegion, err := scwZone.Region()
+	if err != nil {
+		logrus.Errorf("Can't get region for zone %s: %s", zone, err.Error())
+		return ""
+	}
+
+	return string(scwRegion)
 }

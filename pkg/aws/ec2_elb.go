@@ -14,7 +14,7 @@ type ElasticLoadBalancer struct {
 	Arn          string
 	Name         string
 	Status       string
-	VpcId string
+	VpcId        string
 	IsProtected  bool
 	CreationDate time.Time
 	TTL          int64
@@ -113,7 +113,7 @@ func ListLoadBalancers(lbSession elbv2.ELBV2) ([]ElasticLoadBalancer, error) {
 			Arn:    *currentLb.LoadBalancerArn,
 			Name:   *currentLb.LoadBalancerName,
 			Status: *currentLb.State.Code,
-			VpcId: *currentLb.VpcId,
+			VpcId:  *currentLb.VpcId,
 		})
 	}
 

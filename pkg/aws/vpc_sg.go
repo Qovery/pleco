@@ -103,5 +103,3 @@ func deleteIpPermissions(ec2Session ec2.EC2, securityGroup SecurityGroup) {
 		}
 	}
 }
-
-

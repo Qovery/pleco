@@ -43,23 +43,19 @@ func getVolumes(volumeAPI *instance.API, zone string) []ScalewayVolume {
 
 	volumes := []ScalewayVolume{}
 	for _, volume := range result.Volumes {
-		creationDate, _ := time.Parse(time.RFC3339, volume.ModificationDate.Format(time.RFC3339))
-		if volume.Server == nil {
-			volumes = append(volumes, ScalewayVolume{
-				ID:        volume.ID,
-				Name:      volume.Name,
-				UpdatedAt: creationDate,
-				ServerId:  "null",
-			})
-			continue
-		}
-
-		volumes = append(volumes, ScalewayVolume{
+		updateDate, _ := time.Parse(time.RFC3339, volume.ModificationDate.Format(time.RFC3339))
+		v := ScalewayVolume{
 			ID:        volume.ID,
 			Name:      volume.Name,
-			UpdatedAt: creationDate,
-			ServerId:  volume.Server.ID,
-		})
+			UpdatedAt: updateDate,
+			ServerId:  "null",
+		}
+
+		if volume.Server != nil {
+			v.ServerId = volume.Server.ID
+		}
+
+		volumes = append(volumes, v)
 	}
 
 	return volumes

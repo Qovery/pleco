@@ -17,7 +17,7 @@ type ScalewayOptions struct {
 	TagName       string
 	DryRun        bool
 	Zone          string
-	Region scw.Region
+	Region        scw.Region
 	EnableCluster bool
 	EnableDB      bool
 	EnableCR      bool
@@ -38,17 +38,26 @@ type ScalewaySessions struct {
 type funcDeleteExpired func(sessions *ScalewaySessions, options *ScalewayOptions)
 
 func RunPlecoScaleway(zones []string, interval int64, wg *sync.WaitGroup, options *ScalewayOptions) {
+	enabledRegions := make(map[string]string)
 	for _, zone := range zones {
+		if region := GetRegionfromZone(zone); region != "" {
+			enabledRegions[region] = region
+		}
 		wg.Add(1)
-		go runPlecoInRegion(zone, interval, wg, options)
+		go runPlecoInZone(zone, interval, wg, options)
+	}
+
+	for _, enabledRegion := range enabledRegions {
+		wg.Add(1)
+		go runPlecoInRegion(enabledRegion, interval, wg, options)
 	}
 }
 
-func runPlecoInRegion(zone string, interval int64, wg *sync.WaitGroup, options *ScalewayOptions) {
+func runPlecoInZone(zone string, interval int64, wg *sync.WaitGroup, options *ScalewayOptions) {
 	defer wg.Done()
 	scwZone := scw.Zone(zone)
 	sessions := &ScalewaySessions{}
-	currentSession := CreateSession(scwZone)
+	currentSession := CreateSessionWithZone(scwZone)
 	options.Zone = zone
 	options.Region, _ = scwZone.Region()
 
@@ -86,6 +95,22 @@ func runPlecoInRegion(zone string, interval int64, wg *sync.WaitGroup, options *
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredVolumes)
 	}
 
+	for {
+		for _, check := range listServiceToCheckStatus {
+			check(sessions, options)
+		}
+
+		time.Sleep(time.Duration(interval) * time.Second)
+	}
+}
+
+func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options *ScalewayOptions) {
+	defer wg.Done()
+	sessions := &ScalewaySessions{}
+	options.Region = scw.Region(region)
+	currentSession := CreateSessionWithRegion(options.Region)
+
+	var listServiceToCheckStatus []funcDeleteExpired
 	if options.EnableBucket {
 		sessions.Bucket = CreateMinIOSession(currentSession)
 
@@ -99,5 +124,4 @@ func runPlecoInRegion(zone string, interval int64, wg *sync.WaitGroup, options *
 
 		time.Sleep(time.Duration(interval) * time.Second)
 	}
-
 }

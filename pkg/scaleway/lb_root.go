@@ -38,7 +38,7 @@ func listLBs(lbAPI *lb.API, tagName string) ([]ScalewayLB, string) {
 	result, err := lbAPI.ListLBs(input)
 	if err != nil {
 		log.Errorf("Can't list load balancers in region %s: %s", input.Region.String(), err.Error())
-		return []ScalewayLB{},  input.Region.String()
+		return []ScalewayLB{}, input.Region.String()
 	}
 
 	loadBalancers := []ScalewayLB{}
