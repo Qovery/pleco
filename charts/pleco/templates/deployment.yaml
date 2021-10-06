@@ -118,7 +118,7 @@ spec:
             - --enable-volume
             {{ end }}
             {{ if eq .Values.scwFeatures.sg true }}
-            - --enable-volume
+            - --enable-sg
             {{ end }}
             {{- end }}
           env:
