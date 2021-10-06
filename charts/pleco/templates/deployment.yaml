@@ -98,23 +98,26 @@ spec:
 
 #            Scaleway features
             {{ if eq .Values.cloudProvider "scaleway" }}
-            {{ if .Values.sclawayFeatures.scalewayZones }}
+            {{ if .Values.scwFeatures.scalewayZones }}
             - --scw-zones
-            - "{{ join "," .Values.sclawayFeatures.scalewayZones }}"
+            - "{{ join "," .Values.scwFeatures.scalewayZones }}"
             {{ end }}
-            {{ if eq .Values.sclawayFeatures.cr true}}
+            {{ if eq .Values.scwFeatures.cr true}}
             - --enable-cr
             {{ end }}
-            {{ if eq .Values.sclawayFeatures.cluster true }}
+            {{ if eq .Values.scwFeatures.cluster true }}
             - --enable-cluster
             {{ end }}
-            {{ if eq .Values.sclawayFeatures.lb true }}
+            {{ if eq .Values.scwFeatures.lb true }}
             - --enable-lb
             {{ end }}
-            {{ if eq .Values.sclawayFeatures.db true }}
+            {{ if eq .Values.scwFeatures.db true }}
             - --enable-db
             {{ end }}
-            {{ if eq .Values.sclawayFeatures.volume true }}
+            {{ if eq .Values.scwFeatures.volume true }}
+            - --enable-volume
+            {{ end }}
+            {{ if eq .Values.scwFeatures.sg true }}
             - --enable-volume
             {{ end }}
             {{- end }}

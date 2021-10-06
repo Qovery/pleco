@@ -83,5 +83,5 @@ func GetRegionfromZone(zone string) string {
 		return ""
 	}
 
-	return string(scwRegion)
+	return scwRegion.String()
 }

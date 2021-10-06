@@ -76,6 +76,7 @@ func startScaleway(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.Wai
 		EnableBucket:  getCmdBool(cmd, "enable-s3"),
 		EnableLB:      getCmdBool(cmd, "enable-lb"),
 		EnableVolume:  getCmdBool(cmd, "enable-volume"),
+		EnableSG:      getCmdBool(cmd, "enable-sg"),
 	}
 	scaleway.RunPlecoScaleway(zones, interval, wg, scalewayOptions)
 	wg.Done()
