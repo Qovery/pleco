@@ -14,6 +14,7 @@ type elasticacheCluster struct {
 	ReplicationGroupId string
 	ClusterCreateTime  time.Time
 	ClusterStatus      string
+	SubnetGroup string
 	TTL                int64
 	IsProtected        bool
 }
@@ -55,12 +56,12 @@ func listTaggedElasticacheDatabases(svc elasticache.ElastiCache, tagName string)
 
 		essentialTags := common.GetEssentialTags(tags.TagList, tagName)
 		time, _ := time.Parse(time.RFC3339, cluster.CacheClusterCreateTime.Format(time.RFC3339))
-
 		taggedClusters = append(taggedClusters, elasticacheCluster{
 			ClusterIdentifier:  *cluster.CacheClusterId,
 			ReplicationGroupId: replicationGroupId,
 			ClusterCreateTime:  time,
 			ClusterStatus:      *cluster.CacheClusterStatus,
+			SubnetGroup : *cluster.CacheSubnetGroupName,
 			TTL:                essentialTags.TTL,
 			IsProtected:        essentialTags.IsProtected,
 		})
@@ -104,12 +105,11 @@ func deleteElasticacheCluster(svc elasticache.ElastiCache, cluster elasticacheCl
 	return nil
 }
 
-func DeleteExpiredElasticacheDatabases(sessions *AWSSessions, options *AwsOptions) {
-	clusters, err := listTaggedElasticacheDatabases(*sessions.ElastiCache, options.TagName)
-	region := *sessions.ElastiCache.Config.Region
+func getExpireddClusters(ECsession *elasticache.ElastiCache, tagName string) ([]elasticacheCluster, string) {
+	clusters, err := listTaggedElasticacheDatabases(*ECsession, tagName)
+	region := *ECsession.Config.Region
 	if err != nil {
-		log.Errorf("can't list Elasticache databases: %s\n", err)
-		return
+		log.Errorf("can't list Elasticache databases in region %s: %s", region, err.Error())
 	}
 
 	var expiredClusters []elasticacheCluster
@@ -118,6 +118,12 @@ func DeleteExpiredElasticacheDatabases(sessions *AWSSessions, options *AwsOption
 			expiredClusters = append(expiredClusters, cluster)
 		}
 	}
+
+	return expiredClusters, region
+}
+
+func DeleteExpiredElasticacheDatabases(sessions *AWSSessions, options *AwsOptions) {
+	expiredClusters, region := getExpireddClusters(sessions.ElastiCache, options.TagName)
 
 	count, start := common.ElemToDeleteFormattedInfos("expired Elasticache database", len(expiredClusters), region)
 
@@ -130,11 +136,22 @@ func DeleteExpiredElasticacheDatabases(sessions *AWSSessions, options *AwsOption
 	log.Debug(start)
 
 	for _, cluster := range expiredClusters {
+		deleteESSubnetGRoups(*sessions.ElastiCache, cluster.SubnetGroup)
 		deletionErr := deleteElasticacheCluster(*sessions.ElastiCache, cluster)
 		if deletionErr != nil {
-			log.Errorf("Deletion Elasticache cluster error %s/%s: %s",
-				cluster.ClusterIdentifier, region, err)
+			log.Errorf("Deletion Elasticache cluster error %s/%s: %s", cluster.ClusterIdentifier, region, deletionErr.Error())
 		}
 	}
+}
 
+func deleteESSubnetGRoups(ECsession elasticache.ElastiCache, subnetGroupName string) {
+	_, err := ECsession.DeleteCacheSubnetGroup(
+		&elasticache.DeleteCacheSubnetGroupInput{
+			CacheSubnetGroupName: aws.String(subnetGroupName),
+		},
+	)
+
+	if err != nil {
+		log.Errorf("Can't delete elasticache subnet group %s: %s", subnetGroupName, err.Error())
+	}
 }

@@ -22,7 +22,7 @@ NOTE: this project is used in Qovery's production environment
   - [X] Document DB databases
   - [X] Document DB subnet groups
   - [X] Elasticache databases
-  - [ ] Elasticache subnet groups
+  - [X] Elasticache subnet groups
   - [X] RDS databases
   - [X] RDS subnet groups
   - [X] RDS parameter groups
