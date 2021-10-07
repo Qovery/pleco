@@ -19,6 +19,15 @@ type rdsDatabase struct {
 	SubnetGroup          *rds.DBSubnetGroup
 }
 
+type RDSSubnetGroup struct {
+	ID           string
+	Name         string
+	CreationDate time.Time
+	TTL          int64
+	IsProtected  bool
+	Tag          string
+}
+
 func RdsSession(sess session.Session, region string) *rds.RDS {
 	return rds.New(&sess, &aws.Config{Region: aws.String(region)})
 }
@@ -166,5 +175,68 @@ func deleteRDSParameterGroups(svc rds.RDS, dbParameterGroupName string) {
 
 	if err != nil {
 		log.Errorf("Can't delete RDS parameter group %s in region %s: %s", dbParameterGroupName, *svc.Config.Region, err.Error())
+	}
+}
+
+func listRDSSubnetGroups(svc rds.RDS) []*rds.DBSubnetGroup {
+	result, err := svc.DescribeDBSubnetGroups(
+		&rds.DescribeDBSubnetGroupsInput{})
+
+	if err != nil {
+		log.Errorf("Can't list RDS subnet groups in region %s: %s", *svc.Config.Region, err.Error())
+	}
+
+	return result.DBSubnetGroups
+}
+
+func getRDSSubnetGroupTags(svc rds.RDS, subnetGroupName string) []*rds.Tag {
+	result, err := svc.ListTagsForResource(
+		&rds.ListTagsForResourceInput{ResourceName: aws.String(subnetGroupName)})
+
+	if err != nil {
+		log.Errorf("Can't get RDS subnet groups tags for %s: %s", subnetGroupName, err.Error())
+	}
+
+	return result.TagList
+}
+
+func getExpiredRDSSubnetGroups(svc rds.RDS, tagName string) []RDSSubnetGroup {
+	SGs := listRDSSubnetGroups(svc)
+
+	expiredRDSSubnetGroups := []RDSSubnetGroup{}
+	for _, SG := range SGs {
+		tags := getRDSSubnetGroupTags(svc, *SG.DBSubnetGroupArn)
+		essentialTags := common.GetEssentialTags(tags, tagName)
+		if common.CheckIfExpired(essentialTags.CreationDate, essentialTags.TTL, "DB subnet group"+*SG.DBSubnetGroupName) && !essentialTags.IsProtected {
+			expiredRDSSubnetGroups = append(expiredRDSSubnetGroups, RDSSubnetGroup{
+				ID:           *SG.DBSubnetGroupArn,
+				Name:         *SG.DBSubnetGroupName,
+				CreationDate: essentialTags.CreationDate,
+				TTL:          essentialTags.TTL,
+				IsProtected:  essentialTags.IsProtected,
+				Tag:          essentialTags.Tag,
+			})
+		}
+	}
+
+	return expiredRDSSubnetGroups
+}
+
+func DeleteExpiredRDSSubnetGroups(sessions *AWSSessions, options *AwsOptions) {
+	region := *sessions.RDS.Config.Region
+	expiredRDSSubnetGroups := getExpiredRDSSubnetGroups(*sessions.RDS, options.TagName)
+
+	count, start := common.ElemToDeleteFormattedInfos("expired RDS subnet group", len(expiredRDSSubnetGroups), region)
+
+	log.Debug(count)
+
+	if options.DryRun || len(expiredRDSSubnetGroups) == 0 {
+		return
+	}
+
+	log.Debug(start)
+
+	for _, expiredRDSSubnetGroup := range expiredRDSSubnetGroups {
+		DeleteRDSSubnetGroup(*sessions.RDS, expiredRDSSubnetGroup.Name)
 	}
 }
