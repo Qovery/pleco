@@ -12,6 +12,7 @@ type documentDBCluster struct {
 	DBClusterIdentifier string
 	DBClusterMembers    []string
 	ClusterCreateTime   time.Time
+	SubnetGroupName     string
 	Status              string
 	TTL                 int64
 	IsProtected         bool
@@ -46,6 +47,7 @@ func listExpiredDocumentDBClusters(svc rds.RDS, tagName string) []documentDBClus
 				DBClusterIdentifier: *cluster.DBClusterIdentifier,
 				DBClusterMembers:    instances,
 				ClusterCreateTime:   time,
+				SubnetGroupName:     *cluster.DBSubnetGroup,
 				Status:              *cluster.Status,
 				TTL:                 essentialTags.TTL,
 				IsProtected:         essentialTags.IsProtected,
@@ -113,6 +115,7 @@ func DeleteExpiredDocumentDBClusters(sessions *AWSSessions, options *AwsOptions)
 	log.Debug(start)
 
 	for _, cluster := range expiredClusters {
+		DeleteRDSSubnetGroup(*sessions.RDS, cluster.SubnetGroupName)
 		deletionErr := deleteDocumentDBCluster(*sessions.RDS, cluster, options.DryRun)
 		if deletionErr != nil {
 			log.Errorf("Deletion DocumentDB cluster error %s in %s: %s",

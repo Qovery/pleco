@@ -50,7 +50,7 @@ func listTaggedBuckets(s3Session s3.S3, tagName string) ([]s3Bucket, error) {
 				Bucket: aws.String(*bucket.Name),
 			})
 
-		if tagErr != nil && !strings.Contains(tagErr.Error(), "NoSuchTagSet"){
+		if tagErr != nil && !strings.Contains(tagErr.Error(), "NoSuchTagSet") {
 			log.Errorf("Tag error for bucket %s: %s", *bucket.Name, tagErr.Error())
 			continue
 		}

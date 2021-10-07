@@ -94,7 +94,7 @@ func DeleteRDSDatabase(svc rds.RDS, database rdsDatabase) {
 	if instanceErr != nil {
 		log.Errorf("Can't delete RDS instance %s in %s: %s", database.DBInstanceIdentifier, *svc.Config.Region, instanceErr.Error())
 	} else {
-		deleteRDSSubnetGroup(svc, *database.SubnetGroup.DBSubnetGroupName)
+		DeleteRDSSubnetGroup(svc, *database.SubnetGroup.DBSubnetGroupName)
 
 		for _, parameterGroup := range database.ParameterGroups {
 			deleteRDSParameterGroups(svc, *parameterGroup.DBParameterGroupName)
@@ -147,7 +147,7 @@ func DeleteExpiredRDSDatabases(sessions *AWSSessions, options *AwsOptions) {
 	}
 }
 
-func deleteRDSSubnetGroup(svc rds.RDS, dbSubnetGroupName string) {
+func DeleteRDSSubnetGroup(svc rds.RDS, dbSubnetGroupName string) {
 	_, err := svc.DeleteDBSubnetGroup(
 		&rds.DeleteDBSubnetGroupInput{
 			DBSubnetGroupName: aws.String(dbSubnetGroupName),

@@ -14,7 +14,7 @@ type elasticacheCluster struct {
 	ReplicationGroupId string
 	ClusterCreateTime  time.Time
 	ClusterStatus      string
-	SubnetGroup string
+	SubnetGroup        string
 	TTL                int64
 	IsProtected        bool
 }
@@ -61,7 +61,7 @@ func listTaggedElasticacheDatabases(svc elasticache.ElastiCache, tagName string)
 			ReplicationGroupId: replicationGroupId,
 			ClusterCreateTime:  time,
 			ClusterStatus:      *cluster.CacheClusterStatus,
-			SubnetGroup : *cluster.CacheSubnetGroupName,
+			SubnetGroup:        *cluster.CacheSubnetGroupName,
 			TTL:                essentialTags.TTL,
 			IsProtected:        essentialTags.IsProtected,
 		})
