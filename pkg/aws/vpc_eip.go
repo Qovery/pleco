@@ -126,20 +126,22 @@ func SetElasticIpsByVpcId(ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.Wait
 func responseToStruct(result *ec2.DescribeAddressesOutput, tagName string) []ElasticIp {
 	eips := []ElasticIp{}
 	for _, key := range result.Addresses {
-		if key.AssociationId != nil && key.PublicIp != nil {
-			essentialTags := common.GetEssentialTags(key.Tags, tagName)
-			eip := ElasticIp{
-				Id:            *key.AllocationId,
-				AssociationId: *key.AssociationId,
-				Ip:            *key.PublicIp,
-				CreationDate:  essentialTags.CreationDate,
-				ttl:           essentialTags.TTL,
-				IsProtected:   essentialTags.IsProtected,
-			}
-
-			eips = append(eips, eip)
+		essentialTags := common.GetEssentialTags(key.Tags, tagName)
+		eip := ElasticIp{
+			Id:            *key.AllocationId,
+			AssociationId: "",
+			Ip:            "",
+			CreationDate:  essentialTags.CreationDate,
+			ttl:           essentialTags.TTL,
+			IsProtected:   essentialTags.IsProtected,
 		}
 
+		if key.AssociationId != nil && key.PublicIp != nil {
+			eip.AssociationId = *key.AssociationId
+			eip.Ip = *key.PublicIp
+		}
+
+		eips = append(eips, eip)
 	}
 
 	return eips
