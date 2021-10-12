@@ -3,6 +3,7 @@ package pkg
 import (
 	"github.com/Qovery/pleco/pkg/aws"
 	"github.com/Qovery/pleco/pkg/common"
+	"github.com/Qovery/pleco/pkg/do"
 	"github.com/Qovery/pleco/pkg/k8s"
 	"github.com/Qovery/pleco/pkg/scaleway"
 	log "github.com/sirupsen/logrus"
@@ -38,6 +39,8 @@ func run(cloudProvider string, dryRun bool, interval int64, cmd *cobra.Command, 
 		startAWS(cmd, interval, dryRun, wg)
 	case "scaleway":
 		startScaleway(cmd, interval, dryRun, wg)
+	case "do":
+		startDO(cmd, interval, dryRun, wg)
 	default:
 		log.Fatalf("Unknown cloud provider: %s", cloudProvider)
 	}
@@ -79,6 +82,21 @@ func startScaleway(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.Wai
 		EnableSG:      getCmdBool(cmd, "enable-sg"),
 	}
 	scaleway.RunPlecoScaleway(zones, interval, wg, scalewayOptions)
+	wg.Done()
+}
+
+func startDO(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGroup) {
+	regions, _ := cmd.Flags().GetStringSlice("do-regions")
+	DOOptions := &do.DOOptions{
+		TagName:       getCmdString(cmd, "tag-name"),
+		DryRun:        dryRun,
+		EnableCluster: getCmdBool(cmd, "enable-cluster"),
+		EnableDB:      getCmdBool(cmd, "enable-db"),
+		EnableBucket:  getCmdBool(cmd, "enable-s3"),
+		EnableLB:      getCmdBool(cmd, "enable-lb"),
+		EnableVolume:  getCmdBool(cmd, "enable-volume"),
+	}
+	do.RunPlecoDO(regions, interval, wg, DOOptions)
 	wg.Done()
 }
 

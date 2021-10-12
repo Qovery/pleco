@@ -22,6 +22,8 @@ func CheckEnvVars(cloudProvider string, cmd *cobra.Command) {
 		requiredEnvVars = append(requiredEnvVars, checkAWSEnvVars(cmd)...)
 	case "scaleway":
 		requiredEnvVars = append(requiredEnvVars, checkScalewayEnvVars(cmd)...)
+	case "do":
+		requiredEnvVars = append(requiredEnvVars, checkDOEnvVars(cmd)...)
 	default:
 		log.Fatalf("Unknown cloud provider: %s. Should be \"aws\" or \"scaleway\"", cloudProvider)
 	}
@@ -75,6 +77,24 @@ func checkScalewayEnvVars(cmd *cobra.Command) []string {
 		isUsed(cmd, "cr") ||
 		isUsed(cmd, "lb") ||
 		isUsed(cmd, "sg") ||
+		isUsed(cmd, "volume") {
+		return requiredEnvVars
+	}
+
+	return []string{}
+}
+
+func checkDOEnvVars(cmd *cobra.Command) []string {
+	var requiredEnvVars = []string{
+		"DO_API_TOKEN",
+		"DO_SPACES_KEY",
+		"DO_SPACES_KEY",
+	}
+
+	if isUsed(cmd, "cluster") ||
+		isUsed(cmd, "db") ||
+		isUsed(cmd, "s3") ||
+		isUsed(cmd, "lb") ||
 		isUsed(cmd, "volume") {
 		return requiredEnvVars
 	}

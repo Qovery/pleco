@@ -82,6 +82,11 @@ func GetEssentialTags(tagsInput interface{}, tagName string) EssentialTags {
 				val := strings.SplitN(value, "=", 2)
 				tags = append(tags, MyTag{Key: val[0], Value: val[1]})
 			}
+
+			if strings.Contains(value, ":") {
+				val := strings.SplitN(value, ":", 2)
+				tags = append(tags, MyTag{Key: val[0], Value: val[1]})
+			}
 		}
 	default:
 		log.Debugf("Can't parse tags %s.", tagsInput)

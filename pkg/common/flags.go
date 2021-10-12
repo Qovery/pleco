@@ -8,6 +8,8 @@ func InitFlags(cloudProvider string, startCmd *cobra.Command) {
 		initAWSFlags(startCmd)
 	case "scaleway":
 		initScalewayFlags(startCmd)
+	case "do":
+		initDOFlags(startCmd)
 	}
 }
 
@@ -38,4 +40,13 @@ func initScalewayFlags(startCmd *cobra.Command) {
 	startCmd.Flags().BoolP("enable-volume", "b", false, "Enable volumes watch")
 	startCmd.Flags().BoolP("enable-sg", "p", false, "Enable security groups watch")
 
+}
+
+func initDOFlags(startCmd *cobra.Command) {
+	startCmd.Flags().StringSliceP("do-regions", "a", nil, "Set Digital Ocean regions")
+	startCmd.Flags().BoolP("enable-cluster", "e", false, "Enable Kubernetes clusters watch")
+	startCmd.Flags().BoolP("enable-db", "r", false, "Enable databases watch")
+	startCmd.Flags().BoolP("enable-s3", "s", false, "Enable buckets watch")
+	startCmd.Flags().BoolP("enable-lb", "l", false, "Enable load balancers watch")
+	startCmd.Flags().BoolP("enable-volume", "b", false, "Enable volumes watch")
 }

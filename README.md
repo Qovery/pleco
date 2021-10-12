@@ -49,11 +49,15 @@ NOTE: this project is used in Qovery's production environment
   - [X] Kubernetes clusters
   - [X] Database instances
   - [X] Load balancers
-  - [X] Namespaces
   - [X] Detached volumes
   - [X] S3 Buckets
   - [X] Unused Security Groups
-- [ ] DIGITAL OCEAN
+- [X] DIGITAL OCEAN
+  - [X] Kubernetes clusters
+  - [X] Database instances
+  - [X] Load balancers
+  - [X] Detached volumes
+  - [X] S3 Buckets
 - [ ] AZURE
 - [ ] GCP
 
@@ -76,8 +80,15 @@ $ export AWS_SECRET_ACCESS_KEY=<secret_key>
 ```bash
 $ export SCALEWAY_ACCESS_KEY=<access_key>
 $ export SCALEWAY_SECRET_KEY=<secret_key>
-$ export SCALEWAY_ORGANISATION_ID=<organization_id>
-$ export SCW_VOLUME_TIMEOUT=<delay_before_detached_volume_deletion_in_hours> # default is 2 hours
+$ export SCW_VOLUME_TIMEOUT=<delay_before_detached_volume_deletion_in_hours_since_last_update> # default is 2 hours
+```
+
+#### For Digital Ocean
+```bash
+$ export DO_API_TOKEN=<your_do_api_token>
+$ export DO_SPACES_KEY=<your_do_api_key_for_spaces>
+$ export DO_SPACES_SECRET=<your_do_api_secret_for_spaces>
+$ export DO_VOLUME_TIMEOUT=<delay_before_detached_volume_deletion_in_hours_since_creation> # default is 2 hours
 ```
 ---
 ## Basic command
@@ -164,5 +175,32 @@ Here are some of the resources you can check:
 
 #### Example
 ```bash
-pleco start scaleway --level debug -i 240 -a fr-par -e -r -o -l -b -s -p -y
+pleco start scaleway --level debug -i 240 -a fr-par-1 -e -r -o -l -b -s -p -y
+```
+
+### Digital Ocean options
+#### Region selector
+When pleco's look for expired resources, it will do it by [digital ocean region](https://docs.digitalocean.com/products/platform/availability-matrix/).
+
+You can set zone(s) with:
+```bash
+--do-regions, -a <region(s)>
+```
+
+For example:
+```bash
+-a nyc3
+```
+
+#### Resources Selector
+When pleco is running you have to specify which resources expiration will be checked.
+
+Here are some of the resources you can check:
+```bash
+--enable-cluster, -e # Enable cluster watch
+```
+
+#### Example
+```bash
+pleco start do --level debug -i 240 -a nyc3 -e -r -s -l -b -y
 ```
