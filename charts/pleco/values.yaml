@@ -55,6 +55,14 @@ scwFeatures:
   volume: false
   sg: false
 
+doFeatures:
+  doRegions: [ ]
+  #  - nyc3
+  cluster: flase
+  lb: false
+  db: false
+  volume: false
+
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
