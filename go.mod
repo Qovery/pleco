@@ -7,6 +7,7 @@ replace (
 	github.com/Qovery/pleco/pkg => ./pkg
 	github.com/Qovery/pleco/pkg/aws => ./pkg/aws
 	github.com/Qovery/pleco/pkg/common => ./pkg/common
+	github.com/Qovery/pleco/pkg/do => ./pkg/do
 	github.com/Qovery/pleco/pkg/k8s => ./pkg/k8s
 	github.com/Qovery/pleco/pkg/scaleway => ./pkg/scaleway
 )
@@ -17,10 +18,12 @@ require (
 	github.com/Qovery/pleco/pkg v0.0.0-00010101000000-000000000000 // indirect
 	github.com/Qovery/pleco/pkg/aws v0.0.0-00010101000000-000000000000 // indirect
 	github.com/Qovery/pleco/pkg/common v0.0.0-00010101000000-000000000000 // indirect
+	github.com/Qovery/pleco/pkg/do v0.0.0-00010101000000-000000000000 // indirect
 	github.com/Qovery/pleco/pkg/k8s v0.0.0-00010101000000-000000000000 // indirect
 	github.com/Qovery/pleco/pkg/scaleway v0.0.0-00010101000000-000000000000 // indirect
 	github.com/aws/aws-sdk-go v1.40.49 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/digitalocean/godo v1.69.1 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/go-logr/logr v0.4.0 // indirect
@@ -28,6 +31,7 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.6 // indirect
+	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/google/gofuzz v1.1.0 // indirect
 	github.com/google/uuid v1.1.2 // indirect
 	github.com/googleapis/gnostic v0.5.5 // indirect
