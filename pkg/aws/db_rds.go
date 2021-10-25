@@ -240,3 +240,83 @@ func DeleteExpiredRDSSubnetGroups(sessions *AWSSessions, options *AwsOptions) {
 		DeleteRDSSubnetGroup(*sessions.RDS, expiredRDSSubnetGroup.Name)
 	}
 }
+
+type RDSParameterGroups struct {
+	ID           string
+	Name         string
+	CreationDate time.Time
+	TTL          int64
+	IsProtected  bool
+	Tag          string
+}
+
+func listParametersGroups(svc rds.RDS) []*rds.DBParameterGroup {
+	results, err := svc.DescribeDBParameterGroups(&rds.DescribeDBParameterGroupsInput{})
+
+	if err != nil {
+		log.Errorf("Can't get RDS Parameter Groups in %s: %s", *svc.Config.Region, err.Error())
+		return nil
+	}
+
+	return results.DBParameterGroups
+}
+
+func getCompleteRDSParameterGroups(svc rds.RDS, tagName string) []RDSParameterGroups {
+	results := listParametersGroups(svc)
+
+	completeRDSParameterGroups := []RDSParameterGroups{}
+
+	for _, result := range results {
+		tags, tagsErr := svc.ListTagsForResource(&rds.ListTagsForResourceInput{ResourceName: aws.String(*result.DBParameterGroupArn)})
+
+		if tagsErr != nil {
+			log.Errorf("Can't get RDS Parameter Groups Tags in %s: %s", *svc.Config.Region, tagsErr.Error())
+			return completeRDSParameterGroups
+		}
+
+		essentialTags := common.GetEssentialTags(tags.TagList, tagName)
+
+		completeRDSParameterGroups = append(completeRDSParameterGroups, RDSParameterGroups{
+			ID:           *result.DBParameterGroupArn,
+			Name:         *result.DBParameterGroupName,
+			CreationDate: essentialTags.CreationDate,
+			TTL:          essentialTags.TTL,
+			IsProtected:  essentialTags.IsProtected,
+			Tag:          essentialTags.Tag,
+		})
+	}
+
+	return completeRDSParameterGroups
+}
+
+func listExpiredCompleteRDSParameterGroups(svc rds.RDS, tagName string) []RDSParameterGroups {
+	completeRDSParameterGroups := getCompleteRDSParameterGroups(svc, tagName)
+	expiredCompleteRDSParameterGroups := []RDSParameterGroups{}
+
+	for _, item := range completeRDSParameterGroups {
+		if common.CheckIfExpired(item.CreationDate, item.TTL, "DB Parameter Group"+item.Name) && !item.IsProtected {
+			expiredCompleteRDSParameterGroups = append(expiredCompleteRDSParameterGroups, item)
+		}
+	}
+
+	return expiredCompleteRDSParameterGroups
+}
+
+func DeleteExpiredCompleteRDSParameterGroups(sessions *AWSSessions, options *AwsOptions) {
+	expiredRDSParameterGroups := listExpiredCompleteRDSParameterGroups(*sessions.RDS, options.TagName)
+	region := *sessions.RDS.Config.Region
+
+	count, start := common.ElemToDeleteFormattedInfos("expired RDS Parameter Groups", len(expiredRDSParameterGroups), region)
+
+	log.Debug(count)
+
+	if options.DryRun || len(expiredRDSParameterGroups) == 0 || expiredRDSParameterGroups == nil {
+		return
+	}
+
+	log.Debug(start)
+
+	for _, dbParameterGroup := range expiredRDSParameterGroups {
+		deleteRDSParameterGroups(*sessions.RDS, dbParameterGroup.Name)
+	}
+}
