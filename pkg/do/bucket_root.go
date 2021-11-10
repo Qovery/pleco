@@ -16,7 +16,7 @@ type DOBucket struct {
 	ObjectsInfos []minio.ObjectInfo
 }
 
-func DeleteExpiredBuckets(sessions *DOSessions, options *DOOptions) {
+func DeleteExpiredBuckets(sessions DOSessions, options DOOptions) {
 	expiredBuckets := getExpiredBuckets(sessions.Bucket, options.TagName, options.Region)
 
 	count, start := common.ElemToDeleteFormattedInfos("expired bucket", len(expiredBuckets), options.Region)

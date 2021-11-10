@@ -24,18 +24,18 @@ type DOSessions struct {
 	Bucket *minio.Client
 }
 
-type funcDeleteExpired func(sessions *DOSessions, options *DOOptions)
+type funcDeleteExpired func(sessions DOSessions, options DOOptions)
 
-func RunPlecoDO(regions []string, interval int64, wg *sync.WaitGroup, options *DOOptions) {
+func RunPlecoDO(regions []string, interval int64, wg *sync.WaitGroup, options DOOptions) {
 	for _, region := range regions {
 		wg.Add(1)
 		go runPlecoInRegion(region, interval, wg, options)
 	}
 }
 
-func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options *DOOptions) {
+func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options DOOptions) {
 	defer wg.Done()
-	sessions := &DOSessions{}
+	sessions := DOSessions{}
 	sessions.Client = CreateSession()
 	options.Region = region
 

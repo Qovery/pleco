@@ -48,7 +48,7 @@ func run(cloudProvider string, dryRun bool, interval int64, cmd *cobra.Command, 
 
 func startAWS(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGroup) {
 	regions, _ := cmd.Flags().GetStringSlice("aws-regions")
-	awsOptions := &aws.AwsOptions{
+	awsOptions := aws.AwsOptions{
 		DryRun:               dryRun,
 		TagName:              getCmdString(cmd, "tag-name"),
 		EnableRDS:            getCmdBool(cmd, "enable-rds"),
@@ -70,7 +70,7 @@ func startAWS(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGrou
 
 func startScaleway(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGroup) {
 	zones, _ := cmd.Flags().GetStringSlice("scw-zones")
-	scalewayOptions := &scaleway.ScalewayOptions{
+	scalewayOptions := scaleway.ScalewayOptions{
 		TagName:       getCmdString(cmd, "tag-name"),
 		DryRun:        dryRun,
 		EnableCluster: getCmdBool(cmd, "enable-cluster"),
@@ -87,7 +87,7 @@ func startScaleway(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.Wai
 
 func startDO(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGroup) {
 	regions, _ := cmd.Flags().GetStringSlice("do-regions")
-	DOOptions := &do.DOOptions{
+	DOOptions := do.DOOptions{
 		TagName:       getCmdString(cmd, "tag-name"),
 		DryRun:        dryRun,
 		EnableCluster: getCmdBool(cmd, "enable-cluster"),

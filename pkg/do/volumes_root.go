@@ -15,7 +15,7 @@ type DOVolume struct {
 	CreationDate time.Time
 }
 
-func DeleteExpiredVolumes(sessions *DOSessions, options *DOOptions) {
+func DeleteExpiredVolumes(sessions DOSessions, options DOOptions) {
 	expiredVolumes := getDetachedVolumes(sessions.Client, options.Region)
 
 	count, start := common.ElemToDeleteFormattedInfos(fmt.Sprintf("detached (%d hours delay) volume", volumeTimeout()), len(expiredVolumes), options.Region)

@@ -36,7 +36,7 @@ func getRepositoryImages(ecrSession *ecr.ECR, repositoryName string) []*ecr.Imag
 	return result.ImageDetails
 }
 
-func DeleteEmptyRepositories(sessions *AWSSessions, options *AwsOptions) {
+func DeleteEmptyRepositories(sessions AWSSessions, options AwsOptions) {
 	repositories := getRepositories(sessions.ECR)
 	region := sessions.ECR.Config.Region
 	var emptyRepositoryNames []string

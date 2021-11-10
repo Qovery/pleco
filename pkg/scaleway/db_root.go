@@ -15,10 +15,10 @@ type ScalewayDB struct {
 	IsProtected  bool
 }
 
-func DeleteExpiredDatabases(sessions *ScalewaySessions, options *ScalewayOptions) {
-	expiredDatabases, region := getExpiredDatabases(sessions.Database, options.TagName)
+func DeleteExpiredDatabases(sessions ScalewaySessions, options ScalewayOptions) {
+	expiredDatabases, _ := getExpiredDatabases(sessions.Database, options.TagName)
 
-	count, start := common.ElemToDeleteFormattedInfos("expired database", len(expiredDatabases), region)
+	count, start := common.ElemToDeleteFormattedInfos("expired database", len(expiredDatabases), options.Zone, true)
 
 	log.Debug(count)
 

@@ -100,7 +100,7 @@ func handleKMSError(error error) {
 	}
 }
 
-func DeleteExpiredKeys(sessions *AWSSessions, options *AwsOptions) {
+func DeleteExpiredKeys(sessions AWSSessions, options AwsOptions) {
 	keys := getKeys(*sessions.KMS)
 	region := sessions.KMS.Config.Region
 	var expiredKeys []CompleteKey

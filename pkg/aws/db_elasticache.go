@@ -122,7 +122,7 @@ func getExpireddClusters(ECsession *elasticache.ElastiCache, tagName string) ([]
 	return expiredClusters, region
 }
 
-func DeleteExpiredElasticacheDatabases(sessions *AWSSessions, options *AwsOptions) {
+func DeleteExpiredElasticacheDatabases(sessions AWSSessions, options AwsOptions) {
 	expiredClusters, region := getExpireddClusters(sessions.ElastiCache, options.TagName)
 
 	count, start := common.ElemToDeleteFormattedInfos("expired Elasticache database", len(expiredClusters), region)

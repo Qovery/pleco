@@ -90,7 +90,7 @@ func handleCloudwatchLogsError(err error) {
 	}
 }
 
-func DeleteExpiredLogs(sessions *AWSSessions, options *AwsOptions) {
+func DeleteExpiredLogs(sessions AWSSessions, options AwsOptions) {
 	logs := getCloudwatchLogs(*sessions.CloudWatchLogs)
 	region := *sessions.CloudWatchLogs.Config.Region
 	var expiredLogs []CompleteLogGroup
@@ -150,7 +150,7 @@ func TagLogsForDeletion(svc cloudwatchlogs.CloudWatchLogs, tagName string, clust
 	return nil
 }
 
-func DeleteUnlinkedLogs(sessions *AWSSessions, options *AwsOptions) {
+func DeleteUnlinkedLogs(sessions AWSSessions, options AwsOptions) {
 	region := *sessions.EKS.Config.Region
 	clusters, err := ListClusters(*sessions.EKS)
 	if err != nil {

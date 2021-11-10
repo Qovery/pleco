@@ -100,7 +100,7 @@ func deleteDocumentDBCluster(svc rds.RDS, cluster documentDBCluster, dryRun bool
 	return nil
 }
 
-func DeleteExpiredDocumentDBClusters(sessions *AWSSessions, options *AwsOptions) {
+func DeleteExpiredDocumentDBClusters(sessions AWSSessions, options AwsOptions) {
 	region := *sessions.RDS.Config.Region
 	expiredClusters := listExpiredDocumentDBClusters(*sessions.RDS, options.TagName)
 

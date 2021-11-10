@@ -115,7 +115,7 @@ func listTaggedVPC(ec2Session ec2.EC2, tagName string) ([]VpcInfo, error) {
 	return taggedVPCs, nil
 }
 
-func deleteVPC(sessions *AWSSessions, VpcList []VpcInfo, dryRun bool) error {
+func deleteVPC(sessions AWSSessions, VpcList []VpcInfo, dryRun bool) error {
 	if dryRun {
 		return nil
 	}
@@ -151,7 +151,7 @@ func deleteVPC(sessions *AWSSessions, VpcList []VpcInfo, dryRun bool) error {
 	return nil
 }
 
-func DeleteExpiredVPC(sessions *AWSSessions, options *AwsOptions) {
+func DeleteExpiredVPC(sessions AWSSessions, options AwsOptions) {
 	VPCs, err := listTaggedVPC(*sessions.EC2, options.TagName)
 	region := sessions.EC2.Config.Region
 	if err != nil {

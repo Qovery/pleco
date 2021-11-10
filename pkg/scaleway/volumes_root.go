@@ -15,7 +15,7 @@ type ScalewayVolume struct {
 	ServerId  string
 }
 
-func DeleteExpiredVolumes(sessions *ScalewaySessions, options *ScalewayOptions) {
+func DeleteExpiredVolumes(sessions ScalewaySessions, options ScalewayOptions) {
 	expiredVolumes := getDetachedVolumes(sessions.Volume, options.Zone)
 
 	count, start := common.ElemToDeleteFormattedInfos(fmt.Sprintf("detached (%d hours delay) volume", volumeTimeout()), len(expiredVolumes), options.Zone, true)

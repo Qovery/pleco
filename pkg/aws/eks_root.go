@@ -232,7 +232,7 @@ func deleteNodeGroupStatus(svc eks.EKS, cluster eksCluster, nodeGroupName string
 	return nil
 }
 
-func DeleteExpiredEKSClusters(sessions *AWSSessions, options *AwsOptions) {
+func DeleteExpiredEKSClusters(sessions AWSSessions, options AwsOptions) {
 	clusters, err := ListTaggedEKSClusters(*sessions.EKS, options.TagName)
 	region := *sessions.EKS.Config.Region
 	if err != nil {

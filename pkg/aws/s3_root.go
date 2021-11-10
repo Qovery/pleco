@@ -205,7 +205,7 @@ func deleteS3Buckets(s3session s3.S3, bucket string) error {
 	return nil
 }
 
-func DeleteExpiredBuckets(sessions *AWSSessions, options *AwsOptions) {
+func DeleteExpiredBuckets(sessions AWSSessions, options AwsOptions) {
 	buckets, err := listTaggedBuckets(*sessions.S3, options.TagName)
 	region := sessions.S3.Config.Region
 	if err != nil {

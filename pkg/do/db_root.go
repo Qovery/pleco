@@ -16,7 +16,7 @@ type DODB struct {
 	IsProtected  bool
 }
 
-func DeleteExpiredDatabases(sessions *DOSessions, options *DOOptions) {
+func DeleteExpiredDatabases(sessions DOSessions, options DOOptions) {
 	expiredDatabases := getExpiredDatabases(sessions.Client, options.TagName, options.Region)
 
 	count, start := common.ElemToDeleteFormattedInfos("expired database", len(expiredDatabases), options.Region)

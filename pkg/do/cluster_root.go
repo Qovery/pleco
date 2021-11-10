@@ -16,7 +16,7 @@ type DOCluster struct {
 	IsProtected  bool
 }
 
-func DeleteExpiredClusters(sessions *DOSessions, options *DOOptions) {
+func DeleteExpiredClusters(sessions DOSessions, options DOOptions) {
 	expiredClusters, region := getExpiredClusters(sessions.Client, options.TagName, options.Region)
 
 	count, start := common.ElemToDeleteFormattedInfos("expired cluster", len(expiredClusters), region)

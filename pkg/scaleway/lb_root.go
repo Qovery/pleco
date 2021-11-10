@@ -13,13 +13,13 @@ import (
 type ScalewayLB struct {
 	ID           string
 	Name         string
-	ClusterId string
+	ClusterId    string
 	CreationDate time.Time
 	TTL          int64
 	IsProtected  bool
 }
 
-func DeleteExpiredLBs(sessions *ScalewaySessions, options *ScalewayOptions) {
+func DeleteExpiredLBs(sessions ScalewaySessions, options ScalewayOptions) {
 	expiredLBs, region := getExpiredLBs(sessions.Cluster, sessions.LoadBalancer, options.Region, options.TagName)
 
 	count, start := common.ElemToDeleteFormattedInfos("expired load balancer", len(expiredLBs), region)
@@ -39,7 +39,7 @@ func DeleteExpiredLBs(sessions *ScalewaySessions, options *ScalewayOptions) {
 
 func getLbClusterId(tags []string) string {
 	for _, tag := range tags {
-		if strings.Contains(tag, "cluster="){
+		if strings.Contains(tag, "cluster=") {
 			val := strings.SplitN(tag, "=", 2)
 			return val[1]
 		}
@@ -48,7 +48,7 @@ func getLbClusterId(tags []string) string {
 	return ""
 }
 
-func listUnlinkedLoadBalancers(lbs []ScalewayLB, clusters []ScalewayCluster) []ScalewayLB  {
+func listUnlinkedLoadBalancers(lbs []ScalewayLB, clusters []ScalewayCluster) []ScalewayLB {
 	lbClusterIds := make(map[string]ScalewayLB)
 	var unlinkedLbs []ScalewayLB
 	for _, lb := range lbs {
@@ -84,7 +84,7 @@ func listLBs(lbAPI *lb.API, region scw.Region, tagName string) ([]ScalewayLB, st
 		loadBalancers = append(loadBalancers, ScalewayLB{
 			ID:           lb.ID,
 			Name:         lb.Name,
-			ClusterId: getLbClusterId(lb.Tags),
+			ClusterId:    getLbClusterId(lb.Tags),
 			CreationDate: essentialTags.CreationDate,
 			TTL:          essentialTags.TTL,
 			IsProtected:  essentialTags.IsProtected,
@@ -95,7 +95,7 @@ func listLBs(lbAPI *lb.API, region scw.Region, tagName string) ([]ScalewayLB, st
 }
 
 func getExpiredLBs(clusterAPI *k8s.API, lbAPI *lb.API, region scw.Region, tagName string) ([]ScalewayLB, string) {
-	lbs , _ := listLBs(lbAPI, region, tagName)
+	lbs, _ := listLBs(lbAPI, region, tagName)
 	clusters, _ := ListClusters(clusterAPI, tagName)
 
 	expiredLBs := []ScalewayLB{}
@@ -113,8 +113,8 @@ func getExpiredLBs(clusterAPI *k8s.API, lbAPI *lb.API, region scw.Region, tagNam
 func deleteLB(lbAPI *lb.API, region scw.Region, loadBalancer ScalewayLB) {
 	err := lbAPI.DeleteLB(
 		&lb.DeleteLBRequest{
-			LBID: loadBalancer.ID,
-			Region: region,
+			LBID:      loadBalancer.ID,
+			Region:    region,
 			ReleaseIP: true,
 		},
 	)

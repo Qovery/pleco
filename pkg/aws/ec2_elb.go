@@ -140,7 +140,7 @@ func deleteLoadBalancers(lbSession elbv2.ELBV2, loadBalancersList []ElasticLoadB
 	}
 }
 
-func DeleteExpiredLoadBalancers(sessions *AWSSessions, options *AwsOptions) {
+func DeleteExpiredLoadBalancers(sessions AWSSessions, options AwsOptions) {
 	expiredLoadBalancers, err := ListExpiredLoadBalancers(*sessions.EKS, *sessions.ELB, options.TagName)
 	region := *sessions.ELB.Config.Region
 	if err != nil {

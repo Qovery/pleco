@@ -49,9 +49,9 @@ type AWSSessions struct {
 	ECR            *ecr.ECR
 }
 
-type funcDeleteExpired func(sessions *AWSSessions, options *AwsOptions)
+type funcDeleteExpired func(sessions AWSSessions, options AwsOptions)
 
-func RunPlecoAWS(cmd *cobra.Command, regions []string, interval int64, wg *sync.WaitGroup, options *AwsOptions) {
+func RunPlecoAWS(cmd *cobra.Command, regions []string, interval int64, wg *sync.WaitGroup, options AwsOptions) {
 	for _, region := range regions {
 		wg.Add(1)
 		go runPlecoInRegion(region, interval, wg, options)
@@ -63,10 +63,10 @@ func RunPlecoAWS(cmd *cobra.Command, regions []string, interval int64, wg *sync.
 	go runPlecoInGlobal(cmd, interval, wg, currentSession, options)
 }
 
-func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options *AwsOptions) {
+func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options AwsOptions) {
 	defer wg.Done()
 
-	sessions := &AWSSessions{}
+	sessions := AWSSessions{}
 	currentSession := CreateSession(region)
 
 	logrus.Infof("Starting to check expired resources in region %s.", *currentSession.Config.Region)
@@ -165,7 +165,7 @@ func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options
 
 }
 
-func runPlecoInGlobal(cmd *cobra.Command, interval int64, wg *sync.WaitGroup, currentSession *session.Session, options *AwsOptions) {
+func runPlecoInGlobal(cmd *cobra.Command, interval int64, wg *sync.WaitGroup, currentSession *session.Session, options AwsOptions) {
 	defer wg.Done()
 
 	logrus.Info("Starting to check global expired resources.")

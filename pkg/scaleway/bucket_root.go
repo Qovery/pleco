@@ -17,7 +17,7 @@ type ScalewatBucket struct {
 	ObjectsInfos []minio.ObjectInfo
 }
 
-func DeleteExpiredBuckets(sessions *ScalewaySessions, options *ScalewayOptions) {
+func DeleteExpiredBuckets(sessions ScalewaySessions, options ScalewayOptions) {
 	expiredBuckets := getExpiredBuckets(sessions.Bucket, options.TagName, options.Region)
 
 	count, start := common.ElemToDeleteFormattedInfos("expired bucket", len(expiredBuckets), string(options.Region))

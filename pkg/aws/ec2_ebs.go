@@ -126,7 +126,7 @@ func listExpiredVolumes(eksSession eks.EKS, ec2Session ec2.EC2, tagName string) 
 	return expiredVolumes, nil
 }
 
-func DeleteExpiredVolumes(sessions *AWSSessions, options *AwsOptions) {
+func DeleteExpiredVolumes(sessions AWSSessions, options AwsOptions) {
 	expiredVolumes, err := listExpiredVolumes(*sessions.EKS, *sessions.EC2, options.TagName)
 	region := *sessions.EC2.Config.Region
 	if err != nil {

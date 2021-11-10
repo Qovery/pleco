@@ -137,7 +137,7 @@ func GetRDSInstanceInfos(svc rds.RDS, databaseIdentifier string) (rdsDatabase, e
 	}, nil
 }
 
-func DeleteExpiredRDSDatabases(sessions *AWSSessions, options *AwsOptions) {
+func DeleteExpiredRDSDatabases(sessions AWSSessions, options AwsOptions) {
 	expiredDatabases := listExpiredRDSDatabases(*sessions.RDS, options.TagName)
 	region := *sessions.RDS.Config.Region
 
@@ -222,7 +222,7 @@ func getExpiredRDSSubnetGroups(svc rds.RDS, tagName string) []RDSSubnetGroup {
 	return expiredRDSSubnetGroups
 }
 
-func DeleteExpiredRDSSubnetGroups(sessions *AWSSessions, options *AwsOptions) {
+func DeleteExpiredRDSSubnetGroups(sessions AWSSessions, options AwsOptions) {
 	region := *sessions.RDS.Config.Region
 	expiredRDSSubnetGroups := getExpiredRDSSubnetGroups(*sessions.RDS, options.TagName)
 
@@ -302,7 +302,7 @@ func listExpiredCompleteRDSParameterGroups(svc rds.RDS, tagName string) []RDSPar
 	return expiredCompleteRDSParameterGroups
 }
 
-func DeleteExpiredCompleteRDSParameterGroups(sessions *AWSSessions, options *AwsOptions) {
+func DeleteExpiredCompleteRDSParameterGroups(sessions AWSSessions, options AwsOptions) {
 	expiredRDSParameterGroups := listExpiredCompleteRDSParameterGroups(*sessions.RDS, options.TagName)
 	region := *sessions.RDS.Config.Region
 

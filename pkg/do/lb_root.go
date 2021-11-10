@@ -16,7 +16,7 @@ type DOLB struct {
 	IsProtected  bool
 }
 
-func DeleteExpiredLBs(sessions *DOSessions, options *DOOptions) {
+func DeleteExpiredLBs(sessions DOSessions, options DOOptions) {
 	expiredLBs, region := getExpiredLBs(sessions.Client, options.TagName, options.Region)
 
 	count, start := common.ElemToDeleteFormattedInfos("expired load balancer", len(expiredLBs), region)

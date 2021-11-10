@@ -98,7 +98,7 @@ func getExpiredEIPs(ec2Session *ec2.EC2, tagName string) []ElasticIp {
 	return expiredEips
 }
 
-func DeleteExpiredElasticIps(sessions *AWSSessions, options *AwsOptions) {
+func DeleteExpiredElasticIps(sessions AWSSessions, options AwsOptions) {
 	expiredEips := getExpiredEIPs(sessions.EC2, options.TagName)
 
 	count, start := common.ElemToDeleteFormattedInfos("expired EIP", len(expiredEips), *sessions.EC2.Config.Region)

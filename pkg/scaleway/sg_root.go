@@ -17,10 +17,10 @@ type ScalewaySecurityGroup struct {
 	IsProtected bool
 }
 
-func DeleteDetachedSecurityGroups(sessions *ScalewaySessions, options *ScalewayOptions) {
-	detachedSGs, region := getDetachedSG(sessions.SG)
+func DeleteDetachedSecurityGroups(sessions ScalewaySessions, options ScalewayOptions) {
+	detachedSGs, _ := getDetachedSG(sessions.SG)
 
-	count, start := common.ElemToDeleteFormattedInfos("detached security group", len(detachedSGs), region)
+	count, start := common.ElemToDeleteFormattedInfos("detached security group", len(detachedSGs), options.Zone, true)
 
 	log.Debug(count)
 

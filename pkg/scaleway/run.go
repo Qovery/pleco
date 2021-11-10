@@ -37,9 +37,9 @@ type ScalewaySessions struct {
 	SG           *instance.API
 }
 
-type funcDeleteExpired func(sessions *ScalewaySessions, options *ScalewayOptions)
+type funcDeleteExpired func(sessions ScalewaySessions, options ScalewayOptions)
 
-func RunPlecoScaleway(zones []string, interval int64, wg *sync.WaitGroup, options *ScalewayOptions) {
+func RunPlecoScaleway(zones []string, interval int64, wg *sync.WaitGroup, options ScalewayOptions) {
 	enabledRegions := make(map[string]string)
 	for _, zone := range zones {
 		if region := GetRegionfromZone(zone); region != "" {
@@ -55,10 +55,10 @@ func RunPlecoScaleway(zones []string, interval int64, wg *sync.WaitGroup, option
 	}
 }
 
-func runPlecoInZone(zone string, interval int64, wg *sync.WaitGroup, options *ScalewayOptions) {
+func runPlecoInZone(zone string, interval int64, wg *sync.WaitGroup, options ScalewayOptions) {
 	defer wg.Done()
 	scwZone := scw.Zone(zone)
-	sessions := &ScalewaySessions{}
+	sessions := ScalewaySessions{}
 	currentSession := CreateSessionWithZone(scwZone)
 	options.Zone = zone
 	options.Region, _ = scwZone.Region()
@@ -85,8 +85,6 @@ func runPlecoInZone(zone string, interval int64, wg *sync.WaitGroup, options *Sc
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteEmptyContainerRegistries)
 	}
 
-
-
 	if options.EnableVolume {
 		sessions.Volume = instance.NewAPI(currentSession)
 
@@ -108,9 +106,9 @@ func runPlecoInZone(zone string, interval int64, wg *sync.WaitGroup, options *Sc
 	}
 }
 
-func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options *ScalewayOptions) {
+func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options ScalewayOptions) {
 	defer wg.Done()
-	sessions := &ScalewaySessions{}
+	sessions := ScalewaySessions{}
 	options.Region = scw.Region(region)
 	currentSession := CreateSessionWithRegion(options.Region)
 

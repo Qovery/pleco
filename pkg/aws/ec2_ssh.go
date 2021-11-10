@@ -52,7 +52,7 @@ func deleteKeyPair(ec2session *ec2.EC2, keyId string) error {
 	return err
 }
 
-func DeleteExpiredKeyPairs(sessions *AWSSessions, options *AwsOptions) {
+func DeleteExpiredKeyPairs(sessions AWSSessions, options AwsOptions) {
 	keys := getSshKeys(sessions.EC2, options.TagName)
 	region := sessions.EC2.Config.Region
 	var expiredKeys []KeyPair
