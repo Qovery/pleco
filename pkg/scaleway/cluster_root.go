@@ -33,7 +33,7 @@ func DeleteExpiredClusters(sessions *ScalewaySessions, options *ScalewayOptions)
 	}
 }
 
-func listClusters(clusterAPI *k8s.API, tagName string) ([]ScalewayCluster, string) {
+func ListClusters(clusterAPI *k8s.API, tagName string) ([]ScalewayCluster, string) {
 	input := &k8s.ListClustersRequest{
 		Status: "ready",
 	}
@@ -62,7 +62,7 @@ func listClusters(clusterAPI *k8s.API, tagName string) ([]ScalewayCluster, strin
 }
 
 func getExpiredClusters(clusterAPI *k8s.API, tagName string) ([]ScalewayCluster, string) {
-	clusters, region := listClusters(clusterAPI, tagName)
+	clusters, region := ListClusters(clusterAPI, tagName)
 
 	expiredClusters := []ScalewayCluster{}
 	for _, cluster := range clusters {
@@ -78,6 +78,7 @@ func deleteCluster(clusterAPI *k8s.API, cluster ScalewayCluster) {
 	_, err := clusterAPI.DeleteCluster(
 		&k8s.DeleteClusterRequest{
 			ClusterID: cluster.ID,
+			WithAdditionalResources: true,
 		})
 
 	if err != nil {

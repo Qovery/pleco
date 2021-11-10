@@ -85,11 +85,7 @@ func runPlecoInZone(zone string, interval int64, wg *sync.WaitGroup, options *Sc
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteEmptyContainerRegistries)
 	}
 
-	if options.EnableLB {
-		sessions.LoadBalancer = lb.NewAPI(currentSession)
 
-		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredLBs)
-	}
 
 	if options.EnableVolume {
 		sessions.Volume = instance.NewAPI(currentSession)
@@ -123,6 +119,13 @@ func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options
 		sessions.Bucket = CreateMinIOSession(currentSession)
 
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredBuckets)
+	}
+
+	if options.EnableLB {
+		sessions.Cluster = k8s.NewAPI(currentSession)
+		sessions.LoadBalancer = lb.NewAPI(currentSession)
+
+		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredLBs)
 	}
 
 	for {
