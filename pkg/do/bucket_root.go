@@ -1,23 +1,16 @@
 package do
 
 import (
-	"context"
+	"fmt"
 	"github.com/Qovery/pleco/pkg/common"
+	"github.com/digitalocean/godo"
 	"github.com/minio/minio-go/v7"
 	log "github.com/sirupsen/logrus"
-	"time"
+	"strings"
 )
 
-type DOBucket struct {
-	Name         string
-	CreationDate time.Time
-	TTL          int64
-	IsProtected  bool
-	ObjectsInfos []minio.ObjectInfo
-}
-
 func DeleteExpiredBuckets(sessions DOSessions, options DOOptions) {
-	expiredBuckets := getExpiredBuckets(sessions.Bucket, options.TagName, options.Region)
+	expiredBuckets := emptyBuckets(sessions.Client, sessions.Bucket, options.TagName, options.Region, options.DryRun)
 
 	count, start := common.ElemToDeleteFormattedInfos("expired bucket", len(expiredBuckets), options.Region)
 
@@ -30,61 +23,48 @@ func DeleteExpiredBuckets(sessions DOSessions, options DOOptions) {
 	log.Debug(start)
 
 	for _, expiredBucket := range expiredBuckets {
-		deleteBucket(sessions.Bucket, expiredBucket)
+		common.DeleteBucket(sessions.Bucket, expiredBucket)
 	}
 }
 
-func listBuckets(bucketApi *minio.Client, tagName string, region string) []DOBucket {
-	ctx := context.Background()
-	buckets, err := bucketApi.ListBuckets(ctx)
-	if err != nil {
-		log.Errorf("Can't list bucket for region %s: %s", region, err.Error())
-		return []DOBucket{}
-	}
+func emptyBuckets(doApi *godo.Client, bucketApi *minio.Client, tagName string, region string, dryRun bool) []common.MinioBucket {
+	buckets := getBucketsToEmpty(doApi, bucketApi, tagName, region)
 
-	scwBuckets := []DOBucket{}
 	for _, bucket := range buckets {
-		objectsInfos := listBucketObjects(bucketApi, ctx, bucket.Name)
-
-		creationDate, _ := time.Parse(time.RFC3339, bucket.CreationDate.Format(time.RFC3339))
-		scwBuckets = append(scwBuckets, DOBucket{
-			Name:         bucket.Name,
-			CreationDate: creationDate,
-			TTL:          0,
-			IsProtected:  false,
-			ObjectsInfos: objectsInfos,
-		})
-	}
-
-	return scwBuckets
-}
-
-func listBucketObjects(bucketApi *minio.Client, ctx context.Context, bucketName string) []minio.ObjectInfo {
-	objects := bucketApi.ListObjects(ctx, bucketName, minio.ListObjectsOptions{})
-	objectsInfos := []minio.ObjectInfo{}
-	for object := range objects {
-		objectsInfos = append(objectsInfos, object)
-	}
-
-	return objectsInfos
-}
-
-func getExpiredBuckets(bucketApi *minio.Client, tagName string, region string) []DOBucket {
-	buckets := listBuckets(bucketApi, tagName, region)
-
-	expiredBuckets := []DOBucket{}
-	for _, bucket := range buckets {
-		if len(bucket.ObjectsInfos) == 0 && bucket.CreationDate.Add(168*time.Hour).Before(time.Now()) {
-			expiredBuckets = append(expiredBuckets, bucket)
+		if !dryRun {
+			common.EmptyBucket(bucketApi, bucket.Name, bucket.ObjectsInfos)
 		}
 	}
 
-	return expiredBuckets
+	return buckets
 }
 
-func deleteBucket(bucketApi *minio.Client, bucket DOBucket) {
-	err := bucketApi.RemoveBucket(context.Background(), bucket.Name)
-	if err != nil {
-		log.Errorf("Can't delete bucket %s: %s", bucket.Name, err.Error())
+func getBucketsToEmpty(doApi *godo.Client, bucketApi *minio.Client, tagName string, region string) []common.MinioBucket {
+	buckets := common.GetExpiredBuckets(bucketApi, tagName, region)
+	clusters := listClusters(doApi, tagName, region)
+	_, _ = buckets, clusters
+
+	checkingBuckets := make(map[string]common.MinioBucket)
+	for _, bucket := range buckets {
+		checkingBuckets[bucket.Name] = bucket
 	}
+
+	for _, cluster := range clusters {
+		splitedName := strings.Split(cluster.Name, "-")
+		configName := fmt.Sprintf("%s-kubeconfigs-%s", splitedName[0], splitedName[1])
+		logsName := fmt.Sprintf("%s-logs-%s", splitedName[0], splitedName[1])
+		checkingBuckets[configName] = common.MinioBucket{Name: "keep-me"}
+		checkingBuckets[logsName] =  common.MinioBucket{Name: "keep-me"}
+	}
+
+	emptyBuckets := []common.MinioBucket{}
+	for _, bucket := range checkingBuckets {
+		if !strings.Contains(bucket.Name, "keep-me") {
+			emptyBuckets = append(emptyBuckets, bucket)
+		}
+	}
+
+	return emptyBuckets
 }
+
+
