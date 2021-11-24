@@ -82,7 +82,7 @@ func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options
 	// RDS
 	if options.EnableRDS {
 		sessions.RDS = RdsSession(*currentSession, region)
-		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredRDSDatabases, DeleteExpiredRDSSubnetGroups, DeleteExpiredCompleteRDSParameterGroups)
+		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredRDSDatabases, DeleteExpiredRDSSubnetGroups, DeleteExpiredCompleteRDSParameterGroups, DeleteExpiredSnapshots)
 	}
 
 	// DocumentDB connection

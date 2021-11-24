@@ -26,6 +26,7 @@ NOTE: this project is used in Qovery's production environment
   - [X] RDS databases
   - [X] RDS subnet groups
   - [X] RDS parameter groups
+  - [X] RDS snapshots
   - [X] EBS volumes
   - [X] ELB load balancers
   - [X] EC2 Key pairs

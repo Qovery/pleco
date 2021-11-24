@@ -32,21 +32,27 @@ func RdsSession(sess session.Session, region string) *rds.RDS {
 	return rds.New(&sess, &aws.Config{Region: aws.String(region)})
 }
 
-func listExpiredRDSDatabases(svc rds.RDS, tagName string) []rdsDatabase {
+func listRDSDatabases(svc rds.RDS) []*rds.DBInstance {
 	result, err := svc.DescribeDBInstances(&rds.DescribeDBInstancesInput{})
 
 	if err != nil {
 		log.Errorf("Can't get RDS databases in %s: %s", *svc.Config.Region, err.Error())
-		return nil
+		return []*rds.DBInstance{}
 	}
 
-	if len(result.DBInstances) == 0 {
+	return result.DBInstances
+}
+
+func listExpiredRDSDatabases(svc rds.RDS, tagName string) []rdsDatabase {
+	dbs := listRDSDatabases(svc)
+
+	if len(dbs) == 0 {
 		return nil
 	}
 
 	var expiredDatabases []rdsDatabase
 
-	for _, instance := range result.DBInstances {
+	for _, instance := range dbs {
 		if *instance.DBInstanceStatus == "deleting" {
 			continue
 		}
@@ -306,7 +312,7 @@ func DeleteExpiredCompleteRDSParameterGroups(sessions AWSSessions, options AwsOp
 	expiredRDSParameterGroups := listExpiredCompleteRDSParameterGroups(*sessions.RDS, options.TagName)
 	region := *sessions.RDS.Config.Region
 
-	count, start := common.ElemToDeleteFormattedInfos("expired RDS Parameter Groups", len(expiredRDSParameterGroups), region)
+	count, start := common.ElemToDeleteFormattedInfos("expired RDS Parameter Group", len(expiredRDSParameterGroups), region)
 
 	log.Debug(count)
 
@@ -318,5 +324,76 @@ func DeleteExpiredCompleteRDSParameterGroups(sessions AWSSessions, options AwsOp
 
 	for _, dbParameterGroup := range expiredRDSParameterGroups {
 		deleteRDSParameterGroups(*sessions.RDS, dbParameterGroup.Name)
+	}
+}
+
+func listSnapshots(svc rds.RDS) []*rds.DBClusterSnapshot {
+	result, err := svc.DescribeDBClusterSnapshots(&rds.DescribeDBClusterSnapshotsInput{})
+
+	if err != nil {
+		log.Errorf("Can't list RDS snapshots in region %s: %s", *svc.Config.Region, err.Error())
+	}
+
+	return result.DBClusterSnapshots
+}
+
+func getExpiredSnapshots(svc rds.RDS) []*rds.DBClusterSnapshot {
+	dbs := listRDSDatabases(svc)
+	snaps := listSnapshots(svc)
+
+	expiredSnaps := []*rds.DBClusterSnapshot{}
+
+	if len(dbs) == 0 {
+		for _, snap := range snaps {
+			if snap.SnapshotCreateTime.Before(time.Now().UTC().Add(3 * time.Hour)) {
+				expiredSnaps = append(expiredSnaps, snap)
+			}
+		}
+
+		return expiredSnaps
+	}
+
+	snapsChecking := make(map[string]*rds.DBClusterSnapshot)
+	for _, snap := range snaps {
+		snapsChecking[*snap.DBClusterIdentifier] = snap
+	}
+
+	for _, db := range dbs {
+		snapsChecking[*db.DBClusterIdentifier] = nil
+	}
+
+	for _, snap := range snapsChecking {
+		if snap != nil {
+			expiredSnaps = append(expiredSnaps, snap)
+		}
+	}
+
+	return expiredSnaps
+}
+
+func deleteSnapshot(svc rds.RDS, snapName string) {
+	_, err := svc.DeleteDBSnapshot(&rds.DeleteDBSnapshotInput{DBSnapshotIdentifier: aws.String(snapName)})
+
+	if err != nil {
+		log.Errorf("Can't delete RDS snapshot %s in region %s: %s", snapName, *svc.Config.Region, err.Error())
+	}
+}
+
+func DeleteExpiredSnapshots(sessions AWSSessions, options AwsOptions) {
+	expiredSnapshots := getExpiredSnapshots(*sessions.RDS)
+	region := *sessions.RDS.Config.Region
+
+	count, start := common.ElemToDeleteFormattedInfos("expired RDS snapshot", len(expiredSnapshots), region)
+
+	log.Debug(count)
+
+	if options.DryRun || len(expiredSnapshots) == 0 || expiredSnapshots == nil {
+		return
+	}
+
+	log.Debug(start)
+
+	for _, snapshot := range expiredSnapshots {
+		deleteSnapshot(*sessions.RDS, *snapshot.DBClusterSnapshotIdentifier)
 	}
 }
