@@ -359,7 +359,9 @@ func getExpiredSnapshots(svc rds.RDS) []*rds.DBClusterSnapshot {
 	}
 
 	for _, db := range dbs {
-		snapsChecking[*db.DBClusterIdentifier] = nil
+		if db.DBClusterIdentifier != nil {
+			snapsChecking[*db.DBClusterIdentifier] = nil
+		}
 	}
 
 	for _, snap := range snapsChecking {
