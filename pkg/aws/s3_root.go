@@ -41,7 +41,7 @@ func listTaggedBuckets(s3Session s3.S3, tagName string) ([]s3Bucket, error) {
 			continue
 		}
 
-		if *location.LocationConstraint != *currentRegion {
+		if location.LocationConstraint == nil || *location.LocationConstraint != *currentRegion {
 			continue
 		}
 
