@@ -327,21 +327,21 @@ func DeleteExpiredCompleteRDSParameterGroups(sessions AWSSessions, options AwsOp
 	}
 }
 
-func listSnapshots(svc rds.RDS) []*rds.DBClusterSnapshot {
-	result, err := svc.DescribeDBClusterSnapshots(&rds.DescribeDBClusterSnapshotsInput{})
+func listSnapshots(svc rds.RDS) []*rds.DBSnapshot {
+	result, err := svc.DescribeDBSnapshots(&rds.DescribeDBSnapshotsInput{})
 
 	if err != nil {
 		log.Errorf("Can't list RDS snapshots in region %s: %s", *svc.Config.Region, err.Error())
 	}
 
-	return result.DBClusterSnapshots
+	return result.DBSnapshots
 }
 
-func getExpiredSnapshots(svc rds.RDS) []*rds.DBClusterSnapshot {
+func getExpiredSnapshots(svc rds.RDS) []*rds.DBSnapshot {
 	dbs := listRDSDatabases(svc)
 	snaps := listSnapshots(svc)
 
-	expiredSnaps := []*rds.DBClusterSnapshot{}
+	expiredSnaps := []*rds.DBSnapshot{}
 
 	if len(dbs) == 0 {
 		for _, snap := range snaps {
@@ -353,9 +353,9 @@ func getExpiredSnapshots(svc rds.RDS) []*rds.DBClusterSnapshot {
 		return expiredSnaps
 	}
 
-	snapsChecking := make(map[string]*rds.DBClusterSnapshot)
+	snapsChecking := make(map[string]*rds.DBSnapshot)
 	for _, snap := range snaps {
-		snapsChecking[*snap.DBClusterIdentifier] = snap
+		snapsChecking[*snap.DBSnapshotIdentifier] = snap
 	}
 
 	for _, db := range dbs {
@@ -396,6 +396,6 @@ func DeleteExpiredSnapshots(sessions AWSSessions, options AwsOptions) {
 	log.Debug(start)
 
 	for _, snapshot := range expiredSnapshots {
-		deleteSnapshot(*sessions.RDS, *snapshot.DBClusterSnapshotIdentifier)
+		deleteSnapshot(*sessions.RDS, *snapshot.DBSnapshotIdentifier)
 	}
 }

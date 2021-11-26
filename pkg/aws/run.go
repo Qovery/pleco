@@ -88,7 +88,7 @@ func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options
 	// DocumentDB connection
 	if options.EnableDocumentDB {
 		sessions.RDS = RdsSession(*currentSession, region)
-		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredDocumentDBClusters)
+		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredDocumentDBClusters, DeleteExpiredClusterSnapshots)
 	}
 
 	// Elasticache connection

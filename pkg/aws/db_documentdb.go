@@ -123,3 +123,76 @@ func DeleteExpiredDocumentDBClusters(sessions AWSSessions, options AwsOptions) {
 		}
 	}
 }
+
+func listClusterSnapshots(svc rds.RDS) []*rds.DBClusterSnapshot {
+	result, err := svc.DescribeDBClusterSnapshots(&rds.DescribeDBClusterSnapshotsInput{})
+
+	if err != nil {
+		log.Errorf("Can't list RDS snapshots in region %s: %s", *svc.Config.Region, err.Error())
+	}
+
+	return result.DBClusterSnapshots
+}
+
+func getExpiredClusterSnapshots(svc rds.RDS) []*rds.DBClusterSnapshot {
+	dbs := listRDSDatabases(svc)
+	snaps := listClusterSnapshots(svc)
+
+	expiredSnaps := []*rds.DBClusterSnapshot{}
+
+	if len(dbs) == 0 {
+		for _, snap := range snaps {
+			if snap.SnapshotCreateTime.Before(time.Now().UTC().Add(3 * time.Hour)) {
+				expiredSnaps = append(expiredSnaps, snap)
+			}
+		}
+
+		return expiredSnaps
+	}
+
+	snapsChecking := make(map[string]*rds.DBClusterSnapshot)
+	for _, snap := range snaps {
+		snapsChecking[*snap.DBClusterSnapshotIdentifier] = snap
+	}
+
+	for _, db := range dbs {
+		if db.DBClusterIdentifier != nil {
+			snapsChecking[*db.DBClusterIdentifier] = nil
+		}
+	}
+
+	for _, snap := range snapsChecking {
+		if snap != nil {
+			expiredSnaps = append(expiredSnaps, snap)
+		}
+	}
+
+	return expiredSnaps
+}
+
+func deleteClusterSnapshot(svc rds.RDS, snapName string) {
+	_, err := svc.DeleteDBClusterSnapshot(&rds.DeleteDBClusterSnapshotInput{DBClusterSnapshotIdentifier: aws.String(snapName)})
+
+	if err != nil {
+		log.Errorf("Can't delete RDS snapshot %s in region %s: %s", snapName, *svc.Config.Region, err.Error())
+	}
+}
+
+func DeleteExpiredClusterSnapshots(sessions AWSSessions, options AwsOptions) {
+	expiredSnapshots := getExpiredClusterSnapshots(*sessions.RDS)
+	region := *sessions.RDS.Config.Region
+
+	count, start := common.ElemToDeleteFormattedInfos("expired RDS cluster snapshot", len(expiredSnapshots), region)
+
+	log.Debug(count)
+
+	if options.DryRun || len(expiredSnapshots) == 0 || expiredSnapshots == nil {
+		return
+	}
+
+	log.Debug(start)
+
+	for _, snapshot := range expiredSnapshots {
+		deleteClusterSnapshot(*sessions.RDS, *snapshot.DBClusterSnapshotIdentifier)
+	}
+}
