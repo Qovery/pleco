@@ -212,3 +212,11 @@ func stringDateToTimeDate(date string) time.Time {
 
 	return time.Date(int(year), time.Month(month), int(day), int(hour), int(minutes), int(seconds), 0, time.UTC)
 }
+
+func CheckSnapshot(snap *rds.DBSnapshot) bool {
+	return !strings.Contains(*snap.Status, "") && strings.Contains(*snap.DBSnapshotIdentifier, "default:")
+}
+
+func CheckClusterSnapshot(snap *rds.DBClusterSnapshot) bool {
+	return !strings.Contains(*snap.Status, "") && strings.Contains(*snap.DBClusterSnapshotIdentifier, "default:")
+}

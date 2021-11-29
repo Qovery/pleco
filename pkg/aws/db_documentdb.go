@@ -125,7 +125,7 @@ func DeleteExpiredDocumentDBClusters(sessions AWSSessions, options AwsOptions) {
 }
 
 func listClusterSnapshots(svc rds.RDS) []*rds.DBClusterSnapshot {
-	result, err := svc.DescribeDBClusterSnapshots(&rds.DescribeDBClusterSnapshotsInput{})
+	result, err := svc.DescribeDBClusterSnapshots(&rds.DescribeDBClusterSnapshotsInput{SnapshotType: aws.String("manual")})
 
 	if err != nil {
 		log.Errorf("Can't list RDS snapshots in region %s: %s", *svc.Config.Region, err.Error())
@@ -142,7 +142,7 @@ func getExpiredClusterSnapshots(svc rds.RDS) []*rds.DBClusterSnapshot {
 
 	if len(dbs) == 0 {
 		for _, snap := range snaps {
-			if snap.SnapshotCreateTime.Before(time.Now().UTC().Add(3 * time.Hour)) {
+			if snap.SnapshotCreateTime.Before(time.Now().UTC().Add(3 * time.Hour)) && common.CheckClusterSnapshot(snap) {
 				expiredSnaps = append(expiredSnaps, snap)
 			}
 		}
@@ -152,7 +152,9 @@ func getExpiredClusterSnapshots(svc rds.RDS) []*rds.DBClusterSnapshot {
 
 	snapsChecking := make(map[string]*rds.DBClusterSnapshot)
 	for _, snap := range snaps {
-		snapsChecking[*snap.DBClusterSnapshotIdentifier] = snap
+		if common.CheckClusterSnapshot(snap) {
+			snapsChecking[*snap.DBClusterSnapshotIdentifier] = snap
+		}
 	}
 
 	for _, db := range dbs {

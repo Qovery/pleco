@@ -328,7 +328,7 @@ func DeleteExpiredCompleteRDSParameterGroups(sessions AWSSessions, options AwsOp
 }
 
 func listSnapshots(svc rds.RDS) []*rds.DBSnapshot {
-	result, err := svc.DescribeDBSnapshots(&rds.DescribeDBSnapshotsInput{})
+	result, err := svc.DescribeDBSnapshots(&rds.DescribeDBSnapshotsInput{SnapshotType: aws.String("manual")})
 
 	if err != nil {
 		log.Errorf("Can't list RDS snapshots in region %s: %s", *svc.Config.Region, err.Error())
@@ -345,7 +345,7 @@ func getExpiredSnapshots(svc rds.RDS) []*rds.DBSnapshot {
 
 	if len(dbs) == 0 {
 		for _, snap := range snaps {
-			if snap.SnapshotCreateTime.Before(time.Now().UTC().Add(3 * time.Hour)) {
+			if snap.SnapshotCreateTime.Before(time.Now().UTC().Add(3 * time.Hour)) && common.CheckSnapshot(snap) {
 				expiredSnaps = append(expiredSnaps, snap)
 			}
 		}
@@ -355,6 +355,9 @@ func getExpiredSnapshots(svc rds.RDS) []*rds.DBSnapshot {
 
 	snapsChecking := make(map[string]*rds.DBSnapshot)
 	for _, snap := range snaps {
+		if common.CheckSnapshot(snap) {
+			snapsChecking[*snap.DBSnapshotIdentifier] = snap
+		}
 		snapsChecking[*snap.DBSnapshotIdentifier] = snap
 	}
 
