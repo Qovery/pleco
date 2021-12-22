@@ -103,7 +103,7 @@ pleco start <cloud_provider> [options]
 #### Connection Mode
 You can set the connection mode with:
 ```bash
---kube-conn, -k <log level>
+--kube-conn, -k <connection mode>
 ```
 Default is "in"
 
