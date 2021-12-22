@@ -168,9 +168,9 @@ func getECSubnetGroups(ECsession *elasticache.ElastiCache) []*elasticache.CacheS
 	return result.CacheSubnetGroups
 }
 
-func getUnlinkedSubnetGroupNames(ECsession *elasticache.ElastiCache, ec2Session *ec2.EC2, tagName string) []string {
+func getUnlinkedSubnetGroupNames(ECsession *elasticache.ElastiCache, ec2Session *ec2.EC2) []string {
 	subnetGroups := getECSubnetGroups(ECsession)
-	VPCs := GetVPCs(ec2Session, tagName)
+	VPCs := GetAllVPCs(ec2Session)
 
 	comp := make(map[string]*string)
 
@@ -193,7 +193,7 @@ func getUnlinkedSubnetGroupNames(ECsession *elasticache.ElastiCache, ec2Session 
 }
 
 func DeleteUnlinkedECSubnetGroups(sessions AWSSessions, options AwsOptions) {
-	unlinkedSubnetGroupNames := getUnlinkedSubnetGroupNames(sessions.ElastiCache, sessions.EC2, options.TagName)
+	unlinkedSubnetGroupNames := getUnlinkedSubnetGroupNames(sessions.ElastiCache, sessions.EC2)
 
 	count, start := common.ElemToDeleteFormattedInfos("unliked Elasticache subnet group", len(unlinkedSubnetGroupNames), *sessions.ElastiCache.Config.Region)
 

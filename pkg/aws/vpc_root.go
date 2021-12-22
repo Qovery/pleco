@@ -49,7 +49,7 @@ func GetVpcsIdsByClusterNameTag(ec2Session ec2.EC2, clusterName string) []*strin
 	return vpcsIds
 }
 
-func GetVPCs(ec2Session *ec2.EC2, tagName string) []*ec2.Vpc {
+func getVPCs(ec2Session *ec2.EC2, tagName string) []*ec2.Vpc {
 	input := &ec2.DescribeVpcsInput{
 		Filters: []*ec2.Filter{
 			{
@@ -72,9 +72,23 @@ func GetVPCs(ec2Session *ec2.EC2, tagName string) []*ec2.Vpc {
 	return result.Vpcs
 }
 
+func GetAllVPCs(ec2Session *ec2.EC2) []*ec2.Vpc {
+	result, err := ec2Session.DescribeVpcs(&ec2.DescribeVpcsInput{})
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+
+	if len(result.Vpcs) == 0 {
+		return nil
+	}
+
+	return result.Vpcs
+}
+
 func listTaggedVPC(ec2Session *ec2.EC2, tagName string) ([]VpcInfo, error) {
 	var taggedVPCs []VpcInfo
-	var VPCs = GetVPCs(ec2Session, tagName)
+	var VPCs = getVPCs(ec2Session, tagName)
 
 	for _, vpc := range VPCs {
 		essentialTags := common.GetEssentialTags(vpc.Tags, tagName)
