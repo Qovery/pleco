@@ -37,7 +37,7 @@ func getElasticIps(ec2Session *ec2.EC2, tagName string) []ElasticIp {
 	return responseToStruct(elasticIps, tagName)
 }
 
-func getElasticIpByNetworkInterfaceId(ec2Session ec2.EC2, niId string, vpcId string, tagName string) []ElasticIp {
+func getElasticIpByNetworkInterfaceId(ec2Session *ec2.EC2, niId string, vpcId string, tagName string) []ElasticIp {
 	input := &ec2.DescribeAddressesInput{
 		// only supporting EIP attached to VPC
 		Filters: []*ec2.Filter{
@@ -60,7 +60,7 @@ func getElasticIpByNetworkInterfaceId(ec2Session ec2.EC2, niId string, vpcId str
 	return responseToStruct(elasticIps, tagName)
 }
 
-func ReleaseElasticIps(ec2Session ec2.EC2, eips []ElasticIp) {
+func ReleaseElasticIps(ec2Session *ec2.EC2, eips []ElasticIp) {
 	for _, eip := range eips {
 		_, detachErr := ec2Session.DisassociateAddress(
 			&ec2.DisassociateAddressInput{
@@ -116,7 +116,7 @@ func DeleteExpiredElasticIps(sessions AWSSessions, options AwsOptions) {
 	}
 }
 
-func SetElasticIpsByVpcId(ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup, tagName string) {
+func SetElasticIpsByVpcId(ec2Session *ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup, tagName string) {
 	defer waitGroup.Done()
 	for _, ni := range vpc.NetworkInterfaces {
 		vpc.ElasticIps = append(vpc.ElasticIps, getElasticIpByNetworkInterfaceId(ec2Session, ni.Id, *vpc.VpcId, tagName)...)

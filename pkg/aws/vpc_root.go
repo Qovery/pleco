@@ -49,7 +49,7 @@ func GetVpcsIdsByClusterNameTag(ec2Session ec2.EC2, clusterName string) []*strin
 	return vpcsIds
 }
 
-func getVPCs(ec2Session ec2.EC2, tagName string) []*ec2.Vpc {
+func GetVPCs(ec2Session *ec2.EC2, tagName string) []*ec2.Vpc {
 	input := &ec2.DescribeVpcsInput{
 		Filters: []*ec2.Filter{
 			{
@@ -72,9 +72,9 @@ func getVPCs(ec2Session ec2.EC2, tagName string) []*ec2.Vpc {
 	return result.Vpcs
 }
 
-func listTaggedVPC(ec2Session ec2.EC2, tagName string) ([]VpcInfo, error) {
+func listTaggedVPC(ec2Session *ec2.EC2, tagName string) ([]VpcInfo, error) {
 	var taggedVPCs []VpcInfo
-	var VPCs = getVPCs(ec2Session, tagName)
+	var VPCs = GetVPCs(ec2Session, tagName)
 
 	for _, vpc := range VPCs {
 		essentialTags := common.GetEssentialTags(vpc.Tags, tagName)
@@ -124,11 +124,11 @@ func deleteVPC(sessions AWSSessions, VpcList []VpcInfo, dryRun bool) error {
 		return nil
 	}
 
-	ec2Session := *sessions.EC2
+	ec2Session := sessions.EC2
 	region := ec2Session.Config.Region
 
 	for _, vpc := range VpcList {
-		DeleteLoadBalancerByVpcId(*sessions.ELB, vpc, dryRun)
+		DeleteLoadBalancerByVpcId(sessions.ELB, vpc, dryRun)
 		DeleteNetworkInterfacesByVpcId(ec2Session, *vpc.VpcId)
 		ReleaseElasticIps(ec2Session, vpc.ElasticIps)
 		DeleteSecurityGroupsByIds(ec2Session, vpc.SecurityGroups)
@@ -152,7 +152,7 @@ func deleteVPC(sessions AWSSessions, VpcList []VpcInfo, dryRun bool) error {
 }
 
 func DeleteExpiredVPC(sessions AWSSessions, options AwsOptions) {
-	VPCs, err := listTaggedVPC(*sessions.EC2, options.TagName)
+	VPCs, err := listTaggedVPC(sessions.EC2, options.TagName)
 	region := sessions.EC2.Config.Region
 	if err != nil {
 		log.Errorf("can't list VPC: %s\n", err)
@@ -172,7 +172,7 @@ func DeleteExpiredVPC(sessions AWSSessions, options AwsOptions) {
 
 }
 
-func getCompleteVpc(ec2Session ec2.EC2, vpc *VpcInfo, tagName string) {
+func getCompleteVpc(ec2Session *ec2.EC2, vpc *VpcInfo, tagName string) {
 	var waitGroup sync.WaitGroup
 	waitGroup.Add(1)
 	go SetSecurityGroupsIdsByVpcId(ec2Session, vpc, &waitGroup, tagName)

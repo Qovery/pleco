@@ -152,7 +152,7 @@ func ElemToDeleteFormattedInfos(elemName string, arraySize int, region string, i
 	return count, start
 }
 
-func IsAssociatedToLivingCluster(tagsInput interface{}, svc eks.EKS) bool {
+func IsAssociatedToLivingCluster(tagsInput interface{}, svc *eks.EKS) bool {
 	result, clusterErr := svc.ListClusters(&eks.ListClustersInput{})
 	if clusterErr != nil {
 		log.Error("Can't list cluster for ELB association check")

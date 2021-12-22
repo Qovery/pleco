@@ -17,7 +17,7 @@ type RouteTable struct {
 	IsProtected  bool
 }
 
-func getRouteTablesByVpcId(ec2Session ec2.EC2, vpcId string) []*ec2.RouteTable {
+func getRouteTablesByVpcId(ec2Session *ec2.EC2, vpcId string) []*ec2.RouteTable {
 	input := &ec2.DescribeRouteTablesInput{
 		Filters: []*ec2.Filter{
 			{
@@ -35,7 +35,7 @@ func getRouteTablesByVpcId(ec2Session ec2.EC2, vpcId string) []*ec2.RouteTable {
 	return routeTables.RouteTables
 }
 
-func SetRouteTablesIdsByVpcId(ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup, tagName string) {
+func SetRouteTablesIdsByVpcId(ec2Session *ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup, tagName string) {
 	defer waitGroup.Done()
 	var routeTablesStruct []RouteTable
 
@@ -57,7 +57,7 @@ func SetRouteTablesIdsByVpcId(ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.
 	vpc.RouteTables = routeTablesStruct
 }
 
-func DeleteRouteTablesByIds(ec2Session ec2.EC2, routeTables []RouteTable) {
+func DeleteRouteTablesByIds(ec2Session *ec2.EC2, routeTables []RouteTable) {
 	for _, routeTable := range routeTables {
 		if !isMainRouteTable(routeTable) && !routeTable.IsProtected {
 			_, err := ec2Session.DeleteRouteTable(

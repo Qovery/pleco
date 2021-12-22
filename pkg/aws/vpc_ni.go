@@ -13,7 +13,7 @@ type NetworkInterface struct {
 	AttachmentId string
 }
 
-func DeleteNetworkInterfacesByVpcId(ec2Session ec2.EC2, vpcId string) {
+func DeleteNetworkInterfacesByVpcId(ec2Session *ec2.EC2, vpcId string) {
 	NIs := listNetworkInterfacesByVpcId(ec2Session, vpcId)
 
 	for _, ni := range NIs {
@@ -25,7 +25,7 @@ func DeleteNetworkInterfacesByVpcId(ec2Session ec2.EC2, vpcId string) {
 	}
 }
 
-func listNetworkInterfacesByVpcId(ec2Session ec2.EC2, vpcId string) []NetworkInterface {
+func listNetworkInterfacesByVpcId(ec2Session *ec2.EC2, vpcId string) []NetworkInterface {
 	result, err := ec2Session.DescribeNetworkInterfaces(&ec2.DescribeNetworkInterfacesInput{
 		Filters: []*ec2.Filter{
 			{
@@ -55,7 +55,7 @@ func listNetworkInterfacesByVpcId(ec2Session ec2.EC2, vpcId string) []NetworkInt
 	return NIs
 }
 
-func detachNetworkInterfaces(ec2Session ec2.EC2, ni NetworkInterface) {
+func detachNetworkInterfaces(ec2Session *ec2.EC2, ni NetworkInterface) {
 	_, err := ec2Session.DetachNetworkInterface(
 		&ec2.DetachNetworkInterfaceInput{
 			AttachmentId: &ni.AttachmentId,
@@ -65,7 +65,7 @@ func detachNetworkInterfaces(ec2Session ec2.EC2, ni NetworkInterface) {
 	}
 }
 
-func deleteNetworkInterface(ec2Session ec2.EC2, ni NetworkInterface) {
+func deleteNetworkInterface(ec2Session *ec2.EC2, ni NetworkInterface) {
 	_, err := ec2Session.DeleteNetworkInterface(
 		&ec2.DeleteNetworkInterfaceInput{
 			NetworkInterfaceId: aws.String(ni.Id),
@@ -75,7 +75,7 @@ func deleteNetworkInterface(ec2Session ec2.EC2, ni NetworkInterface) {
 	}
 }
 
-func SetNetworkInterfacesByVpcId(ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup) {
+func SetNetworkInterfacesByVpcId(ec2Session *ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup) {
 	defer waitGroup.Done()
 	vpc.NetworkInterfaces = listNetworkInterfacesByVpcId(ec2Session, *vpc.VpcId)
 }

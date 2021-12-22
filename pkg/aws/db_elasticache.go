@@ -4,6 +4,7 @@ import (
 	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	log "github.com/sirupsen/logrus"
 	"time"
@@ -136,7 +137,7 @@ func DeleteExpiredElasticacheDatabases(sessions AWSSessions, options AwsOptions)
 	log.Debug(start)
 
 	for _, cluster := range expiredClusters {
-		deleteESSubnetGroups(*sessions.ElastiCache, cluster.SubnetGroup)
+		deleteECSubnetGroups(*sessions.ElastiCache, cluster.SubnetGroup)
 		deletionErr := deleteElasticacheCluster(*sessions.ElastiCache, cluster)
 		if deletionErr != nil {
 			log.Errorf("Deletion Elasticache cluster error %s/%s: %s", cluster.ClusterIdentifier, region, deletionErr.Error())
@@ -144,7 +145,7 @@ func DeleteExpiredElasticacheDatabases(sessions AWSSessions, options AwsOptions)
 	}
 }
 
-func deleteESSubnetGroups(ECsession elasticache.ElastiCache, subnetGroupName string) {
+func deleteECSubnetGroups(ECsession elasticache.ElastiCache, subnetGroupName string) {
 	_, err := ECsession.DeleteCacheSubnetGroup(
 		&elasticache.DeleteCacheSubnetGroupInput{
 			CacheSubnetGroupName: aws.String(subnetGroupName),
@@ -154,4 +155,53 @@ func deleteESSubnetGroups(ECsession elasticache.ElastiCache, subnetGroupName str
 	if err != nil {
 		log.Errorf("Can't delete elasticache subnet group %s: %s", subnetGroupName, err.Error())
 	}
+}
+
+func getECSubnetGroups(ECsession *elasticache.ElastiCache) []*elasticache.CacheSubnetGroup {
+	result, err := ECsession.DescribeCacheSubnetGroups(
+		&elasticache.DescribeCacheSubnetGroupsInput{})
+
+	if err != nil {
+		log.Errorf("Can't list elasticache subnet groups: %s", err.Error())
+	}
+
+	return result.CacheSubnetGroups
+}
+
+func getUnlinkedSubnetGroupNames(ECsession *elasticache.ElastiCache, ec2Session *ec2.EC2, tagName string) []string {
+	subnetGroups := getECSubnetGroups(ECsession)
+	VPCs := GetVPCs(ec2Session, tagName)
+
+	comp := make(map[string]*string)
+
+	for _, subnetGroup := range subnetGroups {
+		comp[*subnetGroup.VpcId] = subnetGroup.CacheSubnetGroupName
+	}
+
+	for _, VPC := range VPCs {
+		comp[*VPC.VpcId] = nil
+	}
+
+	var unlinkedSubenetGroupNames []string
+	for _, subnetGroupName := range comp {
+		if subnetGroupName != nil {
+			unlinkedSubenetGroupNames = append(unlinkedSubenetGroupNames, *subnetGroupName)
+		}
+	}
+
+	return unlinkedSubenetGroupNames
+}
+
+func DeleteUnlinkedECSubnetGroups(sessions AWSSessions, options AwsOptions) {
+	unlinkedSubnetGroupNames := getUnlinkedSubnetGroupNames(sessions.ElastiCache, sessions.EC2, options.TagName)
+
+	count, start := common.ElemToDeleteFormattedInfos("unliked Elasticache subnet group", len(unlinkedSubnetGroupNames), *sessions.ElastiCache.Config.Region)
+
+	log.Debug(count)
+
+	if options.DryRun || len(unlinkedSubnetGroupNames) == 0 {
+		return
+	}
+
+	log.Debug(start)
 }

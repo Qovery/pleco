@@ -16,7 +16,7 @@ type NatGateway struct {
 	IsProtected  bool
 }
 
-func getNatGatewaysByVpcId(ec2Session ec2.EC2, vpcId string) []*ec2.NatGateway {
+func getNatGatewaysByVpcId(ec2Session *ec2.EC2, vpcId string) []*ec2.NatGateway {
 	input := &ec2.DescribeNatGatewaysInput{
 		Filter: []*ec2.Filter{
 			{
@@ -34,7 +34,7 @@ func getNatGatewaysByVpcId(ec2Session ec2.EC2, vpcId string) []*ec2.NatGateway {
 	return gateways.NatGateways
 }
 
-func SetNatGatewaysIdsByVpcId(ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup, tagName string) {
+func SetNatGatewaysIdsByVpcId(ec2Session *ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup, tagName string) {
 	defer waitGroup.Done()
 
 	gateways := getNatGatewaysByVpcId(ec2Session, *vpc.VpcId)
@@ -55,7 +55,7 @@ func SetNatGatewaysIdsByVpcId(ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.
 	vpc.NatGateways = natGateways
 }
 
-func DeleteNatGatewaysByIds(ec2Session ec2.EC2, natGateways []NatGateway) {
+func DeleteNatGatewaysByIds(ec2Session *ec2.EC2, natGateways []NatGateway) {
 	for _, natGateway := range natGateways {
 		if !natGateway.IsProtected {
 

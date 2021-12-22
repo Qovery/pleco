@@ -20,7 +20,7 @@ type ElasticLoadBalancer struct {
 	TTL          int64
 }
 
-func TagLoadBalancersForDeletion(lbSession elbv2.ELBV2, tagKey string, loadBalancersList []ElasticLoadBalancer, clusterName string) error {
+func TagLoadBalancersForDeletion(lbSession *elbv2.ELBV2, tagKey string, loadBalancersList []ElasticLoadBalancer, clusterName string) error {
 	var lbArns []*string
 
 	if len(loadBalancersList) == 0 {
@@ -59,7 +59,7 @@ func TagLoadBalancersForDeletion(lbSession elbv2.ELBV2, tagKey string, loadBalan
 	return nil
 }
 
-func ListExpiredLoadBalancers(eksSession eks.EKS, lbSession elbv2.ELBV2, tagName string) ([]ElasticLoadBalancer, error) {
+func ListExpiredLoadBalancers(eksSession *eks.EKS, lbSession *elbv2.ELBV2, tagName string) ([]ElasticLoadBalancer, error) {
 	var taggedLoadBalancers []ElasticLoadBalancer
 	region := *lbSession.Config.Region
 
@@ -94,7 +94,7 @@ func ListExpiredLoadBalancers(eksSession eks.EKS, lbSession elbv2.ELBV2, tagName
 	return taggedLoadBalancers, nil
 }
 
-func ListLoadBalancers(lbSession elbv2.ELBV2) ([]ElasticLoadBalancer, error) {
+func ListLoadBalancers(lbSession *elbv2.ELBV2) ([]ElasticLoadBalancer, error) {
 	var allLoadBalancers []ElasticLoadBalancer
 
 	input := elbv2.DescribeLoadBalancersInput{}
@@ -120,7 +120,7 @@ func ListLoadBalancers(lbSession elbv2.ELBV2) ([]ElasticLoadBalancer, error) {
 	return allLoadBalancers, nil
 }
 
-func deleteLoadBalancers(lbSession elbv2.ELBV2, loadBalancersList []ElasticLoadBalancer, dryRun bool) {
+func deleteLoadBalancers(lbSession *elbv2.ELBV2, loadBalancersList []ElasticLoadBalancer, dryRun bool) {
 	if dryRun {
 		return
 	}
@@ -141,7 +141,7 @@ func deleteLoadBalancers(lbSession elbv2.ELBV2, loadBalancersList []ElasticLoadB
 }
 
 func DeleteExpiredLoadBalancers(sessions AWSSessions, options AwsOptions) {
-	expiredLoadBalancers, err := ListExpiredLoadBalancers(*sessions.EKS, *sessions.ELB, options.TagName)
+	expiredLoadBalancers, err := ListExpiredLoadBalancers(sessions.EKS, sessions.ELB, options.TagName)
 	region := *sessions.ELB.Config.Region
 	if err != nil {
 		log.Errorf("can't list Load Balancers: %s\n", err)
@@ -158,10 +158,10 @@ func DeleteExpiredLoadBalancers(sessions AWSSessions, options AwsOptions) {
 
 	log.Debug(start)
 
-	deleteLoadBalancers(*sessions.ELB, expiredLoadBalancers, options.DryRun)
+	deleteLoadBalancers(sessions.ELB, expiredLoadBalancers, options.DryRun)
 }
 
-func getLoadBalancerByVpId(lbSession elbv2.ELBV2, vpc VpcInfo) ElasticLoadBalancer {
+func getLoadBalancerByVpId(lbSession *elbv2.ELBV2, vpc VpcInfo) ElasticLoadBalancer {
 	lbs, err := ListLoadBalancers(lbSession)
 	if err != nil {
 		log.Errorf("can't list Load Balancers: %s\n", err)
@@ -177,7 +177,7 @@ func getLoadBalancerByVpId(lbSession elbv2.ELBV2, vpc VpcInfo) ElasticLoadBalanc
 	return ElasticLoadBalancer{}
 }
 
-func DeleteLoadBalancerByVpcId(lbSession elbv2.ELBV2, vpc VpcInfo, dryRun bool) {
+func DeleteLoadBalancerByVpcId(lbSession *elbv2.ELBV2, vpc VpcInfo, dryRun bool) {
 	lb := getLoadBalancerByVpId(lbSession, vpc)
 	if lb.Arn != "" {
 		deleteLoadBalancers(lbSession, []ElasticLoadBalancer{lb}, dryRun)

@@ -19,7 +19,7 @@ type EBSVolume struct {
 	IsProtected bool
 }
 
-func TagVolumesFromEksClusterForDeletion(ec2Session ec2.EC2, tagKey string, clusterName string) error {
+func TagVolumesFromEksClusterForDeletion(ec2Session *ec2.EC2, tagKey string, clusterName string) error {
 	var volumesIds []*string
 
 	input := &ec2.DescribeVolumesInput{
@@ -93,7 +93,7 @@ func deleteVolumes(ec2Session ec2.EC2, VolumesList []EBSVolume) {
 	}
 }
 
-func listExpiredVolumes(eksSession eks.EKS, ec2Session ec2.EC2, tagName string) ([]EBSVolume, error) {
+func listExpiredVolumes(eksSession *eks.EKS, ec2Session *ec2.EC2, tagName string) ([]EBSVolume, error) {
 	result, err := ec2Session.DescribeVolumes(&ec2.DescribeVolumesInput{})
 	if err != nil {
 		return nil, err
@@ -127,7 +127,7 @@ func listExpiredVolumes(eksSession eks.EKS, ec2Session ec2.EC2, tagName string) 
 }
 
 func DeleteExpiredVolumes(sessions AWSSessions, options AwsOptions) {
-	expiredVolumes, err := listExpiredVolumes(*sessions.EKS, *sessions.EC2, options.TagName)
+	expiredVolumes, err := listExpiredVolumes(sessions.EKS, sessions.EC2, options.TagName)
 	region := *sessions.EC2.Config.Region
 	if err != nil {
 		log.Errorf("Can't list volumes: %s\n", err)

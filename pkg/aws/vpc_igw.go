@@ -16,7 +16,7 @@ type InternetGateway struct {
 	IsProtected  bool
 }
 
-func getInternetGatewaysByVpcId(ec2Session ec2.EC2, vpcId string) []*ec2.InternetGateway {
+func getInternetGatewaysByVpcId(ec2Session *ec2.EC2, vpcId string) []*ec2.InternetGateway {
 	input := &ec2.DescribeInternetGatewaysInput{
 		Filters: []*ec2.Filter{
 			{
@@ -34,7 +34,7 @@ func getInternetGatewaysByVpcId(ec2Session ec2.EC2, vpcId string) []*ec2.Interne
 	return gateways.InternetGateways
 }
 
-func SetInternetGatewaysIdsByVpcId(ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup, tagName string) {
+func SetInternetGatewaysIdsByVpcId(ec2Session *ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup, tagName string) {
 	defer waitGroup.Done()
 	var internetGateways []InternetGateway
 
@@ -56,7 +56,7 @@ func SetInternetGatewaysIdsByVpcId(ec2Session ec2.EC2, vpc *VpcInfo, waitGroup *
 	vpc.InternetGateways = internetGateways
 }
 
-func DeleteInternetGatewaysByIds(ec2Session ec2.EC2, internetGateways []InternetGateway, vpcId string) {
+func DeleteInternetGatewaysByIds(ec2Session *ec2.EC2, internetGateways []InternetGateway, vpcId string) {
 	for _, internetGateway := range internetGateways {
 		if !internetGateway.IsProtected {
 

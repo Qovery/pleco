@@ -100,6 +100,13 @@ pleco start <cloud_provider> [options]
 ```
 
 ### General options
+#### Connection Mode
+You can set the connection mode with:
+```bash
+--kube-conn, -k <log level>
+```
+Default is "in"
+
 #### Debug Level
 You can set the debug level with:
 ```bash
