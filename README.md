@@ -15,6 +15,10 @@ Protect resources from deletion with a protection tag, **do_no_delete**.
 NOTE: this project is used in Qovery's production environment
 
 ---
+
+Check out our Blog announcement of Pleco: https://www.qovery.com/blog/announcement-of-pleco-the-open-source-kubernetes-and-cloud-services-garbage-collector
+
+---
 ## Supported resources
 - [X] Kubernetes
   - [X] Namespaces
