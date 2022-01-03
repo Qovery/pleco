@@ -3,7 +3,7 @@ replicaCount: 1
 image:
   repository: qoveryrd/pleco
   pullPolicy: IfNotPresent
-  plecoImageTag: "0.9.30"
+  plecoImageTag: "0.9.31"
 
 cloudProvider: ""
 
@@ -102,7 +102,7 @@ securityContext: {}
 resources:
   limits:
     cpu: 150m
-    memory: 256Mi
+    memory:256Mi
   requests:
     cpu: 150m
     memory: 256Mi
