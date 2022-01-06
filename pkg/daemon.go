@@ -63,6 +63,7 @@ func startAWS(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGrou
 		EnableKMS:            getCmdBool(cmd, "enable-kms"),
 		EnableIAM:            getCmdBool(cmd, "enable-iam"),
 		EnableSSH:            getCmdBool(cmd, "enable-ssh"),
+		EnableECR:            getCmdBool(cmd, "enable-ecr"),
 	}
 	aws.RunPlecoAWS(cmd, regions, interval, wg, awsOptions)
 	wg.Done()
