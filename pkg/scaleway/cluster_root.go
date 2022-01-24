@@ -34,9 +34,7 @@ func DeleteExpiredClusters(sessions ScalewaySessions, options ScalewayOptions) {
 }
 
 func ListClusters(clusterAPI *k8s.API, tagName string) ([]ScalewayCluster, string) {
-	input := &k8s.ListClustersRequest{
-		Status: "ready",
-	}
+	input := &k8s.ListClustersRequest{}
 	result, err := clusterAPI.ListClusters(input)
 
 	if err != nil {

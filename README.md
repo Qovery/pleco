@@ -83,8 +83,8 @@ $ export AWS_SECRET_ACCESS_KEY=<secret_key>
 
 #### For Scaleway
 ```bash
-$ export SCALEWAY_ACCESS_KEY=<access_key>
-$ export SCALEWAY_SECRET_KEY=<secret_key>
+$ export SCW_ACCESS_KEY=<access_key>
+$ export SCW_SECRET_KEY=<secret_key>
 $ export SCW_VOLUME_TIMEOUT=<delay_before_detached_volume_deletion_in_hours_since_last_update> # default is 2 hours
 ```
 
