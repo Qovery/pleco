@@ -41,7 +41,7 @@ func getEmptyRegistries(registryAPI *registry.API) ([]*registry.Namespace, strin
 
 	emptyRegistries := []*registry.Namespace{}
 	for _, reg := range registries {
-		if reg.ImageCount == 0 && reg.CreatedAt.Add(time.Hour).After(time.Now()) {
+		if reg.ImageCount == 0 && reg.CreatedAt.UTC().Add(time.Hour).After(time.Now().UTC()) {
 			emptyRegistries = append(emptyRegistries, reg)
 		}
 	}

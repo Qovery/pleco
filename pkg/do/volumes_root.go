@@ -60,7 +60,7 @@ func getDetachedVolumes(client *godo.Client, region string) []DOVolume {
 
 	detachedVolumes := []DOVolume{}
 	for _, volume := range volumes {
-		if volume.CreationDate.Add(volumeTimeout() * time.Hour).Before(time.Now()) {
+		if volume.CreationDate.UTC().Add(volumeTimeout() * time.Hour).Before(time.Now().UTC()) {
 			detachedVolumes = append(detachedVolumes, volume)
 		}
 	}
