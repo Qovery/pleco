@@ -1,9 +1,6 @@
 package aws
 
 import (
-	"sync"
-	"time"
-
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -18,6 +15,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+
+	"sync"
+	"time"
 )
 
 type AwsOptions struct {
@@ -36,7 +36,7 @@ type AwsOptions struct {
 	EnableSSH            bool
 	EnableDocumentDB     bool
 	EnableECR            bool
-	EnableSQS			 bool
+	EnableSQS            bool
 }
 
 type AWSSessions struct {
@@ -50,7 +50,7 @@ type AWSSessions struct {
 	KMS            *kms.KMS
 	IAM            *iam.IAM
 	ECR            *ecr.ECR
-	SQS 		   *sqs.SQS
+	SQS            *sqs.SQS
 }
 
 type funcDeleteExpired func(sessions AWSSessions, options AwsOptions)
