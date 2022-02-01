@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -35,6 +36,8 @@ type AwsOptions struct {
 	EnableSSH            bool
 	EnableDocumentDB     bool
 	EnableECR            bool
+	EnableSQS            bool
+
 	EnableCloudFormation bool
 }
 
@@ -49,6 +52,8 @@ type AWSSessions struct {
 	KMS            *kms.KMS
 	IAM            *iam.IAM
 	ECR            *ecr.ECR
+	SQS            *sqs.SQS
+
 	CloudFormation *cloudformation.CloudFormation
 }
 
@@ -157,6 +162,12 @@ func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options
 	if options.EnableECR {
 		sessions.ECR = ecr.New(currentSession)
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteEmptyRepositories)
+	}
+
+	// SQS
+	if options.EnableSQS {
+		sessions.SQS = sqs.New(currentSession)
+		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredSQSQueues)
 	}
 
 	// Cloudformation Stacks
