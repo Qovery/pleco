@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	log "github.com/sirupsen/logrus"
 	"strconv"
@@ -69,6 +70,10 @@ func GetEssentialTags(tagsInput interface{}, tagName string) EssentialTags {
 		for _, elem := range typedTags {
 			tags = append(tags, MyTag{Key: *elem.Key, Value: *elem.Value})
 		}
+	case []*sfn.Tag:
+		for _, elem := range typedTags {
+			tags = append(tags, MyTag{Key: *elem.Key, Value: *elem.Value})
+		}
 	case []*cloudformation.Tag:
 		for _, elem := range typedTags {
 			tags = append(tags, MyTag{Key: *elem.Key, Value: *elem.Value})
@@ -81,7 +86,6 @@ func GetEssentialTags(tagsInput interface{}, tagName string) EssentialTags {
 		for key, value := range typedTags {
 			tags = append(tags, MyTag{Key: key, Value: *value})
 		}
-
 	case []string:
 		for _, value := range typedTags {
 			if strings.Contains(value, "=") {
