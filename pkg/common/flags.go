@@ -29,6 +29,7 @@ func initAWSFlags(startCmd *cobra.Command) {
 	startCmd.Flags().BoolP("enable-ssh-keys", "z", false, "Enable Key Pair watch")
 	startCmd.Flags().BoolP("enable-ecr", "o", false, "Enable ECR watch")
 	startCmd.Flags().BoolP("enable-sqs", "q", false, "Enable SQS watch")
+	startCmd.Flags().BoolP("enable-lambda", "f", false, "Enable Lambda Function watch")
 	startCmd.Flags().BoolP("enable-cloudformation", "d", false, "Enable Cloudformation watch")
 }
 

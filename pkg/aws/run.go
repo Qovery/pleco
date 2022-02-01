@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/kms"
+	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sqs"
@@ -37,7 +38,7 @@ type AwsOptions struct {
 	EnableDocumentDB     bool
 	EnableECR            bool
 	EnableSQS            bool
-
+	EnableLambda         bool
 	EnableCloudFormation bool
 }
 
@@ -53,7 +54,7 @@ type AWSSessions struct {
 	IAM            *iam.IAM
 	ECR            *ecr.ECR
 	SQS            *sqs.SQS
-
+	LambdaFunction *lambda.Lambda
 	CloudFormation *cloudformation.CloudFormation
 }
 
@@ -168,6 +169,11 @@ func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options
 	if options.EnableSQS {
 		sessions.SQS = sqs.New(currentSession)
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredSQSQueues)
+
+	// Lambda Function
+	if options.EnableLambda {
+		sessions.LambdaFunction = lambda.New(currentSession)
+		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredLambdaFunctions)
 	}
 
 	// Cloudformation Stacks
