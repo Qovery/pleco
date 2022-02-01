@@ -65,6 +65,7 @@ func startAWS(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGrou
 		EnableSSH:            getCmdBool(cmd, "enable-ssh"),
 		EnableECR:            getCmdBool(cmd, "enable-ecr"),
 		EnableSQS:            getCmdBool(cmd, "enable-sqs"),
+		EnableLambda:         getCmdBool(cmd, "enable-lambda"),
 		EnableCloudFormation: getCmdBool(cmd, "enable-cloudformation"),
 	}
 	aws.RunPlecoAWS(cmd, regions, interval, wg, awsOptions)
