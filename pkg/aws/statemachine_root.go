@@ -94,7 +94,7 @@ func getExpiredMachines(ECsession *sfn.SFN, tagName string) ([]stateMachine, str
 func DeleteExpiredStateMachines(sessions AWSSessions, options AwsOptions) {
 	expiredMachines, region := getExpiredMachines(sessions.SFN, options.TagName)
 
-	count, start := common.ElemToDeleteFormattedInfos("expired Lambda Function", len(expiredMachines), region)
+	count, start := common.ElemToDeleteFormattedInfos("expired Step Function", len(expiredMachines), region)
 
 	log.Debug(count)
 
