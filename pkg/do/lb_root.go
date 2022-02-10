@@ -14,6 +14,7 @@ type DOLB struct {
 	CreationDate time.Time
 	TTL          int64
 	IsProtected  bool
+	Droplets     []int
 }
 
 func DeleteExpiredLBs(sessions DOSessions, options DOOptions) {
@@ -35,7 +36,7 @@ func DeleteExpiredLBs(sessions DOSessions, options DOOptions) {
 }
 
 func listLBs(client *godo.Client, tagName string, region string) []DOLB {
-	result, _, err := client.LoadBalancers.List(context.TODO(), &godo.ListOptions{})
+	result, _, err := client.LoadBalancers.List(context.TODO(), &godo.ListOptions{PerPage: 200})
 
 	if err != nil {
 		log.Errorf("Can't list load balancers in region %s: %s", region, err.Error())
@@ -44,13 +45,15 @@ func listLBs(client *godo.Client, tagName string, region string) []DOLB {
 
 	loadBalancers := []DOLB{}
 	for _, lb := range result {
+		creationDate, _ := time.Parse(time.RFC3339, lb.Created)
 		essentialTags := common.GetEssentialTags(lb.Tags, tagName)
 		loadBalancers = append(loadBalancers, DOLB{
 			ID:           lb.ID,
 			Name:         lb.Name,
-			CreationDate: essentialTags.CreationDate,
+			CreationDate: creationDate.UTC(),
 			TTL:          essentialTags.TTL,
 			IsProtected:  essentialTags.IsProtected,
+			Droplets:     lb.DropletIDs,
 		})
 	}
 
@@ -63,6 +66,10 @@ func getExpiredLBs(client *godo.Client, tagName string, region string) ([]DOLB, 
 	expiredLBs := []DOLB{}
 	for _, lb := range lbs {
 		if common.CheckIfExpired(lb.CreationDate, lb.TTL, "load balancer"+lb.Name) && !lb.IsProtected {
+			expiredLBs = append(expiredLBs, lb)
+		}
+
+		if len(lb.Droplets) == 0 {
 			expiredLBs = append(expiredLBs, lb)
 		}
 	}
