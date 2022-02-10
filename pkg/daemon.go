@@ -97,6 +97,7 @@ func startDO(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGroup
 		EnableLB:       getCmdBool(cmd, "enable-lb"),
 		EnableVolume:   getCmdBool(cmd, "enable-volume"),
 		EnableFirewall: getCmdBool(cmd, "enable-firewall"),
+		EnableVPC:      getCmdBool(cmd, "enable-vpc"),
 	}
 	do.RunPlecoDO(regions, interval, wg, DOOptions)
 	wg.Done()

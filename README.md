@@ -64,6 +64,7 @@ Check out our Blog announcement of Pleco: https://www.qovery.com/blog/announceme
   - [X] Detached volumes
   - [X] S3 Buckets
   - [X] Droplet firewalls
+  - [X] Unused VPCs
 - [ ] AZURE
 - [ ] GCP
 
@@ -215,5 +216,5 @@ Here are some of the resources you can check:
 
 #### Example
 ```bash
-pleco start do --level debug -i 240 -a nyc3 -e -r -s -l -b -f -y
+pleco start do --level debug -i 240 -a nyc3 -e -r -s -l -b -f -v -y
 ```

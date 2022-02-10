@@ -96,7 +96,8 @@ func checkDOEnvVars(cmd *cobra.Command) []string {
 		isUsed(cmd, "s3") ||
 		isUsed(cmd, "lb") ||
 		isUsed(cmd, "volume") ||
-		isUsed(cmd, "firewall") {
+		isUsed(cmd, "firewall") ||
+		isUsed(cmd, "vpc") {
 		return requiredEnvVars
 	}
 

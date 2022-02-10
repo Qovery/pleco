@@ -50,4 +50,5 @@ func initDOFlags(startCmd *cobra.Command) {
 	startCmd.Flags().BoolP("enable-lb", "l", false, "Enable load balancers watch")
 	startCmd.Flags().BoolP("enable-volume", "b", false, "Enable volumes watch")
 	startCmd.Flags().BoolP("enable-firewall", "f", false, "Enable firewalls watch")
+	startCmd.Flags().BoolP("enable-vpc", "v", false, "Enable VPCs watch")
 }

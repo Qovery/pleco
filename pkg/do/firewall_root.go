@@ -19,7 +19,7 @@ type DOFirewall struct {
 func DeleteExpiredFirewalls(sessions DOSessions, options DOOptions) {
 	expiredFirewalls := getDetachedFirewalls(sessions.Client)
 
-	count, start := common.ElemToDeleteFormattedInfos(fmt.Sprintf("detached (%d hours delay) firewalls", volumeTimeout()), len(expiredFirewalls), options.Region)
+	count, start := common.ElemToDeleteFormattedInfos(fmt.Sprintf("detached (%d hours delay) firewall", volumeTimeout()), len(expiredFirewalls), options.Region)
 
 	log.Debug(count)
 

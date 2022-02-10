@@ -18,9 +18,9 @@ type DOLB struct {
 }
 
 func DeleteExpiredLBs(sessions DOSessions, options DOOptions) {
-	expiredLBs, region := getExpiredLBs(sessions.Client, options.TagName, options.Region)
+	expiredLBs := getExpiredLBs(sessions.Client, options.TagName)
 
-	count, start := common.ElemToDeleteFormattedInfos("expired load balancer", len(expiredLBs), region)
+	count, start := common.ElemToDeleteFormattedInfos("expired load balancer", len(expiredLBs), "")
 
 	log.Debug(count)
 
@@ -35,11 +35,11 @@ func DeleteExpiredLBs(sessions DOSessions, options DOOptions) {
 	}
 }
 
-func listLBs(client *godo.Client, tagName string, region string) []DOLB {
+func listLBs(client *godo.Client, tagName string) []DOLB {
 	result, _, err := client.LoadBalancers.List(context.TODO(), &godo.ListOptions{PerPage: 200})
 
 	if err != nil {
-		log.Errorf("Can't list load balancers in region %s: %s", region, err.Error())
+		log.Errorf("Can't list load balancers: %s", err.Error())
 		return []DOLB{}
 	}
 
@@ -60,8 +60,8 @@ func listLBs(client *godo.Client, tagName string, region string) []DOLB {
 	return loadBalancers
 }
 
-func getExpiredLBs(client *godo.Client, tagName string, region string) ([]DOLB, string) {
-	lbs := listLBs(client, tagName, region)
+func getExpiredLBs(client *godo.Client, tagName string) []DOLB {
+	lbs := listLBs(client, tagName)
 
 	expiredLBs := []DOLB{}
 	for _, lb := range lbs {
@@ -74,7 +74,7 @@ func getExpiredLBs(client *godo.Client, tagName string, region string) ([]DOLB, 
 		}
 	}
 
-	return expiredLBs, region
+	return expiredLBs
 }
 
 func deleteLB(client *godo.Client, loadBalancer DOLB) {

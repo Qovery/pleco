@@ -18,6 +18,7 @@ type DOOptions struct {
 	EnableLB       bool
 	EnableVolume   bool
 	EnableFirewall bool
+	EnableVPC      bool
 }
 
 type DOSessions struct {
@@ -34,7 +35,7 @@ func RunPlecoDO(regions []string, interval int64, wg *sync.WaitGroup, options DO
 	}
 
 	wg.Add(1)
-	go runPleco(regions[0], interval, wg, options)
+	go runPleco(interval, wg, options)
 }
 
 func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options DOOptions) {
@@ -53,10 +54,6 @@ func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options
 
 	if options.EnableDB {
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredDatabases)
-	}
-
-	if options.EnableLB {
-		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredLBs)
 	}
 
 	if options.EnableVolume {
@@ -78,18 +75,25 @@ func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options
 	}
 }
 
-func runPleco(region string, interval int64, wg *sync.WaitGroup, options DOOptions) {
+func runPleco(interval int64, wg *sync.WaitGroup, options DOOptions) {
 	defer wg.Done()
 	sessions := DOSessions{}
 	sessions.Client = CreateSession()
-	options.Region = region
 
 	logrus.Infof("Starting to check expired resources in region %s.", options.Region)
 
 	var listServiceToCheckStatus []funcDeleteExpired
 
+	if options.EnableLB {
+		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredLBs)
+	}
+
 	if options.EnableFirewall {
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredFirewalls)
+	}
+
+	if options.EnableVPC {
+		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredVPCs)
 	}
 
 	for {
