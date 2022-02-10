@@ -80,7 +80,7 @@ func runPleco(interval int64, wg *sync.WaitGroup, options DOOptions) {
 	sessions := DOSessions{}
 	sessions.Client = CreateSession()
 
-	logrus.Infof("Starting to check expired resources in region %s.", options.Region)
+	logrus.Info("Starting to check global expired resources.")
 
 	var listServiceToCheckStatus []funcDeleteExpired
 
