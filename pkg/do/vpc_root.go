@@ -54,15 +54,17 @@ func getVPCs(client *godo.Client, region string) []DOVpc {
 			continue
 		}
 
-		creationDate, _ := time.Parse(time.RFC3339, VPC.CreatedAt.Format(time.RFC3339))
-		v := DOVpc{
-			ID:           VPC.ID,
-			Name:         VPC.Name,
-			CreationDate: creationDate.UTC(),
-			Members:      membersResult,
-		}
+		if !VPC.Default {
+			creationDate, _ := time.Parse(time.RFC3339, VPC.CreatedAt.Format(time.RFC3339))
+			v := DOVpc{
+				ID:           VPC.ID,
+				Name:         VPC.Name,
+				CreationDate: creationDate.UTC(),
+				Members:      membersResult,
+			}
 
-		VPCs = append(VPCs, v)
+			VPCs = append(VPCs, v)
+		}
 	}
 
 	return VPCs
