@@ -50,6 +50,9 @@ Check out our Blog announcement of Pleco: https://www.qovery.com/blog/announceme
   - [X] VPC subnets
   - [X] VPC security groups
   - [X] S3 buckets
+  - [X] Lambda Functions
+  - [X] SQS Queues
+  - [X] Step Functions
 - [X] SCALEWAY
   - [X] Kubernetes clusters
   - [X] Database instances
@@ -162,7 +165,7 @@ Here are some of the resources you can check:
 
 #### Example
 ```bash
-pleco start aws --level debug -i 240 -a eu-west-3 -e -r -m -c -l -b -p -s -w -n -u -z -o -y
+pleco start aws --level debug -i 240 -a eu-west-3 -e -r -m -c -l -b -p -s -w -n -u -z -o -f -x -q -y
 ```
 
 ### Scaleway options
