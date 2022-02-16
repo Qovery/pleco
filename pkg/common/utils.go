@@ -76,6 +76,7 @@ func GetEssentialTags(tagsInput interface{}, tagName string) EssentialTags {
 		for key, value := range typedTags {
 			tags = append(tags, MyTag{Key: key, Value: *value})
 		}
+
 	case []string:
 		for _, value := range typedTags {
 			if strings.Contains(value, "=") {
@@ -95,9 +96,9 @@ func GetEssentialTags(tagsInput interface{}, tagName string) EssentialTags {
 	essentialTags := EssentialTags{}
 	for i := range tags {
 		switch tags[i].Key {
-		case "creationDate":
+		case "creationDate", "CreationDate":
 			essentialTags.CreationDate = stringDateToTimeDate(tags[i].Value)
-		case "ttl":
+		case "ttl", "Ttl", "TTL":
 			result, _ := strconv.ParseInt(tags[i].Value, 10, 64)
 			essentialTags.TTL = result
 		case "do_not_delete":

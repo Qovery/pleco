@@ -23,21 +23,42 @@ func listBuckets(bucketApi *minio.Client, tagName string, region string) []Minio
 		return []MinioBucket{}
 	}
 
-	scwBuckets := []MinioBucket{}
-	for _, bucket := range buckets {
-		objectsInfos := ListBucketObjects(bucketApi, ctx, bucket.Name)
+	bucketLimit := 100
+	if len(buckets) < 100 {
+		bucketLimit = len(buckets)
+	}
 
+	scwBuckets := []MinioBucket{}
+	for _, bucket := range buckets[:bucketLimit] {
+		objectsInfos := ListBucketObjects(bucketApi, ctx, bucket.Name)
+		bucketTags := listBucketTags(bucketApi, context.TODO(), bucket.Name)
+		essentialTags := GetEssentialTags(bucketTags, tagName)
 		creationDate, _ := time.Parse(time.RFC3339, bucket.CreationDate.Format(time.RFC3339))
 		scwBuckets = append(scwBuckets, MinioBucket{
 			Name:         bucket.Name,
 			CreationDate: creationDate,
-			TTL:          0,
+			TTL:          essentialTags.TTL,
 			IsProtected:  false,
 			ObjectsInfos: objectsInfos,
 		})
 	}
 
 	return scwBuckets
+}
+
+func listBucketTags(bucketApi *minio.Client, ctx context.Context, bucketName string) []string {
+	objects, err := bucketApi.GetBucketTagging(ctx, bucketName)
+	tags := []string{}
+	if err != nil {
+		log.Errorf("Can't get tags for bucket %s: %s", bucketName, err.Error())
+		return tags
+	}
+
+	for _, value := range objects.ToMap() {
+		tags = append(tags, value)
+	}
+
+	return tags
 }
 
 func ListBucketObjects(bucketApi *minio.Client, ctx context.Context, bucketName string) []minio.ObjectInfo {
@@ -55,7 +76,7 @@ func GetExpiredBuckets(bucketApi *minio.Client, tagName string, region string) [
 
 	expiredBuckets := []MinioBucket{}
 	for _, bucket := range buckets {
-		if bucket.CreationDate.UTC().Add(2 * time.Hour).Before(time.Now().UTC()) {
+		if CheckIfExpired(bucket.CreationDate, bucket.TTL, "bucket "+bucket.Name) {
 			expiredBuckets = append(expiredBuckets, bucket)
 		}
 	}

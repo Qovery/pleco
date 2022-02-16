@@ -19,7 +19,7 @@ func DeleteExpiredBuckets(sessions ScalewaySessions, options ScalewayOptions) {
 	log.Debug(start)
 
 	for _, expiredBucket := range expiredBuckets {
+		common.EmptyBucket(sessions.Bucket, expiredBucket.Name, expiredBucket.ObjectsInfos)
 		common.DeleteBucket(sessions.Bucket, expiredBucket)
 	}
 }
-

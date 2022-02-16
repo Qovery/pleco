@@ -39,7 +39,7 @@ func getExpiredDatabases(client *godo.Client, tagName string, region string) []D
 
 	expiredDbs := []DODB{}
 	for _, db := range databases {
-		if common.CheckIfExpired(db.CreationDate, db.TTL, "database"+db.Name) && !db.IsProtected {
+		if common.CheckIfExpired(db.CreationDate, db.TTL, "database "+db.Name) && !db.IsProtected {
 			expiredDbs = append(expiredDbs, db)
 		}
 	}
