@@ -15,7 +15,7 @@ type MinioBucket struct {
 	ObjectsInfos []minio.ObjectInfo
 }
 
-func listBuckets(bucketApi *minio.Client, tagName string, region string) []MinioBucket {
+func listBuckets(bucketApi *minio.Client, tagName string, region string, withTags bool) []MinioBucket {
 	ctx := context.Background()
 	buckets, err := bucketApi.ListBuckets(ctx)
 	if err != nil {
@@ -23,16 +23,19 @@ func listBuckets(bucketApi *minio.Client, tagName string, region string) []Minio
 		return []MinioBucket{}
 	}
 
-	bucketLimit := 100
-	if len(buckets) < 100 {
+	bucketLimit := 50
+	if len(buckets) < bucketLimit {
 		bucketLimit = len(buckets)
 	}
 
 	scwBuckets := []MinioBucket{}
 	for _, bucket := range buckets[:bucketLimit] {
 		objectsInfos := ListBucketObjects(bucketApi, ctx, bucket.Name)
-		bucketTags := listBucketTags(bucketApi, context.TODO(), bucket.Name)
-		essentialTags := GetEssentialTags(bucketTags, tagName)
+		essentialTags := EssentialTags{}
+		if withTags {
+			bucketTags := listBucketTags(bucketApi, context.TODO(), bucket.Name)
+			essentialTags = GetEssentialTags(bucketTags, tagName)
+		}
 		creationDate, _ := time.Parse(time.RFC3339, bucket.CreationDate.Format(time.RFC3339))
 		scwBuckets = append(scwBuckets, MinioBucket{
 			Name:         bucket.Name,
@@ -72,11 +75,24 @@ func ListBucketObjects(bucketApi *minio.Client, ctx context.Context, bucketName 
 }
 
 func GetExpiredBuckets(bucketApi *minio.Client, tagName string, region string) []MinioBucket {
-	buckets := listBuckets(bucketApi, tagName, region)
+	buckets := listBuckets(bucketApi, tagName, region, true)
 
 	expiredBuckets := []MinioBucket{}
 	for _, bucket := range buckets {
 		if CheckIfExpired(bucket.CreationDate, bucket.TTL, "bucket "+bucket.Name) {
+			expiredBuckets = append(expiredBuckets, bucket)
+		}
+	}
+
+	return expiredBuckets
+}
+
+func GetUnusedBuckets(bucketApi *minio.Client, tagName string, region string) []MinioBucket {
+	buckets := listBuckets(bucketApi, tagName, region, false)
+
+	expiredBuckets := []MinioBucket{}
+	for _, bucket := range buckets {
+		if bucket.CreationDate.UTC().Add(2*time.Hour).Before(time.Now().UTC()) && len(bucket.ObjectsInfos) == 0 {
 			expiredBuckets = append(expiredBuckets, bucket)
 		}
 	}

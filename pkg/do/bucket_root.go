@@ -40,7 +40,7 @@ func emptyBuckets(doApi *godo.Client, bucketApi *minio.Client, tagName string, r
 }
 
 func getBucketsToEmpty(doApi *godo.Client, bucketApi *minio.Client, tagName string, region string) []common.MinioBucket {
-	buckets := common.GetExpiredBuckets(bucketApi, tagName, region)
+	buckets := common.GetUnusedBuckets(bucketApi, tagName, region)
 	clusters := listClusters(doApi, tagName, region)
 	_, _ = buckets, clusters
 
@@ -54,7 +54,7 @@ func getBucketsToEmpty(doApi *godo.Client, bucketApi *minio.Client, tagName stri
 		configName := fmt.Sprintf("%s-kubeconfigs-%s", splitedName[0], splitedName[1])
 		logsName := fmt.Sprintf("%s-logs-%s", splitedName[0], splitedName[1])
 		checkingBuckets[configName] = common.MinioBucket{Name: "keep-me"}
-		checkingBuckets[logsName] =  common.MinioBucket{Name: "keep-me"}
+		checkingBuckets[logsName] = common.MinioBucket{Name: "keep-me"}
 	}
 
 	emptyBuckets := []common.MinioBucket{}
@@ -66,5 +66,3 @@ func getBucketsToEmpty(doApi *godo.Client, bucketApi *minio.Client, tagName stri
 
 	return emptyBuckets
 }
-
-
