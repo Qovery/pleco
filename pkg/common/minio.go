@@ -92,7 +92,7 @@ func GetUnusedBuckets(bucketApi *minio.Client, tagName string, region string) []
 
 	expiredBuckets := []MinioBucket{}
 	for _, bucket := range buckets {
-		if bucket.CreationDate.UTC().Add(2*time.Hour).Before(time.Now().UTC()) && len(bucket.ObjectsInfos) == 0 {
+		if bucket.CreationDate.UTC().Add(2 * time.Hour).Before(time.Now().UTC()) {
 			expiredBuckets = append(expiredBuckets, bucket)
 		}
 	}
