@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
 	log "github.com/sirupsen/logrus"
 	"strconv"
 	"strings"
@@ -65,6 +66,10 @@ func GetEssentialTags(tagsInput interface{}, tagName string) EssentialTags {
 			tags = append(tags, MyTag{Key: *elem.Key, Value: *elem.Value})
 		}
 	case []*elasticache.Tag:
+		for _, elem := range typedTags {
+			tags = append(tags, MyTag{Key: *elem.Key, Value: *elem.Value})
+		}
+	case []*cloudformation.Tag:
 		for _, elem := range typedTags {
 			tags = append(tags, MyTag{Key: *elem.Key, Value: *elem.Value})
 		}
