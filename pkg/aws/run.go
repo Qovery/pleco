@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"sync"
@@ -34,6 +35,7 @@ type AwsOptions struct {
 	EnableSSH            bool
 	EnableDocumentDB     bool
 	EnableECR            bool
+	EnableCloudFormation bool
 }
 
 type AWSSessions struct {
@@ -47,6 +49,7 @@ type AWSSessions struct {
 	KMS            *kms.KMS
 	IAM            *iam.IAM
 	ECR            *ecr.ECR
+	CloudFormation *cloudformation.CloudFormation
 }
 
 type funcDeleteExpired func(sessions AWSSessions, options AwsOptions)
@@ -154,6 +157,12 @@ func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options
 	if options.EnableECR {
 		sessions.ECR = ecr.New(currentSession)
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteEmptyRepositories)
+	}
+
+	// Cloudformation Stacks
+	if options.EnableCloudFormation {
+		sessions.CloudFormation = cloudformation.New(currentSession)
+		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredStacks)
 	}
 
 	for {
