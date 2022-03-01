@@ -21,29 +21,20 @@ func LambdaSession(sess session.Session, region string) *lambda.Lambda {
 	return lambda.New(&sess, &aws.Config{Region: aws.String(region)})
 }
 
-func listTaggedFunctions(svc lambda.Lambda, tagName string) ([]lambdaFunction, error) {
+func tagFunctions(svc lambda.Lambda, functions *lambda.ListFunctionsOutput, tagName string) []lambdaFunction {
 	var taggedFunctions []lambdaFunction
 
-	result, err := svc.ListFunctions(nil)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(result.Functions) == 0 {
-		return nil, nil
-	}
-
-	for _, function := range result.Functions {
+	for _, function := range functions.Functions {
 		input := &lambda.GetFunctionInput{
 			FunctionName: function.FunctionName,
 		}
-		result, err := svc.GetFunction(input)
+		getFunctionResult, err := svc.GetFunction(input)
 		if err != nil {
 			continue
 		}
-
-		essentialTags := common.GetEssentialTags(result.Tags, tagName)
-
+		
+		essentialTags := common.GetEssentialTags(getFunctionResult.Tags, tagName)
+		
 		taggedFunctions = append(taggedFunctions, lambdaFunction{
 			FunctionName: *function.FunctionName,
 			CreateTime:   essentialTags.CreationDate,
@@ -51,6 +42,36 @@ func listTaggedFunctions(svc lambda.Lambda, tagName string) ([]lambdaFunction, e
 			IsProtected:  essentialTags.IsProtected,
 		})
 
+	}
+
+	return taggedFunctions
+}
+
+func listTaggedFunctions(svc lambda.Lambda, tagName string) ([]lambdaFunction, error) {
+
+	result, err := svc.ListFunctions(nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// No functions, return nil
+	if len(result.Functions) == 0 {
+		return nil, nil
+	}
+
+	taggedFunctions := tagFunctions(svc, result, tagName)
+	
+	for result.NextMarker != nil {
+		result, err = svc.ListFunctions(&lambda.ListFunctionsInput{
+			Marker: result.NextMarker,
+		})
+
+		if err != nil {
+			return nil, err
+		}
+
+		taggedFunctions = append(taggedFunctions, tagFunctions(svc, result, tagName)...)
 	}
 
 	return taggedFunctions, nil
@@ -81,6 +102,7 @@ func getExpiredLambdaFunctions(ECsession *lambda.Lambda, tagName string) ([]lamb
 
 	var expiredFunctions []lambdaFunction
 	for _, function := range functions {
+		log.Infof("Checking if %s function is expired", function.FunctionName)
 		if common.CheckIfExpired(function.CreateTime, function.TTL, "lambda: "+function.FunctionName) && !function.IsProtected {
 			expiredFunctions = append(expiredFunctions, function)
 		}
