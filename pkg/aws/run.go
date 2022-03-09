@@ -172,34 +172,34 @@ func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options
 	if options.EnableSQS {
 		sessions.SQS = sqs.New(currentSession)
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredSQSQueues)
-
-		// Lambda Function
-		if options.EnableLambda {
-			sessions.LambdaFunction = lambda.New(currentSession)
-			listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredLambdaFunctions)
-		}
-
-		// Step Function State Machines
-		if options.EnableSFN {
-			sessions.SFN = sfn.New(currentSession)
-			listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredStateMachines)
-		}
-
-		// Cloudformation Stacks
-		if options.EnableCloudFormation {
-			sessions.CloudFormation = cloudformation.New(currentSession)
-			listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredStacks)
-		}
-
-		for {
-			for _, check := range listServiceToCheckStatus {
-				check(sessions, options)
-			}
-
-			time.Sleep(time.Duration(interval) * time.Second)
-		}
-
 	}
+
+	// Lambda Function
+	if options.EnableLambda {
+		sessions.LambdaFunction = lambda.New(currentSession)
+		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredLambdaFunctions)
+	}
+
+	// Step Function State Machines
+	if options.EnableSFN {
+		sessions.SFN = sfn.New(currentSession)
+		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredStateMachines)
+	}
+
+	// Cloudformation Stacks
+	if options.EnableCloudFormation {
+		sessions.CloudFormation = cloudformation.New(currentSession)
+		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredStacks)
+	}
+
+	for {
+		for _, check := range listServiceToCheckStatus {
+			check(sessions, options)
+		}
+
+		time.Sleep(time.Duration(interval) * time.Second)
+	}
+
 }
 
 func runPlecoInGlobal(cmd *cobra.Command, interval int64, wg *sync.WaitGroup, currentSession *session.Session, options AwsOptions) {
