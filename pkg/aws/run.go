@@ -2,6 +2,7 @@ package aws
 
 import (
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecr"
@@ -15,7 +16,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/aws/aws-sdk-go/service/sqs"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"sync"
@@ -173,32 +173,33 @@ func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options
 		sessions.SQS = sqs.New(currentSession)
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredSQSQueues)
 
-	// Lambda Function
-	if options.EnableLambda {
-		sessions.LambdaFunction = lambda.New(currentSession)
-		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredLambdaFunctions)
-	}
-
-	// Step Function State Machines
-	if options.EnableSFN {
-		sessions.SFN = sfn.New(currentSession)
-		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredStateMachines)
-	}
-
-	// Cloudformation Stacks
-	if options.EnableCloudFormation {
-		sessions.CloudFormation = cloudformation.New(currentSession)
-		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredStacks)
-	}
-
-	for {
-		for _, check := range listServiceToCheckStatus {
-			check(sessions, options)
+		// Lambda Function
+		if options.EnableLambda {
+			sessions.LambdaFunction = lambda.New(currentSession)
+			listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredLambdaFunctions)
 		}
 
-		time.Sleep(time.Duration(interval) * time.Second)
-	}
+		// Step Function State Machines
+		if options.EnableSFN {
+			sessions.SFN = sfn.New(currentSession)
+			listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredStateMachines)
+		}
 
+		// Cloudformation Stacks
+		if options.EnableCloudFormation {
+			sessions.CloudFormation = cloudformation.New(currentSession)
+			listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredStacks)
+		}
+
+		for {
+			for _, check := range listServiceToCheckStatus {
+				check(sessions, options)
+			}
+
+			time.Sleep(time.Duration(interval) * time.Second)
+		}
+
+	}
 }
 
 func runPlecoInGlobal(cmd *cobra.Command, interval int64, wg *sync.WaitGroup, currentSession *session.Session, options AwsOptions) {
