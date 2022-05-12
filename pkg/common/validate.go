@@ -1,9 +1,10 @@
 package common
 
 import (
-	"github.com/spf13/cobra"
 	"log"
 	"os"
+
+	"github.com/spf13/cobra"
 )
 
 func isUsed(cmd *cobra.Command, serviceName string) bool {
@@ -25,7 +26,7 @@ func CheckEnvVars(cloudProvider string, cmd *cobra.Command) {
 	case "do":
 		requiredEnvVars = append(requiredEnvVars, checkDOEnvVars(cmd)...)
 	default:
-		log.Fatalf("Unknown cloud provider: %s. Should be \"aws\" or \"scaleway\"", cloudProvider)
+		log.Fatalf("Unknown cloud provider: %s. Should be \"aws\", \"scaleway\" or \"do\"", cloudProvider)
 	}
 
 	kubeConn, err := cmd.Flags().GetString("kube-conn")

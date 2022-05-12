@@ -2,11 +2,13 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/Qovery/pleco/pkg"
-	"github.com/Qovery/pleco/pkg/common"
+	"os"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"os"
+
+	"github.com/Qovery/pleco/pkg"
+	"github.com/Qovery/pleco/pkg/common"
 )
 
 // startCmd represents the start command
@@ -23,6 +25,11 @@ var startCmd = &cobra.Command{
 		fmt.Println(" ____  _     _____ ____ ___  \n|  _ \\| |   | ____/ ___/ _ \\ \n| |_) | |   |  _|| |  | | | |\n|  __/| |___| |__| |__| |_| |\n|_|   |_____|_____\\____\\___/\nBy Qovery")
 		log.Infof("Starting Pleco %s", GetCurrentVersion())
 
+		if len(args) < 1 {
+			log.Errorf("The provider is mandatory (aws | scaleway | do)")
+			os.Exit(1)
+		}
+
 		pkg.StartDaemon(args[0], disableDryRun, interval, cmd)
 	},
 }
@@ -35,5 +42,7 @@ func init() {
 	startCmd.Flags().StringP("tag-name", "t", "ttl", "Set the tag name to check for deletion")
 	startCmd.Flags().StringP("kube-conn", "k", "off", "Kubernetes connection method, choose between : off/in/out")
 
-	common.InitFlags(os.Args[2], startCmd)
+	if len(os.Args) > 2 {
+		common.InitFlags(os.Args[2], startCmd)
+	}
 }
