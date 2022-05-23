@@ -8,10 +8,8 @@ import (
 )
 
 type MinioBucket struct {
+	CloudProviderResource
 	Name         string
-	CreationDate time.Time
-	TTL          int64
-	IsProtected  bool
 	ObjectsInfos []minio.ObjectInfo
 }
 
@@ -38,10 +36,14 @@ func listBuckets(bucketApi *minio.Client, tagName string, region string, withTag
 		}
 		creationDate, _ := time.Parse(time.RFC3339, bucket.CreationDate.Format(time.RFC3339))
 		scwBuckets = append(scwBuckets, MinioBucket{
-			Name:         bucket.Name,
-			CreationDate: creationDate,
-			TTL:          essentialTags.TTL,
-			IsProtected:  false,
+			CloudProviderResource: CloudProviderResource{
+				Identifier:   bucket.Name,
+				Description:  "Bucket: " + bucket.Name,
+				CreationDate: creationDate,
+				TTL:          essentialTags.TTL,
+				Tag:          essentialTags.Tag,
+				IsProtected:  false,
+			},
 			ObjectsInfos: objectsInfos,
 		})
 	}
@@ -74,12 +76,12 @@ func ListBucketObjects(bucketApi *minio.Client, ctx context.Context, bucketName 
 	return objectsInfos
 }
 
-func GetExpiredBuckets(bucketApi *minio.Client, tagName string, region string) []MinioBucket {
+func GetExpiredBuckets(bucketApi *minio.Client, tagName string, region string, tagValue string) []MinioBucket {
 	buckets := listBuckets(bucketApi, tagName, region, true)
 
 	expiredBuckets := []MinioBucket{}
 	for _, bucket := range buckets {
-		if CheckIfExpired(bucket.CreationDate, bucket.TTL, "bucket "+bucket.Name) {
+		if bucket.IsResourceExpired(tagValue) {
 			expiredBuckets = append(expiredBuckets, bucket)
 		}
 	}
@@ -111,8 +113,8 @@ func EmptyBucket(bucketApi *minio.Client, bucketName string, objects []minio.Obj
 }
 
 func DeleteBucket(bucketApi *minio.Client, bucket MinioBucket) {
-	err := bucketApi.RemoveBucket(context.Background(), bucket.Name)
+	err := bucketApi.RemoveBucket(context.Background(), bucket.Identifier)
 	if err != nil {
-		log.Errorf("Can't delete bucket %s: %s", bucket.Name, err.Error())
+		log.Errorf("Can't delete bucket %s: %s", bucket.Identifier, err.Error())
 	}
 }

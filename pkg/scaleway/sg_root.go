@@ -1,10 +1,11 @@
 package scaleway
 
 import (
-	"github.com/Qovery/pleco/pkg/common"
 	"github.com/scaleway/scaleway-sdk-go/api/instance/v1"
 	log "github.com/sirupsen/logrus"
 	"time"
+
+	"github.com/Qovery/pleco/pkg/common"
 )
 
 type ScalewaySecurityGroup struct {
@@ -68,6 +69,7 @@ func getDetachedSG(instanceAPI *instance.API) ([]ScalewaySecurityGroup, string) 
 
 	detachedSgs := []ScalewaySecurityGroup{}
 	for _, SG := range SGs {
+		// do we need to force delete every security group on destroy command ?
 		if SG.UpdateDate.UTC().Add(6*time.Hour).Before(time.Now().UTC()) && !SG.IsDefault && !SG.IsAttached {
 			detachedSgs = append(detachedSgs, SG)
 		}

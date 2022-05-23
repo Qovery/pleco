@@ -98,6 +98,7 @@ func startScaleway(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.Wai
 	zones, _ := cmd.Flags().GetStringSlice("scw-zones")
 	scalewayOptions := scaleway.ScalewayOptions{
 		TagName:       getCmdString(cmd, "tag-name"),
+		TagValue:      getCmdString(cmd, "tag-value"),
 		DryRun:        dryRun,
 		EnableCluster: getCmdBool(cmd, "enable-cluster"),
 		EnableDB:      getCmdBool(cmd, "enable-db"),

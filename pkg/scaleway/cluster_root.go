@@ -1,22 +1,20 @@
 package scaleway
 
 import (
-	"github.com/Qovery/pleco/pkg/common"
 	"github.com/scaleway/scaleway-sdk-go/api/k8s/v1"
 	log "github.com/sirupsen/logrus"
 	"time"
+
+	"github.com/Qovery/pleco/pkg/common"
 )
 
 type ScalewayCluster struct {
-	ID           string
-	Name         string
-	CreationDate time.Time
-	TTL          int64
-	IsProtected  bool
+	common.CloudProviderResource
+	Name string
 }
 
 func DeleteExpiredClusters(sessions ScalewaySessions, options ScalewayOptions) {
-	expiredClusters, _ := getExpiredClusters(sessions.Cluster, options.TagName)
+	expiredClusters, _ := getExpiredClusters(sessions.Cluster, &options)
 
 	count, start := common.ElemToDeleteFormattedInfos("expired cluster", len(expiredClusters), options.Zone, true)
 
@@ -48,23 +46,27 @@ func ListClusters(clusterAPI *k8s.API, tagName string) ([]ScalewayCluster, strin
 		creationDate, _ := time.Parse(time.RFC3339, cluster.CreatedAt.Format(time.RFC3339))
 
 		clusters = append(clusters, ScalewayCluster{
-			ID:           cluster.ID,
-			Name:         cluster.Name,
-			CreationDate: creationDate,
-			TTL:          essentialTags.TTL,
-			IsProtected:  essentialTags.IsProtected,
+			CloudProviderResource: common.CloudProviderResource{
+				Identifier:   cluster.ID,
+				Description:  "Cluster: " + cluster.Name,
+				CreationDate: creationDate,
+				TTL:          essentialTags.TTL,
+				Tag:          essentialTags.Tag,
+				IsProtected:  essentialTags.IsProtected,
+			},
+			Name: cluster.Name,
 		})
 	}
 
 	return clusters, input.Region.String()
 }
 
-func getExpiredClusters(clusterAPI *k8s.API, tagName string) ([]ScalewayCluster, string) {
-	clusters, region := ListClusters(clusterAPI, tagName)
+func getExpiredClusters(clusterAPI *k8s.API, options *ScalewayOptions) ([]ScalewayCluster, string) {
+	clusters, region := ListClusters(clusterAPI, options.TagName)
 
 	expiredClusters := []ScalewayCluster{}
 	for _, cluster := range clusters {
-		if common.CheckIfExpired(cluster.CreationDate, cluster.TTL, "cluster"+cluster.Name) && !cluster.IsProtected {
+		if cluster.IsResourceExpired(options.TagValue) {
 			expiredClusters = append(expiredClusters, cluster)
 		}
 	}
@@ -75,7 +77,7 @@ func getExpiredClusters(clusterAPI *k8s.API, tagName string) ([]ScalewayCluster,
 func deleteCluster(clusterAPI *k8s.API, cluster ScalewayCluster) {
 	_, err := clusterAPI.DeleteCluster(
 		&k8s.DeleteClusterRequest{
-			ClusterID:               cluster.ID,
+			ClusterID:               cluster.Identifier,
 			WithAdditionalResources: true,
 		})
 

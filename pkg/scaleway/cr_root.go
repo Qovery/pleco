@@ -1,10 +1,11 @@
 package scaleway
 
 import (
-	"github.com/Qovery/pleco/pkg/common"
 	"github.com/scaleway/scaleway-sdk-go/api/registry/v1"
 	log "github.com/sirupsen/logrus"
 	"time"
+
+	"github.com/Qovery/pleco/pkg/common"
 )
 
 func DeleteEmptyContainerRegistries(sessions ScalewaySessions, options ScalewayOptions) {
@@ -41,6 +42,7 @@ func getEmptyRegistries(registryAPI *registry.API) ([]*registry.Namespace, strin
 
 	emptyRegistries := []*registry.Namespace{}
 	for _, reg := range registries {
+		// do we need to force delete every container registry on destroy command ?
 		if reg.ImageCount == 0 && reg.CreatedAt.UTC().Add(time.Hour).After(time.Now().UTC()) {
 			emptyRegistries = append(emptyRegistries, reg)
 		}

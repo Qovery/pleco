@@ -9,11 +9,13 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/api/registry/v1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"github.com/sirupsen/logrus"
+	"strings"
 	"sync"
 	"time"
 )
 
 type ScalewayOptions struct {
+	TagValue      string
 	TagName       string
 	DryRun        bool
 	Zone          string
@@ -25,6 +27,10 @@ type ScalewayOptions struct {
 	EnableLB      bool
 	EnableVolume  bool
 	EnableSG      bool
+}
+
+func (awsOptions *ScalewayOptions) isDestroyingCommand() bool {
+	return strings.TrimSpace(awsOptions.TagValue) == ""
 }
 
 type ScalewaySessions struct {
@@ -97,12 +103,18 @@ func runPlecoInZone(zone string, interval int64, wg *sync.WaitGroup, options Sca
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteDetachedSecurityGroups)
 	}
 
-	for {
+	if options.isDestroyingCommand() {
 		for _, check := range listServiceToCheckStatus {
 			check(sessions, options)
 		}
+	} else {
+		for {
+			for _, check := range listServiceToCheckStatus {
+				check(sessions, options)
+			}
 
-		time.Sleep(time.Duration(interval) * time.Second)
+			time.Sleep(time.Duration(interval) * time.Second)
+		}
 	}
 }
 
@@ -126,11 +138,16 @@ func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredLBs)
 	}
 
-	for {
+	if options.isDestroyingCommand() {
 		for _, check := range listServiceToCheckStatus {
 			check(sessions, options)
 		}
-
-		time.Sleep(time.Duration(interval) * time.Second)
+	} else {
+		for {
+			for _, check := range listServiceToCheckStatus {
+				check(sessions, options)
+			}
+			time.Sleep(time.Duration(interval) * time.Second)
+		}
 	}
 }

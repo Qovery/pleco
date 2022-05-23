@@ -2,10 +2,11 @@ package scaleway
 
 import (
 	"fmt"
-	"github.com/Qovery/pleco/pkg/common"
 	"github.com/scaleway/scaleway-sdk-go/api/instance/v1"
 	log "github.com/sirupsen/logrus"
 	"time"
+
+	"github.com/Qovery/pleco/pkg/common"
 )
 
 type ScalewayVolume struct {
@@ -66,6 +67,7 @@ func getDetachedVolumes(volumeAPI *instance.API, zone string) []ScalewayVolume {
 
 	detachedVolumes := []ScalewayVolume{}
 	for _, volume := range volumes {
+		// do we need to force delete every volume on destroy command ?
 		if volume.UpdatedAt.UTC().Add(volumeTimeout()*time.Hour).Before(time.Now().UTC()) && volume.ServerId == "null" {
 			detachedVolumes = append(detachedVolumes, volume)
 		}
