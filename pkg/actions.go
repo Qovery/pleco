@@ -71,6 +71,7 @@ func startAWS(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGrou
 	awsOptions := aws.AwsOptions{
 		DryRun:               dryRun,
 		TagName:              getCmdString(cmd, "tag-name"),
+		TagValue:             getCmdString(cmd, "tag-value"),
 		EnableRDS:            getCmdBool(cmd, "enable-rds"),
 		EnableDocumentDB:     getCmdBool(cmd, "enable-documentdb"),
 		EnableElastiCache:    getCmdBool(cmd, "enable-elasticache"),

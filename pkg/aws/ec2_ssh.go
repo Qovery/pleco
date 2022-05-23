@@ -1,20 +1,16 @@
 package aws
 
 import (
-	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	log "github.com/sirupsen/logrus"
-	"time"
+
+	"github.com/Qovery/pleco/pkg/common"
 )
 
 type KeyPair struct {
-	KeyName      string
-	KeyId        string
-	CreationDate time.Time
-	Tag          string
-	ttl          int64
-	IsProtected  bool
+	common.CloudProviderResource
+	KeyName string
 }
 
 func getSshKeys(ec2session *ec2.EC2, tagName string) []KeyPair {
@@ -30,13 +26,16 @@ func getSshKeys(ec2session *ec2.EC2, tagName string) []KeyPair {
 	for _, key := range result.KeyPairs {
 		essentialTags := common.GetEssentialTags(key.Tags, tagName)
 		newKey := KeyPair{
-			KeyName:      *key.KeyName,
-			KeyId:        *key.KeyPairId,
-			CreationDate: essentialTags.CreationDate,
-			ttl:          essentialTags.TTL,
-			IsProtected:  essentialTags.IsProtected,
+			CloudProviderResource: common.CloudProviderResource{
+				Identifier:   *key.KeyPairId,
+				Description:  "EC2 Key Pair: " + *key.KeyPairId,
+				CreationDate: essentialTags.CreationDate,
+				TTL:          essentialTags.TTL,
+				Tag:          essentialTags.Tag,
+				IsProtected:  essentialTags.IsProtected,
+			},
+			KeyName: *key.KeyName,
 		}
-
 		keys = append(keys, newKey)
 	}
 
@@ -57,7 +56,7 @@ func DeleteExpiredKeyPairs(sessions AWSSessions, options AwsOptions) {
 	region := sessions.EC2.Config.Region
 	var expiredKeys []KeyPair
 	for _, key := range keys {
-		if common.CheckIfExpired(key.CreationDate, key.ttl, "ec2 key pair: "+key.KeyId) && !key.IsProtected {
+		if key.IsResourceExpired(options.TagValue) {
 			expiredKeys = append(expiredKeys, key)
 		}
 	}
@@ -73,10 +72,9 @@ func DeleteExpiredKeyPairs(sessions AWSSessions, options AwsOptions) {
 	log.Debug(start)
 
 	for _, key := range expiredKeys {
-		deletionErr := deleteKeyPair(sessions.EC2, key.KeyId)
+		deletionErr := deleteKeyPair(sessions.EC2, key.Identifier)
 		if deletionErr != nil {
-			log.Errorf("Deletion EC2 key pair error %s/%s: %s",
-				key.KeyName, *region, deletionErr)
+			log.Errorf("Deletion EC2 key pair error %s/%s: %s", key.KeyName, *region, deletionErr)
 		}
 	}
 }

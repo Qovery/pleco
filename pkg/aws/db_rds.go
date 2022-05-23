@@ -1,31 +1,25 @@
 package aws
 
 import (
-	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/rds"
 	log "github.com/sirupsen/logrus"
 	"time"
+
+	"github.com/Qovery/pleco/pkg/common"
 )
 
 type rdsDatabase struct {
-	DBInstanceIdentifier string
-	InstanceCreateTime   time.Time
-	DBInstanceStatus     string
-	TTL                  int64
-	IsProtected          bool
-	ParameterGroups      []*rds.DBParameterGroupStatus
-	SubnetGroup          *rds.DBSubnetGroup
+	common.CloudProviderResource
+	DBInstanceStatus string
+	ParameterGroups  []*rds.DBParameterGroupStatus
+	SubnetGroup      *rds.DBSubnetGroup
 }
 
 type RDSSubnetGroup struct {
-	ID           string
-	Name         string
-	CreationDate time.Time
-	TTL          int64
-	IsProtected  bool
-	Tag          string
+	common.CloudProviderResource
+	ID string
 }
 
 func RdsSession(sess session.Session, region string) *rds.RDS {
@@ -43,7 +37,7 @@ func listRDSDatabases(svc rds.RDS) []*rds.DBInstance {
 	return result.DBInstances
 }
 
-func listExpiredRDSDatabases(svc rds.RDS, tagName string) []rdsDatabase {
+func listExpiredRDSDatabases(svc rds.RDS, options *AwsOptions) []rdsDatabase {
 	dbs := listRDSDatabases(svc)
 
 	if len(dbs) == 0 {
@@ -67,21 +61,24 @@ func listExpiredRDSDatabases(svc rds.RDS, tagName string) []rdsDatabase {
 			continue
 		}
 
-		essentialTags := common.GetEssentialTags(instance.TagList, tagName)
+		essentialTags := common.GetEssentialTags(instance.TagList, options.TagName)
 		time, _ := time.Parse(time.RFC3339, instance.InstanceCreateTime.Format(time.RFC3339))
 
 		if instance.DBInstanceIdentifier != nil {
 			database := rdsDatabase{
-				DBInstanceIdentifier: *instance.DBInstanceIdentifier,
-				InstanceCreateTime:   time,
-				DBInstanceStatus:     *instance.DBInstanceStatus,
-				TTL:                  essentialTags.TTL,
-				IsProtected:          essentialTags.IsProtected,
-				SubnetGroup:          instance.DBSubnetGroup,
-				ParameterGroups:      instance.DBParameterGroups,
+				CloudProviderResource: common.CloudProviderResource{
+					Identifier:   *instance.DBInstanceIdentifier,
+					Description:  "RDS Database: " + *instance.DBInstanceIdentifier,
+					CreationDate: time,
+					TTL:          essentialTags.TTL,
+					Tag:          essentialTags.Tag,
+					IsProtected:  essentialTags.IsProtected,
+				},
+				DBInstanceStatus: *instance.DBInstanceStatus,
+				SubnetGroup:      instance.DBSubnetGroup,
+				ParameterGroups:  instance.DBParameterGroups,
 			}
-
-			if common.CheckIfExpired(database.InstanceCreateTime, database.TTL, "rds Db: "+database.DBInstanceIdentifier) && !database.IsProtected {
+			if database.CloudProviderResource.IsResourceExpired(options.TagValue) {
 				expiredDatabases = append(expiredDatabases, database)
 			}
 		}
@@ -92,22 +89,22 @@ func listExpiredRDSDatabases(svc rds.RDS, tagName string) []rdsDatabase {
 
 func DeleteRDSDatabase(svc rds.RDS, database rdsDatabase) {
 	if database.DBInstanceStatus == "deleting" {
-		log.Infof("RDS instance %s is already in deletion process, skipping...", database.DBInstanceIdentifier)
+		log.Infof("RDS instance %s is already in deletion process, skipping...", database.Identifier)
 		return
 	} else {
 		log.Infof("Deleting RDS database %s in %s, expired after %d seconds",
-			database.DBInstanceIdentifier, *svc.Config.Region, database.TTL)
+			database.Identifier, *svc.Config.Region, database.TTL)
 	}
 
 	_, instanceErr := svc.DeleteDBInstance(
 		&rds.DeleteDBInstanceInput{
-			DBInstanceIdentifier:   aws.String(database.DBInstanceIdentifier),
+			DBInstanceIdentifier:   aws.String(database.Identifier),
 			DeleteAutomatedBackups: aws.Bool(true),
 			SkipFinalSnapshot:      aws.Bool(true),
 		},
 	)
 	if instanceErr != nil {
-		log.Errorf("Can't delete RDS instance %s in %s: %s", database.DBInstanceIdentifier, *svc.Config.Region, instanceErr.Error())
+		log.Errorf("Can't delete RDS instance %s in %s: %s", database.Identifier, *svc.Config.Region, instanceErr.Error())
 	} else {
 		DeleteRDSSubnetGroup(svc, *database.SubnetGroup.DBSubnetGroupName)
 
@@ -126,25 +123,35 @@ func GetRDSInstanceInfos(svc rds.RDS, databaseIdentifier string) (rdsDatabase, e
 	// ignore if creation is in progress to avoid nil fields
 	if err != nil || *result.DBInstances[0].DBInstanceStatus == "creating" {
 		return rdsDatabase{
-			DBInstanceIdentifier: *result.DBInstances[0].DBInstanceIdentifier,
-			InstanceCreateTime:   time.Time{},
-			DBInstanceStatus:     *result.DBInstances[0].DBInstanceStatus,
-			TTL:                  0,
+			CloudProviderResource: common.CloudProviderResource{
+				Identifier:   *result.DBInstances[0].DBInstanceIdentifier,
+				Description:  "RDS Database: " + *result.DBInstances[0].DBInstanceIdentifier,
+				CreationDate: time.Time{},
+				TTL:          0,
+				Tag:          "",
+				IsProtected:  false,
+			},
+			DBInstanceStatus: *result.DBInstances[0].DBInstanceStatus,
 		}, err
 	}
 
 	time, _ := time.Parse(time.RFC3339, result.DBInstances[0].InstanceCreateTime.Format(time.RFC3339))
 
 	return rdsDatabase{
-		DBInstanceIdentifier: *result.DBInstances[0].DBInstanceIdentifier,
-		InstanceCreateTime:   time,
-		DBInstanceStatus:     *result.DBInstances[0].DBInstanceStatus,
-		TTL:                  -1,
+		CloudProviderResource: common.CloudProviderResource{
+			Identifier:   *result.DBInstances[0].DBInstanceIdentifier,
+			Description:  "RDS Database: " + *result.DBInstances[0].DBInstanceIdentifier,
+			CreationDate: time,
+			TTL:          -1,
+			Tag:          "",
+			IsProtected:  false,
+		},
+		DBInstanceStatus: *result.DBInstances[0].DBInstanceStatus,
 	}, nil
 }
 
 func DeleteExpiredRDSDatabases(sessions AWSSessions, options AwsOptions) {
-	expiredDatabases := listExpiredRDSDatabases(*sessions.RDS, options.TagName)
+	expiredDatabases := listExpiredRDSDatabases(*sessions.RDS, &options)
 	region := *sessions.RDS.Config.Region
 
 	count, start := common.ElemToDeleteFormattedInfos("expired RDS database", len(expiredDatabases), region)
@@ -206,22 +213,26 @@ func getRDSSubnetGroupTags(svc rds.RDS, subnetGroupName string) []*rds.Tag {
 	return result.TagList
 }
 
-func getExpiredRDSSubnetGroups(svc rds.RDS, tagName string) []RDSSubnetGroup {
+func getExpiredRDSSubnetGroups(svc rds.RDS, options *AwsOptions) []RDSSubnetGroup {
 	SGs := listRDSSubnetGroups(svc)
 
 	expiredRDSSubnetGroups := []RDSSubnetGroup{}
 	for _, SG := range SGs {
 		tags := getRDSSubnetGroupTags(svc, *SG.DBSubnetGroupArn)
-		essentialTags := common.GetEssentialTags(tags, tagName)
-		if common.CheckIfExpired(essentialTags.CreationDate, essentialTags.TTL, "DB subnet group"+*SG.DBSubnetGroupName) && !essentialTags.IsProtected {
-			expiredRDSSubnetGroups = append(expiredRDSSubnetGroups, RDSSubnetGroup{
-				ID:           *SG.DBSubnetGroupArn,
-				Name:         *SG.DBSubnetGroupName,
+		essentialTags := common.GetEssentialTags(tags, options.TagName)
+		rDSSubnetGroup := RDSSubnetGroup{
+			CloudProviderResource: common.CloudProviderResource{
+				Identifier:   *SG.DBSubnetGroupName,
+				Description:  "DB Subnet Group: " + *SG.DBSubnetGroupName,
 				CreationDate: essentialTags.CreationDate,
 				TTL:          essentialTags.TTL,
-				IsProtected:  essentialTags.IsProtected,
 				Tag:          essentialTags.Tag,
-			})
+				IsProtected:  essentialTags.IsProtected,
+			},
+			ID: *SG.DBSubnetGroupArn,
+		}
+		if rDSSubnetGroup.IsResourceExpired(options.TagValue) {
+			expiredRDSSubnetGroups = append(expiredRDSSubnetGroups)
 		}
 	}
 
@@ -230,7 +241,7 @@ func getExpiredRDSSubnetGroups(svc rds.RDS, tagName string) []RDSSubnetGroup {
 
 func DeleteExpiredRDSSubnetGroups(sessions AWSSessions, options AwsOptions) {
 	region := *sessions.RDS.Config.Region
-	expiredRDSSubnetGroups := getExpiredRDSSubnetGroups(*sessions.RDS, options.TagName)
+	expiredRDSSubnetGroups := getExpiredRDSSubnetGroups(*sessions.RDS, &options)
 
 	count, start := common.ElemToDeleteFormattedInfos("expired RDS subnet group", len(expiredRDSSubnetGroups), region)
 
@@ -243,17 +254,13 @@ func DeleteExpiredRDSSubnetGroups(sessions AWSSessions, options AwsOptions) {
 	log.Debug(start)
 
 	for _, expiredRDSSubnetGroup := range expiredRDSSubnetGroups {
-		DeleteRDSSubnetGroup(*sessions.RDS, expiredRDSSubnetGroup.Name)
+		DeleteRDSSubnetGroup(*sessions.RDS, expiredRDSSubnetGroup.Identifier)
 	}
 }
 
 type RDSParameterGroups struct {
-	ID           string
-	Name         string
-	CreationDate time.Time
-	TTL          int64
-	IsProtected  bool
-	Tag          string
+	common.CloudProviderResource
+	ID string
 }
 
 func listParametersGroups(svc rds.RDS) []*rds.DBParameterGroup {
@@ -283,24 +290,27 @@ func getCompleteRDSParameterGroups(svc rds.RDS, tagName string) []RDSParameterGr
 		essentialTags := common.GetEssentialTags(tags.TagList, tagName)
 
 		completeRDSParameterGroups = append(completeRDSParameterGroups, RDSParameterGroups{
-			ID:           *result.DBParameterGroupArn,
-			Name:         *result.DBParameterGroupName,
-			CreationDate: essentialTags.CreationDate,
-			TTL:          essentialTags.TTL,
-			IsProtected:  essentialTags.IsProtected,
-			Tag:          essentialTags.Tag,
+			CloudProviderResource: common.CloudProviderResource{
+				Identifier:   *result.DBParameterGroupName,
+				Description:  "RDS Parameter Group: " + *result.DBParameterGroupName,
+				CreationDate: essentialTags.CreationDate,
+				TTL:          essentialTags.TTL,
+				Tag:          essentialTags.Tag,
+				IsProtected:  essentialTags.IsProtected,
+			},
+			ID: *result.DBParameterGroupArn,
 		})
 	}
 
 	return completeRDSParameterGroups
 }
 
-func listExpiredCompleteRDSParameterGroups(svc rds.RDS, tagName string) []RDSParameterGroups {
-	completeRDSParameterGroups := getCompleteRDSParameterGroups(svc, tagName)
+func listExpiredCompleteRDSParameterGroups(svc rds.RDS, options *AwsOptions) []RDSParameterGroups {
+	completeRDSParameterGroups := getCompleteRDSParameterGroups(svc, options.TagName)
 	expiredCompleteRDSParameterGroups := []RDSParameterGroups{}
 
 	for _, item := range completeRDSParameterGroups {
-		if common.CheckIfExpired(item.CreationDate, item.TTL, "DB Parameter Group"+item.Name) && !item.IsProtected {
+		if item.IsResourceExpired(options.TagValue) {
 			expiredCompleteRDSParameterGroups = append(expiredCompleteRDSParameterGroups, item)
 		}
 	}
@@ -309,7 +319,7 @@ func listExpiredCompleteRDSParameterGroups(svc rds.RDS, tagName string) []RDSPar
 }
 
 func DeleteExpiredCompleteRDSParameterGroups(sessions AWSSessions, options AwsOptions) {
-	expiredRDSParameterGroups := listExpiredCompleteRDSParameterGroups(*sessions.RDS, options.TagName)
+	expiredRDSParameterGroups := listExpiredCompleteRDSParameterGroups(*sessions.RDS, &options)
 	region := *sessions.RDS.Config.Region
 
 	count, start := common.ElemToDeleteFormattedInfos("expired RDS Parameter Group", len(expiredRDSParameterGroups), region)
@@ -323,7 +333,7 @@ func DeleteExpiredCompleteRDSParameterGroups(sessions AWSSessions, options AwsOp
 	log.Debug(start)
 
 	for _, dbParameterGroup := range expiredRDSParameterGroups {
-		deleteRDSParameterGroups(*sessions.RDS, dbParameterGroup.Name)
+		deleteRDSParameterGroups(*sessions.RDS, dbParameterGroup.Identifier)
 	}
 }
 
@@ -345,7 +355,8 @@ func getExpiredSnapshots(svc rds.RDS) []*rds.DBSnapshot {
 
 	if len(dbs) == 0 {
 		for _, snap := range snaps {
-			if snap.SnapshotCreateTime.Before(time.Now().UTC().Add(3 * time.Hour)) && common.CheckSnapshot(snap) {
+			// do we need to force delete every snapshot on detroy command ?
+			if snap.SnapshotCreateTime.Before(time.Now().UTC().Add(3*time.Hour)) && common.CheckSnapshot(snap) {
 				expiredSnaps = append(expiredSnaps, snap)
 			}
 		}

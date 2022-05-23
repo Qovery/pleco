@@ -77,5 +77,5 @@ func deleteNetworkInterface(ec2Session *ec2.EC2, ni NetworkInterface) {
 
 func SetNetworkInterfacesByVpcId(ec2Session *ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup) {
 	defer waitGroup.Done()
-	vpc.NetworkInterfaces = listNetworkInterfacesByVpcId(ec2Session, *vpc.VpcId)
+	vpc.NetworkInterfaces = listNetworkInterfacesByVpcId(ec2Session, vpc.Identifier)
 }

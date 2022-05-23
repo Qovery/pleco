@@ -1,12 +1,13 @@
 package aws
 
 import (
-	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	log "github.com/sirupsen/logrus"
 	"sync"
 	"time"
+
+	"github.com/Qovery/pleco/pkg/common"
 )
 
 type NatGateway struct {
@@ -37,7 +38,7 @@ func getNatGatewaysByVpcId(ec2Session *ec2.EC2, vpcId string) []*ec2.NatGateway 
 func SetNatGatewaysIdsByVpcId(ec2Session *ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup, tagName string) {
 	defer waitGroup.Done()
 
-	gateways := getNatGatewaysByVpcId(ec2Session, *vpc.VpcId)
+	gateways := getNatGatewaysByVpcId(ec2Session, vpc.Identifier)
 	natGateways := []NatGateway{}
 	for _, gateway := range gateways {
 		essentialTags := common.GetEssentialTags(gateway.Tags, tagName)

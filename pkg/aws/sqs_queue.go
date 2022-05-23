@@ -4,18 +4,16 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/Qovery/pleco/pkg/common"
 )
 
 type sqsQueue struct {
-	QueueUrl        string
-	QueueCreateTime time.Time
-	TTL             int64
-	IsProtected     bool
+	common.CloudProviderResource
 }
 
 func SqsSession(sess session.Session, region string) *sqs.SQS {
@@ -59,10 +57,14 @@ func listTaggedSqsQueues(svc sqs.SQS, tagName string) ([]sqsQueue, error) {
 
 		time, _ := time.Parse(time.RFC3339, time.Unix(createdTimestamp, 0).Format(time.RFC3339))
 		taggedQueues = append(taggedQueues, sqsQueue{
-			QueueUrl:        *queue,
-			QueueCreateTime: time,
-			TTL:             essentialTags.TTL,
-			IsProtected:     essentialTags.IsProtected,
+			CloudProviderResource: common.CloudProviderResource{
+				Identifier:   *queue,
+				Description:  "SQS Queue: " + *queue,
+				CreationDate: time,
+				TTL:          essentialTags.TTL,
+				Tag:          essentialTags.Tag,
+				IsProtected:  essentialTags.IsProtected,
+			},
 		})
 
 	}
@@ -73,11 +75,11 @@ func listTaggedSqsQueues(svc sqs.SQS, tagName string) ([]sqsQueue, error) {
 func deleteSqsQueue(svc sqs.SQS, queue sqsQueue) error {
 
 	log.Infof("Deleting SQS queue %s in %s, expired after %d seconds",
-		queue.QueueUrl, *svc.Config.Region, queue.TTL)
+		queue.Identifier, *svc.Config.Region, queue.TTL)
 
 	_, err := svc.DeleteQueue(
 		&sqs.DeleteQueueInput{
-			QueueUrl: aws.String(queue.QueueUrl),
+			QueueUrl: aws.String(queue.Identifier),
 		},
 	)
 	if err != nil {
@@ -87,8 +89,8 @@ func deleteSqsQueue(svc sqs.SQS, queue sqsQueue) error {
 	return nil
 }
 
-func getExpiredQueues(ECsession *sqs.SQS, tagName string) ([]sqsQueue, string) {
-	queues, err := listTaggedSqsQueues(*ECsession, tagName)
+func getExpiredQueues(ECsession *sqs.SQS, options *AwsOptions) ([]sqsQueue, string) {
+	queues, err := listTaggedSqsQueues(*ECsession, options.TagName)
 	region := *ECsession.Config.Region
 	if err != nil {
 		log.Errorf("can't list SQS Queues in region %s: %s", region, err.Error())
@@ -96,7 +98,8 @@ func getExpiredQueues(ECsession *sqs.SQS, tagName string) ([]sqsQueue, string) {
 
 	var expiredQueues []sqsQueue
 	for _, queue := range queues {
-		if common.CheckIfExpired(queue.QueueCreateTime, queue.TTL, "sqs: "+queue.QueueUrl) && !queue.IsProtected {
+
+		if queue.IsResourceExpired(options.TagValue) {
 			expiredQueues = append(expiredQueues, queue)
 		}
 	}
@@ -105,7 +108,7 @@ func getExpiredQueues(ECsession *sqs.SQS, tagName string) ([]sqsQueue, string) {
 }
 
 func DeleteExpiredSQSQueues(sessions AWSSessions, options AwsOptions) {
-	expiredQueues, region := getExpiredQueues(sessions.SQS, options.TagName)
+	expiredQueues, region := getExpiredQueues(sessions.SQS, &options)
 
 	count, start := common.ElemToDeleteFormattedInfos("expired SQS Queues", len(expiredQueues), region)
 
@@ -120,7 +123,7 @@ func DeleteExpiredSQSQueues(sessions AWSSessions, options AwsOptions) {
 	for _, queue := range expiredQueues {
 		deletionErr := deleteSqsQueue(*sessions.SQS, queue)
 		if deletionErr != nil {
-			log.Errorf("Deletion SQS queue error %s/%s: %s", queue.QueueUrl, region, deletionErr.Error())
+			log.Errorf("Deletion SQS queue error %s/%s: %s", queue.Identifier, region, deletionErr.Error())
 		}
 	}
 }

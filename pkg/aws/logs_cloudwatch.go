@@ -1,22 +1,19 @@
 package aws
 
 import (
-	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	log "github.com/sirupsen/logrus"
 	"strings"
 	"time"
+
+	"github.com/Qovery/pleco/pkg/common"
 )
 
 type CompleteLogGroup struct {
-	logGroupName string
-	tag          string
-	ttl          int64
-	creationDate time.Time
-	clusterId    string
-	IsProtected  bool
+	common.CloudProviderResource
+	clusterId string
 }
 
 func getCloudwatchLogs(svc *cloudwatchlogs.CloudWatchLogs) []*cloudwatchlogs.LogGroup {
@@ -35,12 +32,15 @@ func getCompleteLogGroup(svc *cloudwatchlogs.CloudWatchLogs, log cloudwatchlogs.
 	essentialTags := common.GetEssentialTags(tags, tagName)
 
 	return CompleteLogGroup{
-		logGroupName: *log.LogGroupName,
-		creationDate: time.Unix(*log.CreationTime/1000, 0),
-		ttl:          essentialTags.TTL,
-		clusterId:    essentialTags.ClusterId,
-		IsProtected:  essentialTags.IsProtected,
-		tag:          essentialTags.Tag,
+		CloudProviderResource: common.CloudProviderResource{
+			Identifier:   *log.LogGroupName,
+			Description:  "Log Group Name: " + *log.LogGroupName,
+			CreationDate: time.Unix(*log.CreationTime/1000, 0),
+			TTL:          essentialTags.TTL,
+			Tag:          essentialTags.Tag,
+			IsProtected:  essentialTags.IsProtected,
+		},
+		clusterId: essentialTags.ClusterId,
 	}
 }
 
@@ -96,7 +96,7 @@ func DeleteExpiredLogs(sessions AWSSessions, options AwsOptions) {
 	var expiredLogs []CompleteLogGroup
 	for _, log := range logs {
 		completeLogGroup := getCompleteLogGroup(sessions.CloudWatchLogs, *log, options.TagName)
-		if common.CheckIfExpired(completeLogGroup.creationDate, completeLogGroup.ttl, "log group: "+completeLogGroup.logGroupName) && !completeLogGroup.IsProtected {
+		if completeLogGroup.IsResourceExpired(options.TagValue) {
 			expiredLogs = append(expiredLogs, completeLogGroup)
 		}
 	}
@@ -112,10 +112,10 @@ func DeleteExpiredLogs(sessions AWSSessions, options AwsOptions) {
 	log.Debug(start)
 
 	for _, completeLog := range expiredLogs {
-		_, deletionErr := deleteCloudwatchLog(*sessions.CloudWatchLogs, completeLog.logGroupName)
+		_, deletionErr := deleteCloudwatchLog(*sessions.CloudWatchLogs, completeLog.Identifier)
 		if deletionErr != nil {
 			log.Errorf("Deletion Cloudwatch error %s/%s: %s",
-				completeLog.logGroupName, region, deletionErr)
+				completeLog.Identifier, region, deletionErr)
 		}
 	}
 
@@ -133,14 +133,14 @@ func addTtlToLogGroup(svc *cloudwatchlogs.CloudWatchLogs, logGroupName string, t
 	return result.String(), err
 }
 
-func TagLogsForDeletion(svc *cloudwatchlogs.CloudWatchLogs, tagName string, clusterId string, ttl int64) error {
+func TagLogsForDeletion(svc *cloudwatchlogs.CloudWatchLogs, tagName string, clusterId string, TTL int64) error {
 	logs := getCloudwatchLogs(svc)
 
 	for _, log := range logs {
 		completeLogGroup := getCompleteLogGroup(svc, *log, tagName)
 
-		if completeLogGroup.ttl == 0 && strings.Contains(completeLogGroup.logGroupName, clusterId) {
-			_, err := addTtlToLogGroup(svc, completeLogGroup.logGroupName, ttl)
+		if completeLogGroup.TTL == 0 && strings.Contains(completeLogGroup.Identifier, clusterId) {
+			_, err := addTtlToLogGroup(svc, completeLogGroup.Identifier, TTL)
 			if err != nil {
 				return err
 			}

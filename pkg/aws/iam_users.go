@@ -2,19 +2,15 @@ package aws
 
 import (
 	"fmt"
-	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
 	log "github.com/sirupsen/logrus"
-	"time"
+
+	"github.com/Qovery/pleco/pkg/common"
 )
 
 type User struct {
-	UserName     string
-	CreationDate time.Time
-	ttl          int64
-	Tag          string
-	IsProtected  bool
+	common.CloudProviderResource
 }
 
 func getUsers(iamSession *iam.IAM, tagName string) []User {
@@ -34,10 +30,14 @@ func getUsers(iamSession *iam.IAM, tagName string) []User {
 		tags := getUserTags(iamSession, *user.UserName)
 		essentialTags := common.GetEssentialTags(tags, tagName)
 		newUser := User{
-			UserName:     *user.UserName,
-			CreationDate: essentialTags.CreationDate,
-			ttl:          essentialTags.TTL,
-			IsProtected:  essentialTags.IsProtected,
+			CloudProviderResource: common.CloudProviderResource{
+				Identifier:   *user.UserName,
+				Description:  "User: " + *user.UserName,
+				CreationDate: essentialTags.CreationDate,
+				TTL:          essentialTags.TTL,
+				Tag:          essentialTags.Tag,
+				IsProtected:  essentialTags.IsProtected,
+			},
 		}
 
 		users = append(users, newUser)
@@ -100,12 +100,12 @@ func deleteExpiredUserAccessKeys(iamSession *iam.IAM, userName string) {
 	}
 }
 
-func DeleteExpiredUsers(iamSession *iam.IAM, tagName string, dryRun bool) {
-	users := getUsers(iamSession, tagName)
+func DeleteExpiredUsers(iamSession *iam.IAM, options *AwsOptions) {
+	users := getUsers(iamSession, options.TagName)
 	var expiredUsers []User
 
 	for _, user := range users {
-		if common.CheckIfExpired(user.CreationDate, user.ttl, "iam user: "+user.UserName) && !user.IsProtected {
+		if user.IsResourceExpired(options.TagValue) {
 			expiredUsers = append(expiredUsers, user)
 		}
 	}
@@ -120,22 +120,22 @@ func DeleteExpiredUsers(iamSession *iam.IAM, tagName string, dryRun bool) {
 
 	log.Debug(s)
 
-	if dryRun || len(expiredUsers) == 0 {
+	if options.DryRun || len(expiredUsers) == 0 {
 		return
 	}
 
 	log.Debug("Starting expired IAM users deletion.")
 
 	for _, user := range expiredUsers {
-		HandleUserPolicies(iamSession, user.UserName)
-		deleteExpiredUserAccessKeys(iamSession, user.UserName)
+		HandleUserPolicies(iamSession, user.Identifier)
+		deleteExpiredUserAccessKeys(iamSession, user.Identifier)
 
 		_, userErr := iamSession.DeleteUser(
 			&iam.DeleteUserInput{
-				UserName: aws.String(user.UserName),
+				UserName: aws.String(user.Identifier),
 			})
 		if userErr != nil {
-			log.Errorf("Can't delete user %s : %s", user.UserName, userErr.Error())
+			log.Errorf("Can't delete user %s : %s", user.Identifier, userErr.Error())
 		}
 	}
 }

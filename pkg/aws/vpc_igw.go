@@ -1,12 +1,13 @@
 package aws
 
 import (
-	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	log "github.com/sirupsen/logrus"
 	"sync"
 	"time"
+
+	"github.com/Qovery/pleco/pkg/common"
 )
 
 type InternetGateway struct {
@@ -38,7 +39,7 @@ func SetInternetGatewaysIdsByVpcId(ec2Session *ec2.EC2, vpc *VpcInfo, waitGroup 
 	defer waitGroup.Done()
 	var internetGateways []InternetGateway
 
-	gateways := getInternetGatewaysByVpcId(ec2Session, *vpc.VpcId)
+	gateways := getInternetGatewaysByVpcId(ec2Session, vpc.Identifier)
 
 	for _, gateway := range gateways {
 		essentialTags := common.GetEssentialTags(gateway.Tags, tagName)

@@ -1,21 +1,17 @@
 package aws
 
 import (
-	"time"
-
-	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sfn"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/Qovery/pleco/pkg/common"
 )
 
 type stateMachine struct {
-	ARN         string
+	common.CloudProviderResource
 	machineName string
-	CreateTime  time.Time
-	TTL         int64
-	IsProtected bool
 }
 
 func stateMachineSession(sess session.Session, region string) *sfn.SFN {
@@ -47,11 +43,15 @@ func listTaggedStateMachines(svc sfn.SFN, tagName string) ([]stateMachine, error
 		essentialTags := common.GetEssentialTags(tags.Tags, tagName)
 
 		taggedMachines = append(taggedMachines, stateMachine{
-			ARN:         *machine.StateMachineArn,
+			CloudProviderResource: common.CloudProviderResource{
+				Identifier:   *machine.StateMachineArn,
+				Description:  "State Machine: " + *machine.Name,
+				CreationDate: *machine.CreationDate,
+				TTL:          essentialTags.TTL,
+				Tag:          essentialTags.Tag,
+				IsProtected:  essentialTags.IsProtected,
+			},
 			machineName: *machine.Name,
-			CreateTime:  *machine.CreationDate,
-			TTL:         essentialTags.TTL,
-			IsProtected: essentialTags.IsProtected,
 		})
 	}
 
@@ -64,7 +64,7 @@ func deleteStateMachine(svc sfn.SFN, machine stateMachine) error {
 		machine.machineName, *svc.Config.Region, machine.TTL)
 
 	_, err := svc.DeleteStateMachine(&sfn.DeleteStateMachineInput{
-		StateMachineArn: &machine.ARN,
+		StateMachineArn: &machine.Identifier,
 	},
 	)
 	if err != nil {
@@ -74,8 +74,8 @@ func deleteStateMachine(svc sfn.SFN, machine stateMachine) error {
 	return nil
 }
 
-func getExpiredMachines(ECsession *sfn.SFN, tagName string) ([]stateMachine, string) {
-	machines, err := listTaggedStateMachines(*ECsession, tagName)
+func getExpiredMachines(ECsession *sfn.SFN, options *AwsOptions) ([]stateMachine, string) {
+	machines, err := listTaggedStateMachines(*ECsession, options.TagName)
 	region := *ECsession.Config.Region
 	if err != nil {
 		log.Errorf("can't list Step Functions in region %s: %s", region, err.Error())
@@ -83,7 +83,7 @@ func getExpiredMachines(ECsession *sfn.SFN, tagName string) ([]stateMachine, str
 
 	var expiredMachines []stateMachine
 	for _, machine := range machines {
-		if common.CheckIfExpired(machine.CreateTime, machine.TTL, "stateMachines: "+machine.machineName) && !machine.IsProtected {
+		if machine.IsResourceExpired(options.TagValue) {
 			expiredMachines = append(expiredMachines, machine)
 		}
 	}
@@ -92,7 +92,7 @@ func getExpiredMachines(ECsession *sfn.SFN, tagName string) ([]stateMachine, str
 }
 
 func DeleteExpiredStateMachines(sessions AWSSessions, options AwsOptions) {
-	expiredMachines, region := getExpiredMachines(sessions.SFN, options.TagName)
+	expiredMachines, region := getExpiredMachines(sessions.SFN, &options)
 
 	count, start := common.ElemToDeleteFormattedInfos("expired Step Function", len(expiredMachines), region)
 

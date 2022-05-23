@@ -2,21 +2,19 @@ package aws
 
 import (
 	"fmt"
-	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/eks"
 	log "github.com/sirupsen/logrus"
 	"strings"
 	"time"
+
+	"github.com/Qovery/pleco/pkg/common"
 )
 
 type EBSVolume struct {
-	VolumeId    string
-	CreatedTime time.Time
-	Status      string
-	TTL         int64
-	IsProtected bool
+	common.CloudProviderResource
+	Status string
 }
 
 func TagVolumesFromEksClusterForDeletion(ec2Session *ec2.EC2, tagKey string, clusterName string) error {
@@ -72,7 +70,7 @@ func deleteVolumes(ec2Session ec2.EC2, VolumesList []EBSVolume) {
 	for _, volume := range VolumesList {
 		switch volume.Status {
 		case "deleting":
-			log.Infof("Volume %s in region %s is already in deletion process, skipping...", volume.VolumeId, *ec2Session.Config.Region)
+			log.Infof("Volume %s in region %s is already in deletion process, skipping...", volume.Identifier, *ec2Session.Config.Region)
 			continue
 		case "creating":
 			continue
@@ -84,16 +82,16 @@ func deleteVolumes(ec2Session ec2.EC2, VolumesList []EBSVolume) {
 
 		_, err := ec2Session.DeleteVolume(
 			&ec2.DeleteVolumeInput{
-				VolumeId: &volume.VolumeId,
+				VolumeId: &volume.Identifier,
 			},
 		)
 		if err != nil {
-			log.Errorf("Can't delete EBS %s in %s", volume.VolumeId, *ec2Session.Config.Region)
+			log.Errorf("Can't delete EBS %s in %s", volume.Identifier, *ec2Session.Config.Region)
 		}
 	}
 }
 
-func listExpiredVolumes(eksSession *eks.EKS, ec2Session *ec2.EC2, tagName string) ([]EBSVolume, error) {
+func listExpiredVolumes(eksSession *eks.EKS, ec2Session *ec2.EC2, options *AwsOptions) ([]EBSVolume, error) {
 	result, err := ec2Session.DescribeVolumes(&ec2.DescribeVolumesInput{})
 	if err != nil {
 		return nil, err
@@ -109,16 +107,20 @@ func listExpiredVolumes(eksSession *eks.EKS, ec2Session *ec2.EC2, tagName string
 			continue
 		}
 
-		essentialTags := common.GetEssentialTags(currentVolume.Tags, tagName)
+		essentialTags := common.GetEssentialTags(currentVolume.Tags, options.TagName)
 		volume := EBSVolume{
-			VolumeId:    *currentVolume.VolumeId,
-			CreatedTime: essentialTags.CreationDate,
-			Status:      *currentVolume.State,
-			TTL:         essentialTags.TTL,
-			IsProtected: essentialTags.IsProtected,
+			CloudProviderResource: common.CloudProviderResource{
+				Identifier:   *currentVolume.VolumeId,
+				Description:  "EBS Volume: " + *currentVolume.VolumeId,
+				CreationDate: essentialTags.CreationDate,
+				TTL:          essentialTags.TTL,
+				Tag:          essentialTags.Tag,
+				IsProtected:  essentialTags.IsProtected,
+			},
+			Status: *currentVolume.State,
 		}
 
-		if !volume.IsProtected && (!common.IsAssociatedToLivingCluster(currentVolume.Tags, eksSession) || common.CheckIfExpired(volume.CreatedTime, volume.TTL, "EBS volume: "+volume.VolumeId)) {
+		if !volume.IsProtected && (!common.IsAssociatedToLivingCluster(currentVolume.Tags, eksSession) || volume.IsResourceExpired(options.TagValue)) {
 			expiredVolumes = append(expiredVolumes, volume)
 		}
 	}
@@ -127,7 +129,7 @@ func listExpiredVolumes(eksSession *eks.EKS, ec2Session *ec2.EC2, tagName string
 }
 
 func DeleteExpiredVolumes(sessions AWSSessions, options AwsOptions) {
-	expiredVolumes, err := listExpiredVolumes(sessions.EKS, sessions.EC2, options.TagName)
+	expiredVolumes, err := listExpiredVolumes(sessions.EKS, sessions.EC2, &options)
 	region := *sessions.EC2.Config.Region
 	if err != nil {
 		log.Errorf("Can't list volumes: %s\n", err)

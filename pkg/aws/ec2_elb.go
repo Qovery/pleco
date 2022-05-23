@@ -2,22 +2,21 @@ package aws
 
 import (
 	"fmt"
-	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	log "github.com/sirupsen/logrus"
 	"time"
+
+	"github.com/Qovery/pleco/pkg/common"
 )
 
 type ElasticLoadBalancer struct {
-	Arn          string
-	Name         string
-	Status       string
-	VpcId        string
-	IsProtected  bool
-	CreationDate time.Time
-	TTL          int64
+	common.CloudProviderResource
+	Arn    string
+	Status string
+	VpcId  string
+	Tags   []*elbv2.Tag
 }
 
 func TagLoadBalancersForDeletion(lbSession *elbv2.ELBV2, tagKey string, loadBalancersList []ElasticLoadBalancer, clusterName string) error {
@@ -59,11 +58,10 @@ func TagLoadBalancersForDeletion(lbSession *elbv2.ELBV2, tagKey string, loadBala
 	return nil
 }
 
-func ListExpiredLoadBalancers(eksSession *eks.EKS, lbSession *elbv2.ELBV2, tagName string) ([]ElasticLoadBalancer, error) {
+func ListExpiredLoadBalancers(eksSession *eks.EKS, lbSession *elbv2.ELBV2, options *AwsOptions) ([]ElasticLoadBalancer, error) {
 	var taggedLoadBalancers []ElasticLoadBalancer
-	region := *lbSession.Config.Region
 
-	allLoadBalancers, err := ListLoadBalancers(lbSession)
+	allLoadBalancers, err := ListLoadBalancers(lbSession, options.TagName)
 	if err != nil {
 		return nil, fmt.Errorf("Error while getting loadbalancer list on region %s\n", *lbSession.Config.Region)
 	}
@@ -73,20 +71,7 @@ func ListExpiredLoadBalancers(eksSession *eks.EKS, lbSession *elbv2.ELBV2, tagNa
 	}
 
 	for _, currentLb := range allLoadBalancers {
-		input := elbv2.DescribeTagsInput{ResourceArns: []*string{&currentLb.Arn}}
-
-		result, err := lbSession.DescribeTags(&input)
-		if err != nil {
-			log.Errorf("Error while getting load balancer tags from %s in %s", currentLb.Name, region)
-			continue
-		}
-
-		essentialTags := common.GetEssentialTags(result.TagDescriptions[0].Tags, tagName)
-		currentLb.CreationDate = essentialTags.CreationDate
-		currentLb.TTL = essentialTags.TTL
-		currentLb.IsProtected = essentialTags.IsProtected
-
-		if !currentLb.IsProtected && (!common.IsAssociatedToLivingCluster(result.TagDescriptions[0].Tags, eksSession) || common.CheckIfExpired(currentLb.CreationDate, currentLb.TTL, "ELB "+currentLb.Name)) {
+		if !currentLb.IsProtected && (!common.IsAssociatedToLivingCluster(currentLb.Tags, eksSession) || currentLb.IsResourceExpired(options.TagValue)) {
 			taggedLoadBalancers = append(taggedLoadBalancers, currentLb)
 		}
 	}
@@ -94,7 +79,7 @@ func ListExpiredLoadBalancers(eksSession *eks.EKS, lbSession *elbv2.ELBV2, tagNa
 	return taggedLoadBalancers, nil
 }
 
-func ListLoadBalancers(lbSession *elbv2.ELBV2) ([]ElasticLoadBalancer, error) {
+func ListLoadBalancers(lbSession *elbv2.ELBV2, tagName string) ([]ElasticLoadBalancer, error) {
 	var allLoadBalancers []ElasticLoadBalancer
 
 	input := elbv2.DescribeLoadBalancersInput{}
@@ -108,12 +93,32 @@ func ListLoadBalancers(lbSession *elbv2.ELBV2) ([]ElasticLoadBalancer, error) {
 		return nil, nil
 	}
 
+	region := *lbSession.Config.Region
 	for _, currentLb := range result.LoadBalancers {
+		input := elbv2.DescribeTagsInput{ResourceArns: []*string{currentLb.LoadBalancerArn}}
+		result, err := lbSession.DescribeTags(&input)
+		currentLbName := *currentLb.LoadBalancerName
+
+		if err != nil {
+			log.Errorf("Error while getting load balancer tags from %s in %s", currentLbName, region)
+			continue
+		}
+		loadBalancerTags := result.TagDescriptions[0].Tags
+		essentialTags := common.GetEssentialTags(loadBalancerTags, tagName)
+
 		allLoadBalancers = append(allLoadBalancers, ElasticLoadBalancer{
+			CloudProviderResource: common.CloudProviderResource{
+				Identifier:   currentLbName,
+				Description:  "EC2 ELB: " + currentLbName,
+				CreationDate: essentialTags.CreationDate,
+				TTL:          essentialTags.TTL,
+				Tag:          essentialTags.Tag,
+				IsProtected:  essentialTags.IsProtected,
+			},
 			Arn:    *currentLb.LoadBalancerArn,
-			Name:   *currentLb.LoadBalancerName,
 			Status: *currentLb.State.Code,
 			VpcId:  *currentLb.VpcId,
+			Tags:   loadBalancerTags,
 		})
 	}
 
@@ -130,18 +135,18 @@ func deleteLoadBalancers(lbSession *elbv2.ELBV2, loadBalancersList []ElasticLoad
 	}
 
 	for _, lb := range loadBalancersList {
-		log.Infof("Deleting ELB %s in %s", lb.Name, *lbSession.Config.Region)
+		log.Infof("Deleting ELB %s in %s", lb.Identifier, *lbSession.Config.Region)
 		_, err := lbSession.DeleteLoadBalancer(
 			&elbv2.DeleteLoadBalancerInput{LoadBalancerArn: &lb.Arn},
 		)
 		if err != nil {
-			log.Errorf("Can't delete ELB %s in %s", lb.Name, *lbSession.Config.Region)
+			log.Errorf("Can't delete ELB %s in %s", lb.Identifier, *lbSession.Config.Region)
 		}
 	}
 }
 
 func DeleteExpiredLoadBalancers(sessions AWSSessions, options AwsOptions) {
-	expiredLoadBalancers, err := ListExpiredLoadBalancers(sessions.EKS, sessions.ELB, options.TagName)
+	expiredLoadBalancers, err := ListExpiredLoadBalancers(sessions.EKS, sessions.ELB, &options)
 	region := *sessions.ELB.Config.Region
 	if err != nil {
 		log.Errorf("can't list Load Balancers: %s\n", err)
@@ -162,14 +167,14 @@ func DeleteExpiredLoadBalancers(sessions AWSSessions, options AwsOptions) {
 }
 
 func getLoadBalancerByVpId(lbSession *elbv2.ELBV2, vpc VpcInfo) ElasticLoadBalancer {
-	lbs, err := ListLoadBalancers(lbSession)
+	lbs, err := ListLoadBalancers(lbSession, "")
 	if err != nil {
 		log.Errorf("can't list Load Balancers: %s\n", err)
 		return ElasticLoadBalancer{}
 	}
 
 	for _, lb := range lbs {
-		if lb.VpcId == *vpc.VpcId {
+		if lb.VpcId == vpc.Identifier {
 			return lb
 		}
 	}

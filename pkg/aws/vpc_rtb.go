@@ -1,12 +1,13 @@
 package aws
 
 import (
-	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	log "github.com/sirupsen/logrus"
 	"sync"
 	"time"
+
+	"github.com/Qovery/pleco/pkg/common"
 )
 
 type RouteTable struct {
@@ -39,7 +40,7 @@ func SetRouteTablesIdsByVpcId(ec2Session *ec2.EC2, vpc *VpcInfo, waitGroup *sync
 	defer waitGroup.Done()
 	var routeTablesStruct []RouteTable
 
-	routeTables := getRouteTablesByVpcId(ec2Session, *vpc.VpcId)
+	routeTables := getRouteTablesByVpcId(ec2Session, vpc.Identifier)
 
 	for _, routeTable := range routeTables {
 		essentialTags := common.GetEssentialTags(routeTable.Tags, tagName)

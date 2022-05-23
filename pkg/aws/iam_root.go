@@ -5,13 +5,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func DeleteExpiredIAM(iamSession *iam.IAM, tagName string, dryRun bool) {
+func DeleteExpiredIAM(iamSession *iam.IAM, options *AwsOptions) {
 	log.Debug("Listing all IAM users.")
-	DeleteExpiredUsers(iamSession, tagName, dryRun)
+	DeleteExpiredUsers(iamSession, options)
 
 	log.Debug("Listing all IAM roles.")
-	DeleteExpiredRoles(iamSession, tagName, dryRun)
+	DeleteExpiredRoles(iamSession, options)
 
 	log.Debug("Listing all IAM policies.")
-	DeleteDetachedPolicies(iamSession, dryRun)
+	DeleteDetachedPolicies(iamSession, options.DryRun)
 }
