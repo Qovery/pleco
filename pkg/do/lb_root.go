@@ -2,23 +2,21 @@ package do
 
 import (
 	"context"
-	"github.com/Qovery/pleco/pkg/common"
 	"github.com/digitalocean/godo"
 	log "github.com/sirupsen/logrus"
 	"time"
+
+	"github.com/Qovery/pleco/pkg/common"
 )
 
 type DOLB struct {
-	ID           string
-	Name         string
-	CreationDate time.Time
-	TTL          int64
-	IsProtected  bool
-	Droplets     []int
+	common.CloudProviderResource
+	Name     string
+	Droplets []int
 }
 
 func DeleteExpiredLBs(sessions DOSessions, options DOOptions) {
-	expiredLBs := getExpiredLBs(sessions.Client, options.TagName)
+	expiredLBs := getExpiredLBs(sessions.Client, &options)
 
 	count, start := common.ElemToDeleteFormattedInfos("expired load balancer", len(expiredLBs), "")
 
@@ -48,24 +46,28 @@ func listLBs(client *godo.Client, tagName string) []DOLB {
 		creationDate, _ := time.Parse(time.RFC3339, lb.Created)
 		essentialTags := common.GetEssentialTags(lb.Tags, tagName)
 		loadBalancers = append(loadBalancers, DOLB{
-			ID:           lb.ID,
-			Name:         lb.Name,
-			CreationDate: creationDate.UTC(),
-			TTL:          essentialTags.TTL,
-			IsProtected:  essentialTags.IsProtected,
-			Droplets:     lb.DropletIDs,
+			CloudProviderResource: common.CloudProviderResource{
+				Identifier:   lb.ID,
+				Description:  "Load Balancer: " + lb.Name,
+				CreationDate: creationDate.UTC(),
+				TTL:          essentialTags.TTL,
+				Tag:          essentialTags.Tag,
+				IsProtected:  essentialTags.IsProtected,
+			},
+			Name:     lb.Name,
+			Droplets: lb.DropletIDs,
 		})
 	}
 
 	return loadBalancers
 }
 
-func getExpiredLBs(client *godo.Client, tagName string) []DOLB {
-	lbs := listLBs(client, tagName)
+func getExpiredLBs(client *godo.Client, options *DOOptions) []DOLB {
+	lbs := listLBs(client, options.TagName)
 
 	expiredLBs := []DOLB{}
 	for _, lb := range lbs {
-		if common.CheckIfExpired(lb.CreationDate, lb.TTL, "load balancer"+lb.Name) && !lb.IsProtected {
+		if lb.IsResourceExpired(options.TagValue) {
 			expiredLBs = append(expiredLBs, lb)
 		}
 
@@ -78,7 +80,7 @@ func getExpiredLBs(client *godo.Client, tagName string) []DOLB {
 }
 
 func deleteLB(client *godo.Client, loadBalancer DOLB) {
-	_, err := client.LoadBalancers.Delete(context.TODO(), loadBalancer.ID)
+	_, err := client.LoadBalancers.Delete(context.TODO(), loadBalancer.Identifier)
 
 	if err != nil {
 		log.Errorf("Can't delete load balancer %s: %s", loadBalancer.Name, err.Error())

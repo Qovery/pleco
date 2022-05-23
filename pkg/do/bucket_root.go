@@ -2,11 +2,12 @@ package do
 
 import (
 	"fmt"
-	"github.com/Qovery/pleco/pkg/common"
 	"github.com/digitalocean/godo"
 	"github.com/minio/minio-go/v7"
 	log "github.com/sirupsen/logrus"
 	"strings"
+
+	"github.com/Qovery/pleco/pkg/common"
 )
 
 func DeleteExpiredBuckets(sessions DOSessions, options DOOptions) {
@@ -59,6 +60,7 @@ func getBucketsToEmpty(doApi *godo.Client, bucketApi *minio.Client, tagName stri
 
 	emptyBuckets := []common.MinioBucket{}
 	for _, bucket := range checkingBuckets {
+		// do we need to force delete every bucket on detroy command ?
 		if !strings.Contains(bucket.Name, "keep-me") {
 			emptyBuckets = append(emptyBuckets, bucket)
 		}

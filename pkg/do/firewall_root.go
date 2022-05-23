@@ -3,10 +3,11 @@ package do
 import (
 	"context"
 	"fmt"
-	"github.com/Qovery/pleco/pkg/common"
 	"github.com/digitalocean/godo"
 	log "github.com/sirupsen/logrus"
 	"time"
+
+	"github.com/Qovery/pleco/pkg/common"
 )
 
 type DOFirewall struct {
@@ -65,6 +66,7 @@ func getDetachedFirewalls(client *godo.Client) []DOFirewall {
 
 	detachedFirewalls := []DOFirewall{}
 	for _, firewall := range firewalls {
+		// do we need to force delete every firewall on detroy command ?
 		if firewall.CreationDate.UTC().Add(volumeTimeout()*time.Hour).Before(time.Now().UTC()) && len(firewall.Droplets) == 0 {
 			detachedFirewalls = append(detachedFirewalls, firewall)
 		}

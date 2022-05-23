@@ -3,10 +3,11 @@ package do
 import (
 	"context"
 	"fmt"
-	"github.com/Qovery/pleco/pkg/common"
 	"github.com/digitalocean/godo"
 	log "github.com/sirupsen/logrus"
 	"time"
+
+	"github.com/Qovery/pleco/pkg/common"
 )
 
 type DOVpc struct {
@@ -75,6 +76,7 @@ func getExpiredVPCs(client *godo.Client, region string) []DOVpc {
 
 	expiredVPCs := []DOVpc{}
 	for _, VPC := range VPCs {
+		// do we need to force delete every VPC on detroy command ?
 		if VPC.CreationDate.UTC().Add(volumeTimeout()*time.Hour).Before(time.Now().UTC()) && len(VPC.Members) == 0 {
 			expiredVPCs = append(expiredVPCs, VPC)
 		}

@@ -2,22 +2,20 @@ package do
 
 import (
 	"context"
-	"github.com/Qovery/pleco/pkg/common"
 	"github.com/digitalocean/godo"
 	log "github.com/sirupsen/logrus"
 	"time"
+
+	"github.com/Qovery/pleco/pkg/common"
 )
 
 type DODB struct {
-	ID           string
-	Name         string
-	CreationDate time.Time
-	TTL          int64
-	IsProtected  bool
+	common.CloudProviderResource
+	Name string
 }
 
 func DeleteExpiredDatabases(sessions DOSessions, options DOOptions) {
-	expiredDatabases := getExpiredDatabases(sessions.Client, options.TagName, options.Region)
+	expiredDatabases := getExpiredDatabases(sessions.Client, &options)
 
 	count, start := common.ElemToDeleteFormattedInfos("expired database", len(expiredDatabases), options.Region)
 
@@ -34,12 +32,12 @@ func DeleteExpiredDatabases(sessions DOSessions, options DOOptions) {
 	}
 }
 
-func getExpiredDatabases(client *godo.Client, tagName string, region string) []DODB {
-	databases := listDatabases(client, tagName, region)
+func getExpiredDatabases(client *godo.Client, options *DOOptions) []DODB {
+	databases := listDatabases(client, options)
 
 	expiredDbs := []DODB{}
 	for _, db := range databases {
-		if common.CheckIfExpired(db.CreationDate, db.TTL, "database "+db.Name) && !db.IsProtected {
+		if db.IsResourceExpired(options.TagValue) {
 			expiredDbs = append(expiredDbs, db)
 		}
 	}
@@ -47,25 +45,29 @@ func getExpiredDatabases(client *godo.Client, tagName string, region string) []D
 	return expiredDbs
 }
 
-func listDatabases(client *godo.Client, tagName string, region string) []DODB {
+func listDatabases(client *godo.Client, options *DOOptions) []DODB {
 	result, _, err := client.Databases.List(context.TODO(), &godo.ListOptions{})
 
 	if err != nil {
-		log.Errorf("Can't list databases for region %s: %s", region, err.Error())
+		log.Errorf("Can't list databases for region %s: %s", options.Region, err.Error())
 		return []DODB{}
 	}
 
 	databases := []DODB{}
 	for _, db := range result {
-		essentialTags := common.GetEssentialTags(db.Tags, tagName)
+		essentialTags := common.GetEssentialTags(db.Tags, options.TagName)
 		creationDate, _ := time.Parse(time.RFC3339, db.CreatedAt.Format(time.RFC3339))
 
 		databases = append(databases, DODB{
-			ID:           db.ID,
-			Name:         db.Name,
-			CreationDate: creationDate,
-			TTL:          essentialTags.TTL,
-			IsProtected:  essentialTags.IsProtected,
+			CloudProviderResource: common.CloudProviderResource{
+				Identifier:   db.ID,
+				Description:  "Database: " + db.Name,
+				CreationDate: creationDate,
+				TTL:          essentialTags.TTL,
+				Tag:          essentialTags.Tag,
+				IsProtected:  essentialTags.IsProtected,
+			},
+			Name: db.Name,
 		})
 	}
 
@@ -73,7 +75,7 @@ func listDatabases(client *godo.Client, tagName string, region string) []DODB {
 }
 
 func deleteDB(client *godo.Client, db DODB) {
-	_, err := client.Databases.Delete(context.TODO(), db.ID)
+	_, err := client.Databases.Delete(context.TODO(), db.Identifier)
 
 	if err != nil {
 		log.Errorf("Can't delete database %s: %s", db.Name, err.Error())

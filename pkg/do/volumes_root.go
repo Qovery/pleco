@@ -3,10 +3,11 @@ package do
 import (
 	"context"
 	"fmt"
-	"github.com/Qovery/pleco/pkg/common"
 	"github.com/digitalocean/godo"
 	log "github.com/sirupsen/logrus"
 	"time"
+
+	"github.com/Qovery/pleco/pkg/common"
 )
 
 type DOVolume struct {
@@ -60,6 +61,7 @@ func getDetachedVolumes(client *godo.Client, region string) []DOVolume {
 
 	detachedVolumes := []DOVolume{}
 	for _, volume := range volumes {
+		// do we need to force delete every volume on detroy command ?
 		if volume.CreationDate.UTC().Add(volumeTimeout() * time.Hour).Before(time.Now().UTC()) {
 			detachedVolumes = append(detachedVolumes, volume)
 		}

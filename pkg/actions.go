@@ -116,6 +116,7 @@ func startDO(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGroup
 	regions, _ := cmd.Flags().GetStringSlice("do-regions")
 	DOOptions := do.DOOptions{
 		TagName:        getCmdString(cmd, "tag-name"),
+		TagValue:       getCmdString(cmd, "tag-value"),
 		DryRun:         dryRun,
 		EnableCluster:  getCmdBool(cmd, "enable-cluster"),
 		EnableDB:       getCmdBool(cmd, "enable-db"),
