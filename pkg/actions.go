@@ -1,15 +1,17 @@
 package pkg
 
 import (
+	"strings"
+	"sync"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+
 	"github.com/Qovery/pleco/pkg/aws"
 	"github.com/Qovery/pleco/pkg/common"
 	"github.com/Qovery/pleco/pkg/do"
 	"github.com/Qovery/pleco/pkg/k8s"
 	"github.com/Qovery/pleco/pkg/scaleway"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-	"strings"
-	"sync"
 )
 
 func StartDaemon(cloudProvider string, disableDryRun bool, interval int64, cmd *cobra.Command) {
@@ -29,6 +31,24 @@ func StartDaemon(cloudProvider string, disableDryRun bool, interval int64, cmd *
 	k8s.RunPlecoKubernetes(cmd, interval, dryRun, &wg)
 
 	run(cloudProvider, dryRun, interval, cmd, &wg)
+
+	wg.Wait()
+}
+
+func StartDestroy(cloudProvider string, disableDryRun bool, cmd *cobra.Command) {
+	var wg sync.WaitGroup
+	dryRun := true
+	if disableDryRun {
+		dryRun = false
+		log.Warn("Dry run mode disabled")
+	} else {
+		log.Info("Dry run mode enabled")
+	}
+	log.Infof("Cloud provider: %s", strings.ToUpper(cloudProvider))
+
+	common.CheckEnvVars(cloudProvider, cmd)
+
+	run(cloudProvider, dryRun, 0, cmd, &wg)
 
 	wg.Wait()
 }
