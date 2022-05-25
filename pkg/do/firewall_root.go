@@ -18,7 +18,7 @@ type DOFirewall struct {
 }
 
 func DeleteExpiredFirewalls(sessions DOSessions, options DOOptions) {
-	expiredFirewalls := getDetachedFirewalls(sessions.Client)
+	expiredFirewalls := getDetachedFirewalls(sessions.Client, &options)
 
 	count, start := common.ElemToDeleteFormattedInfos(fmt.Sprintf("detached (%d hours delay) firewall", volumeTimeout()), len(expiredFirewalls), options.Region)
 
@@ -61,13 +61,13 @@ func getFirewalls(client *godo.Client) []DOFirewall {
 	return firewalls
 }
 
-func getDetachedFirewalls(client *godo.Client) []DOFirewall {
+func getDetachedFirewalls(client *godo.Client, options *DOOptions) []DOFirewall {
 	firewalls := getFirewalls(client)
 
 	detachedFirewalls := []DOFirewall{}
 	for _, firewall := range firewalls {
-		// do we need to force delete every firewall on detroy command ?
-		if firewall.CreationDate.UTC().Add(volumeTimeout()*time.Hour).Before(time.Now().UTC()) && len(firewall.Droplets) == 0 {
+		if len(firewall.Droplets) == 0 &&
+			(options.isDestroyingCommand() || firewall.CreationDate.UTC().Add(volumeTimeout()*time.Hour).Before(time.Now().UTC())) {
 			detachedFirewalls = append(detachedFirewalls, firewall)
 		}
 	}

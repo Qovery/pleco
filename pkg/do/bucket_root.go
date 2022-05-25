@@ -11,7 +11,7 @@ import (
 )
 
 func DeleteExpiredBuckets(sessions DOSessions, options DOOptions) {
-	expiredBuckets := emptyBuckets(sessions.Client, sessions.Bucket, options.TagName, options.Region, options.DryRun)
+	expiredBuckets := emptyBuckets(sessions.Client, sessions.Bucket, &options)
 
 	count, start := common.ElemToDeleteFormattedInfos("expired bucket", len(expiredBuckets), options.Region)
 
@@ -28,11 +28,11 @@ func DeleteExpiredBuckets(sessions DOSessions, options DOOptions) {
 	}
 }
 
-func emptyBuckets(doApi *godo.Client, bucketApi *minio.Client, tagName string, region string, dryRun bool) []common.MinioBucket {
-	buckets := getBucketsToEmpty(doApi, bucketApi, tagName, region)
+func emptyBuckets(doApi *godo.Client, bucketApi *minio.Client, options *DOOptions) []common.MinioBucket {
+	buckets := getBucketsToEmpty(doApi, bucketApi, options)
 
 	for _, bucket := range buckets {
-		if !dryRun {
+		if !options.DryRun {
 			common.EmptyBucket(bucketApi, bucket.Name, bucket.ObjectsInfos)
 		}
 	}
@@ -40,9 +40,9 @@ func emptyBuckets(doApi *godo.Client, bucketApi *minio.Client, tagName string, r
 	return buckets
 }
 
-func getBucketsToEmpty(doApi *godo.Client, bucketApi *minio.Client, tagName string, region string) []common.MinioBucket {
-	buckets := common.GetUnusedBuckets(bucketApi, tagName, region)
-	clusters := listClusters(doApi, tagName, region)
+func getBucketsToEmpty(doApi *godo.Client, bucketApi *minio.Client, options *DOOptions) []common.MinioBucket {
+	buckets := common.GetUnusedBuckets(bucketApi, options.TagName, options.Region, options.isDestroyingCommand())
+	clusters := listClusters(doApi, options.TagName, options.Region)
 	_, _ = buckets, clusters
 
 	checkingBuckets := make(map[string]common.MinioBucket)

@@ -17,7 +17,7 @@ type ScalewayVolume struct {
 }
 
 func DeleteExpiredVolumes(sessions ScalewaySessions, options ScalewayOptions) {
-	expiredVolumes := getDetachedVolumes(sessions.Volume, options.Zone)
+	expiredVolumes := getDetachedVolumes(sessions.Volume, &options)
 
 	count, start := common.ElemToDeleteFormattedInfos(fmt.Sprintf("detached (%d hours delay) volume", volumeTimeout()), len(expiredVolumes), options.Zone, true)
 
@@ -62,13 +62,13 @@ func getVolumes(volumeAPI *instance.API, zone string) []ScalewayVolume {
 	return volumes
 }
 
-func getDetachedVolumes(volumeAPI *instance.API, zone string) []ScalewayVolume {
-	volumes := getVolumes(volumeAPI, zone)
+func getDetachedVolumes(volumeAPI *instance.API, options *ScalewayOptions) []ScalewayVolume {
+	volumes := getVolumes(volumeAPI, options.Zone)
 
 	detachedVolumes := []ScalewayVolume{}
 	for _, volume := range volumes {
-		// do we need to force delete every volume on destroy command ?
-		if volume.UpdatedAt.UTC().Add(volumeTimeout()*time.Hour).Before(time.Now().UTC()) && volume.ServerId == "null" {
+		if volume.ServerId == "null" &&
+			(options.isDestroyingCommand() || volume.UpdatedAt.UTC().Add(volumeTimeout()*time.Hour).Before(time.Now().UTC())) {
 			detachedVolumes = append(detachedVolumes, volume)
 		}
 	}

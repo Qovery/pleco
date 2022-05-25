@@ -347,7 +347,7 @@ func listSnapshots(svc rds.RDS) []*rds.DBSnapshot {
 	return result.DBSnapshots
 }
 
-func getExpiredSnapshots(svc rds.RDS) []*rds.DBSnapshot {
+func getExpiredSnapshots(svc rds.RDS, options *AwsOptions) []*rds.DBSnapshot {
 	dbs := listRDSDatabases(svc)
 	snaps := listSnapshots(svc)
 
@@ -355,8 +355,8 @@ func getExpiredSnapshots(svc rds.RDS) []*rds.DBSnapshot {
 
 	if len(dbs) == 0 {
 		for _, snap := range snaps {
-			// do we need to force delete every snapshot on detroy command ?
-			if snap.SnapshotCreateTime.Before(time.Now().UTC().Add(3*time.Hour)) && common.CheckSnapshot(snap) {
+			if common.CheckSnapshot(snap) &&
+				(options.isDestroyingCommand() || snap.SnapshotCreateTime.Before(time.Now().UTC().Add(3*time.Hour))) {
 				expiredSnaps = append(expiredSnaps, snap)
 			}
 		}
@@ -396,7 +396,7 @@ func deleteSnapshot(svc rds.RDS, snapName string) {
 }
 
 func DeleteExpiredSnapshots(sessions AWSSessions, options AwsOptions) {
-	expiredSnapshots := getExpiredSnapshots(*sessions.RDS)
+	expiredSnapshots := getExpiredSnapshots(*sessions.RDS, &options)
 	region := *sessions.RDS.Config.Region
 
 	count, start := common.ElemToDeleteFormattedInfos("expired RDS snapshot", len(expiredSnapshots), region)

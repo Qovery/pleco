@@ -9,7 +9,7 @@ import (
 )
 
 func DeleteEmptyContainerRegistries(sessions ScalewaySessions, options ScalewayOptions) {
-	emptyRegistries, _ := getEmptyRegistries(sessions.Namespace)
+	emptyRegistries, _ := getEmptyRegistries(sessions.Namespace, &options)
 
 	count, start := common.ElemToDeleteFormattedInfos("empty Scaleway namespace", len(emptyRegistries), options.Zone, true)
 
@@ -37,13 +37,13 @@ func listRegistries(registryAPI *registry.API) ([]*registry.Namespace, string) {
 	return result.Namespaces, input.Region.String()
 }
 
-func getEmptyRegistries(registryAPI *registry.API) ([]*registry.Namespace, string) {
+func getEmptyRegistries(registryAPI *registry.API, options *ScalewayOptions) ([]*registry.Namespace, string) {
 	registries, region := listRegistries(registryAPI)
 
 	emptyRegistries := []*registry.Namespace{}
 	for _, reg := range registries {
-		// do we need to force delete every container registry on destroy command ?
-		if reg.ImageCount == 0 && reg.CreatedAt.UTC().Add(time.Hour).After(time.Now().UTC()) {
+		if reg.ImageCount == 0 &&
+			(options.isDestroyingCommand() && reg.CreatedAt.UTC().Add(time.Hour).After(time.Now().UTC())) {
 			emptyRegistries = append(emptyRegistries, reg)
 		}
 	}

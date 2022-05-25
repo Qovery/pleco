@@ -107,11 +107,8 @@ func DeleteExpiredKeys(sessions AWSSessions, options AwsOptions) {
 	for _, key := range keys {
 		completeKey := getCompleteKey(*sessions.KMS, key.KeyId, options.TagName)
 
-		// do we need to force delete every kms on detroy command ?
 		if completeKey.Status != "PendingDeletion" && completeKey.Status != "Disabled" && completeKey.IsResourceExpired(options.TagValue) {
-			if completeKey.Tag == options.TagName || options.TagName == "ttl" {
-				expiredKeys = append(expiredKeys, completeKey)
-			}
+			expiredKeys = append(expiredKeys, completeKey)
 		}
 	}
 

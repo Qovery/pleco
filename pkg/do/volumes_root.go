@@ -17,7 +17,7 @@ type DOVolume struct {
 }
 
 func DeleteExpiredVolumes(sessions DOSessions, options DOOptions) {
-	expiredVolumes := getDetachedVolumes(sessions.Client, options.Region)
+	expiredVolumes := getDetachedVolumes(sessions.Client, &options)
 
 	count, start := common.ElemToDeleteFormattedInfos(fmt.Sprintf("detached (%d hours delay) volume", volumeTimeout()), len(expiredVolumes), options.Region)
 
@@ -56,13 +56,12 @@ func getVolumes(client *godo.Client, region string) []DOVolume {
 	return volumes
 }
 
-func getDetachedVolumes(client *godo.Client, region string) []DOVolume {
-	volumes := getVolumes(client, region)
+func getDetachedVolumes(client *godo.Client, options *DOOptions) []DOVolume {
+	volumes := getVolumes(client, options.Region)
 
 	detachedVolumes := []DOVolume{}
 	for _, volume := range volumes {
-		// do we need to force delete every volume on detroy command ?
-		if volume.CreationDate.UTC().Add(volumeTimeout() * time.Hour).Before(time.Now().UTC()) {
+		if options.isDestroyingCommand() || volume.CreationDate.UTC().Add(volumeTimeout()*time.Hour).Before(time.Now().UTC()) {
 			detachedVolumes = append(detachedVolumes, volume)
 		}
 	}
