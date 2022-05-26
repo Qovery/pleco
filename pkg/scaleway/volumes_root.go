@@ -68,7 +68,7 @@ func getDetachedVolumes(volumeAPI *instance.API, options *ScalewayOptions) []Sca
 	detachedVolumes := []ScalewayVolume{}
 	for _, volume := range volumes {
 		if volume.ServerId == "null" &&
-			(options.isDestroyingCommand() || volume.UpdatedAt.UTC().Add(volumeTimeout()*time.Hour).Before(time.Now().UTC())) {
+			(options.IsDestroyingCommand || volume.UpdatedAt.UTC().Add(volumeTimeout()*time.Hour).Before(time.Now().UTC())) {
 			detachedVolumes = append(detachedVolumes, volume)
 		}
 	}

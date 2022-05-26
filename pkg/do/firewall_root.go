@@ -67,7 +67,7 @@ func getDetachedFirewalls(client *godo.Client, options *DOOptions) []DOFirewall 
 	detachedFirewalls := []DOFirewall{}
 	for _, firewall := range firewalls {
 		if len(firewall.Droplets) == 0 &&
-			(options.isDestroyingCommand() || firewall.CreationDate.UTC().Add(volumeTimeout()*time.Hour).Before(time.Now().UTC())) {
+			(options.IsDestroyingCommand || firewall.CreationDate.UTC().Add(volumeTimeout()*time.Hour).Before(time.Now().UTC())) {
 			detachedFirewalls = append(detachedFirewalls, firewall)
 		}
 	}

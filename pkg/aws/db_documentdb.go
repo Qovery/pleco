@@ -150,7 +150,7 @@ func getExpiredClusterSnapshots(svc rds.RDS, options *AwsOptions) []*rds.DBClust
 	if len(dbs) == 0 {
 		for _, snap := range snaps {
 			if common.CheckClusterSnapshot(snap) &&
-				(options.isDestroyingCommand() || snap.SnapshotCreateTime.Before(time.Now().UTC().Add(3*time.Hour)) && common.CheckClusterSnapshot(snap)) {
+				(options.IsDestroyingCommand || snap.SnapshotCreateTime.Before(time.Now().UTC().Add(3*time.Hour)) && common.CheckClusterSnapshot(snap)) {
 				expiredSnaps = append(expiredSnaps, snap)
 			}
 		}

@@ -61,7 +61,7 @@ func getDetachedVolumes(client *godo.Client, options *DOOptions) []DOVolume {
 
 	detachedVolumes := []DOVolume{}
 	for _, volume := range volumes {
-		if options.isDestroyingCommand() || volume.CreationDate.UTC().Add(volumeTimeout()*time.Hour).Before(time.Now().UTC()) {
+		if options.IsDestroyingCommand || volume.CreationDate.UTC().Add(volumeTimeout()*time.Hour).Before(time.Now().UTC()) {
 			detachedVolumes = append(detachedVolumes, volume)
 		}
 	}

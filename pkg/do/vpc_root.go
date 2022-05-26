@@ -77,7 +77,7 @@ func getExpiredVPCs(client *godo.Client, options *DOOptions) []DOVpc {
 	expiredVPCs := []DOVpc{}
 	for _, VPC := range VPCs {
 		if len(VPC.Members) == 0 &&
-			(options.isDestroyingCommand() || VPC.CreationDate.UTC().Add(volumeTimeout()*time.Hour).Before(time.Now().UTC())) {
+			(options.IsDestroyingCommand || VPC.CreationDate.UTC().Add(volumeTimeout()*time.Hour).Before(time.Now().UTC())) {
 			expiredVPCs = append(expiredVPCs, VPC)
 		}
 	}

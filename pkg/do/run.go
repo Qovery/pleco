@@ -4,27 +4,23 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/minio/minio-go/v7"
 	"github.com/sirupsen/logrus"
-	"strings"
 	"sync"
 	"time"
 )
 
 type DOOptions struct {
-	TagName        string
-	TagValue       string
-	DryRun         bool
-	Region         string
-	EnableCluster  bool
-	EnableDB       bool
-	EnableBucket   bool
-	EnableLB       bool
-	EnableVolume   bool
-	EnableFirewall bool
-	EnableVPC      bool
-}
-
-func (awsOptions *DOOptions) isDestroyingCommand() bool {
-	return strings.TrimSpace(awsOptions.TagValue) == ""
+	TagName             string
+	TagValue            string
+	IsDestroyingCommand bool
+	DryRun              bool
+	Region              string
+	EnableCluster       bool
+	EnableDB            bool
+	EnableBucket        bool
+	EnableLB            bool
+	EnableVolume        bool
+	EnableFirewall      bool
+	EnableVPC           bool
 }
 
 type DOSessions struct {
@@ -72,7 +68,7 @@ func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredBuckets)
 	}
 
-	if options.isDestroyingCommand() {
+	if options.IsDestroyingCommand {
 		for _, check := range listServiceToCheckStatus {
 			check(sessions, options)
 		}
@@ -108,7 +104,7 @@ func runPleco(interval int64, wg *sync.WaitGroup, options DOOptions) {
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredVPCs)
 	}
 
-	if options.isDestroyingCommand() {
+	if options.IsDestroyingCommand {
 		for _, check := range listServiceToCheckStatus {
 			check(sessions, options)
 		}

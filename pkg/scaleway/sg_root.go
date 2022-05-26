@@ -70,7 +70,7 @@ func getDetachedSG(instanceAPI *instance.API, options *ScalewayOptions) ([]Scale
 	detachedSgs := []ScalewaySecurityGroup{}
 	for _, SG := range SGs {
 		if !SG.IsDefault && !SG.IsAttached &&
-			(options.isDestroyingCommand() || SG.UpdateDate.UTC().Add(6*time.Hour).Before(time.Now().UTC())) {
+			(options.IsDestroyingCommand || SG.UpdateDate.UTC().Add(6*time.Hour).Before(time.Now().UTC())) {
 			detachedSgs = append(detachedSgs, SG)
 		}
 	}

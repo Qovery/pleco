@@ -9,28 +9,24 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/api/registry/v1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"github.com/sirupsen/logrus"
-	"strings"
 	"sync"
 	"time"
 )
 
 type ScalewayOptions struct {
-	TagValue      string
-	TagName       string
-	DryRun        bool
-	Zone          string
-	Region        scw.Region
-	EnableCluster bool
-	EnableDB      bool
-	EnableCR      bool
-	EnableBucket  bool
-	EnableLB      bool
-	EnableVolume  bool
-	EnableSG      bool
-}
-
-func (awsOptions *ScalewayOptions) isDestroyingCommand() bool {
-	return strings.TrimSpace(awsOptions.TagValue) == ""
+	TagValue            string
+	TagName             string
+	IsDestroyingCommand bool
+	DryRun              bool
+	Zone                string
+	Region              scw.Region
+	EnableCluster       bool
+	EnableDB            bool
+	EnableCR            bool
+	EnableBucket        bool
+	EnableLB            bool
+	EnableVolume        bool
+	EnableSG            bool
 }
 
 type ScalewaySessions struct {
@@ -103,7 +99,7 @@ func runPlecoInZone(zone string, interval int64, wg *sync.WaitGroup, options Sca
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteDetachedSecurityGroups)
 	}
 
-	if options.isDestroyingCommand() {
+	if options.IsDestroyingCommand {
 		for _, check := range listServiceToCheckStatus {
 			check(sessions, options)
 		}
@@ -138,7 +134,7 @@ func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredLBs)
 	}
 
-	if options.isDestroyingCommand() {
+	if options.IsDestroyingCommand {
 		for _, check := range listServiceToCheckStatus {
 			check(sessions, options)
 		}

@@ -356,7 +356,7 @@ func getExpiredSnapshots(svc rds.RDS, options *AwsOptions) []*rds.DBSnapshot {
 	if len(dbs) == 0 {
 		for _, snap := range snaps {
 			if common.CheckSnapshot(snap) &&
-				(options.isDestroyingCommand() || snap.SnapshotCreateTime.Before(time.Now().UTC().Add(3*time.Hour))) {
+				(options.IsDestroyingCommand || snap.SnapshotCreateTime.Before(time.Now().UTC().Add(3*time.Hour))) {
 				expiredSnaps = append(expiredSnaps, snap)
 			}
 		}

@@ -18,7 +18,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"strings"
 	"sync"
 	"time"
 )
@@ -26,6 +25,7 @@ import (
 type AwsOptions struct {
 	TagName              string
 	TagValue             string
+	IsDestroyingCommand  bool
 	DryRun               bool
 	EnableRDS            bool
 	EnableElastiCache    bool
@@ -44,10 +44,6 @@ type AwsOptions struct {
 	EnableLambda         bool
 	EnableSFN            bool
 	EnableCloudFormation bool
-}
-
-func (awsOptions *AwsOptions) isDestroyingCommand() bool {
-	return strings.TrimSpace(awsOptions.TagValue) == ""
 }
 
 type AWSSessions struct {
@@ -198,7 +194,7 @@ func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredStacks)
 	}
 
-	if options.isDestroyingCommand() {
+	if options.IsDestroyingCommand {
 		for _, check := range listServiceToCheckStatus {
 			check(sessions, options)
 		}
@@ -226,7 +222,7 @@ func runPlecoInGlobal(cmd *cobra.Command, interval int64, wg *sync.WaitGroup, cu
 		currentIAMSession = iam.New(currentSession)
 	}
 
-	if options.isDestroyingCommand() {
+	if options.IsDestroyingCommand {
 		deleteExpiredIAM(iamEnabled, currentIAMSession, &options)
 	} else {
 		for {
