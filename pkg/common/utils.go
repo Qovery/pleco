@@ -136,10 +136,14 @@ func GetEssentialTags(tagsInput interface{}, tagName string) EssentialTags {
 			essentialTags.IsProtected = result
 		case "ClusterId":
 			essentialTags.ClusterId = tags[i].Value
-		case tagName:
-			essentialTags.Tag = tags[i].Value
 		default:
 			continue
+		}
+	}
+	// if 'tagName' value is present in above switch, then he won't never be filled
+	for i := range tags {
+		if strings.EqualFold(tags[i].Key, tagName) {
+			essentialTags.Tag = tags[i].Value
 		}
 	}
 
