@@ -137,10 +137,6 @@ func deleteEKSCluster(svc *eks.EKS, ec2Session *ec2.EC2, elbSession *elbv2.ELBV2
 			cluster.Identifier, *svc.Config.Region, cluster.TTL)
 	}
 
-	if options.DryRun {
-		return nil
-	}
-
 	// delete node groups
 	if len(cluster.ClusterNodeGroupsName) > 0 {
 		for _, nodeGroupName := range cluster.ClusterNodeGroupsName {

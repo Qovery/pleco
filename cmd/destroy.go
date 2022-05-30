@@ -34,7 +34,6 @@ func init() {
 
 	destroy.Flags().StringP("tag-name", "", "", "The tag name attached to a resource to clean")
 	destroy.Flags().StringP("tag-value", "", "", "The corresponding tag value attached to a resource to clean")
-	destroy.Flags().BoolP("check-if-expired", "", true, "Clean resource only if it is expired according to TTL field")
 	destroy.Flags().BoolP("disable-dry-run", "y", false, "Disable dry run mode")
 	destroy.Flags().StringP("kube-conn", "k", "off", "Kubernetes connection method, choose between : off/in/out")
 
