@@ -67,7 +67,7 @@ func listBucketTags(bucketApi *minio.Client, ctx context.Context, bucketName str
 }
 
 func ListBucketObjects(bucketApi *minio.Client, ctx context.Context, bucketName string) []minio.ObjectInfo {
-	objects := bucketApi.ListObjects(ctx, bucketName, minio.ListObjectsOptions{Recursive: true})
+	objects := bucketApi.ListObjects(ctx, bucketName, minio.ListObjectsOptions{Recursive: false})
 	objectsInfos := []minio.ObjectInfo{}
 	for object := range objects {
 		objectsInfos = append(objectsInfos, object)
