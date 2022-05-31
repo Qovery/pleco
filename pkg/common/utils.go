@@ -2,6 +2,7 @@ package common
 
 import (
 	"fmt"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/elasticache"
@@ -11,7 +12,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sfn"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
 	log "github.com/sirupsen/logrus"
 	"strconv"
 	"strings"
@@ -36,6 +36,27 @@ type EssentialTags struct {
 	IsProtected  bool
 	ClusterId    string
 	Tag          string
+}
+
+type CloudProviderResource struct {
+	Identifier   string
+	Description  string
+	CreationDate time.Time
+	TTL          int64
+	Tag          string
+	IsProtected  bool
+}
+
+func (resource *CloudProviderResource) IsResourceExpired(commandLineTagValue string) bool {
+	if resource.IsProtected {
+		return false
+	}
+	isDestroyingCommand := strings.TrimSpace(commandLineTagValue) != ""
+	if isDestroyingCommand {
+		return strings.EqualFold(resource.Tag, commandLineTagValue)
+	} else {
+		return CheckIfExpired(resource.CreationDate, resource.TTL, resource.Description)
+	}
 }
 
 func GetEssentialTags(tagsInput interface{}, tagName string) EssentialTags {
@@ -115,24 +136,28 @@ func GetEssentialTags(tagsInput interface{}, tagName string) EssentialTags {
 			essentialTags.IsProtected = result
 		case "ClusterId":
 			essentialTags.ClusterId = tags[i].Value
-		case tagName:
-			essentialTags.Tag = tags[i].Value
 		default:
 			continue
+		}
+	}
+	// if 'tagName' value is present in above switch, then he won't never be filled
+	for i := range tags {
+		if strings.EqualFold(tags[i].Key, tagName) {
+			essentialTags.Tag = tags[i].Value
 		}
 	}
 
 	return essentialTags
 }
 
-func CheckIfExpired(creationTime time.Time, ttl int64, resourceName string) bool {
-	expirationTime := creationTime.UTC().Add(time.Duration(ttl) * time.Second)
+func CheckIfExpired(creationTime time.Time, ttl int64, resourceNameDescription string) bool {
 	if ttl == 0 {
 		return false
 	}
+	expirationTime := creationTime.UTC().Add(time.Duration(ttl) * time.Second)
 
 	if creationTime.Year() < 1972 {
-		log.Warnf("Creation date tag is missing. Can't check if resource %s is expired.", resourceName)
+		log.Warnf("Creation date tag is missing. Can't check if resource %s is expired.", resourceNameDescription)
 		return false
 	}
 

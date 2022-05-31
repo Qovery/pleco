@@ -2,20 +2,16 @@ package aws
 
 import (
 	"fmt"
-	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
 	log "github.com/sirupsen/logrus"
-	"time"
+
+	"github.com/Qovery/pleco/pkg/common"
 )
 
 type Role struct {
-	RoleName        string
-	CreationDate    time.Time
-	ttl             int64
-	Tag             string
+	common.CloudProviderResource
 	InstanceProfile []*iam.InstanceProfile
-	IsProtected     bool
 }
 
 func getRoles(iamSession *iam.IAM, tagName string) []Role {
@@ -36,11 +32,15 @@ func getRoles(iamSession *iam.IAM, tagName string) []Role {
 		instanceProfiles := getRoleInstanceProfile(iamSession, *role.RoleName)
 		essentialTags := common.GetEssentialTags(tags, tagName)
 		newRole := Role{
-			RoleName:        *role.RoleName,
-			CreationDate:    essentialTags.CreationDate,
+			CloudProviderResource: common.CloudProviderResource{
+				Identifier:   *role.RoleName,
+				Description:  "IAM Role: " + *role.RoleName,
+				CreationDate: essentialTags.CreationDate,
+				TTL:          essentialTags.TTL,
+				Tag:          essentialTags.Tag,
+				IsProtected:  essentialTags.IsProtected,
+			},
 			InstanceProfile: instanceProfiles,
-			ttl:             essentialTags.TTL,
-			IsProtected:     essentialTags.IsProtected,
 		}
 
 		roles = append(roles, newRole)
@@ -77,12 +77,12 @@ func getRoleInstanceProfile(iamSession *iam.IAM, roleName string) []*iam.Instanc
 	return result.InstanceProfiles
 }
 
-func DeleteExpiredRoles(iamSession *iam.IAM, tagName string, dryRun bool) {
-	roles := getRoles(iamSession, tagName)
+func DeleteExpiredRoles(iamSession *iam.IAM, options *AwsOptions) {
+	roles := getRoles(iamSession, options.TagName)
 	var expiredRoles []Role
 
 	for _, role := range roles {
-		if common.CheckIfExpired(role.CreationDate, role.ttl, "iam role: "+role.RoleName) && !role.IsProtected {
+		if role.IsResourceExpired(options.TagValue) {
 			expiredRoles = append(expiredRoles, role)
 		}
 	}
@@ -97,23 +97,23 @@ func DeleteExpiredRoles(iamSession *iam.IAM, tagName string, dryRun bool) {
 
 	log.Debug(s)
 
-	if dryRun || len(expiredRoles) == 0 {
+	if options.DryRun || len(expiredRoles) == 0 {
 		return
 	}
 
 	log.Debug("Starting expired IAM roles deletion.")
 
 	for _, role := range expiredRoles {
-		HandleRolePolicies(iamSession, role.RoleName)
-		removeRoleFromInstanceProfile(iamSession, role.InstanceProfile, role.RoleName)
+		HandleRolePolicies(iamSession, role.Identifier)
+		removeRoleFromInstanceProfile(iamSession, role.InstanceProfile, role.Identifier)
 
 		_, err := iamSession.DeleteRole(
 			&iam.DeleteRoleInput{
-				RoleName: aws.String(role.RoleName),
+				RoleName: aws.String(role.Identifier),
 			})
 
 		if err != nil {
-			log.Errorf("Can't delete role %s : %s", role.RoleName, err)
+			log.Errorf("Can't delete role %s : %s", role.Identifier, err)
 		}
 	}
 }

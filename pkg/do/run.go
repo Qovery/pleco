@@ -9,16 +9,18 @@ import (
 )
 
 type DOOptions struct {
-	TagName        string
-	DryRun         bool
-	Region         string
-	EnableCluster  bool
-	EnableDB       bool
-	EnableBucket   bool
-	EnableLB       bool
-	EnableVolume   bool
-	EnableFirewall bool
-	EnableVPC      bool
+	TagName             string
+	TagValue            string
+	IsDestroyingCommand bool
+	DryRun              bool
+	Region              string
+	EnableCluster       bool
+	EnableDB            bool
+	EnableBucket        bool
+	EnableLB            bool
+	EnableVolume        bool
+	EnableFirewall      bool
+	EnableVPC           bool
 }
 
 type DOSessions struct {
@@ -66,12 +68,18 @@ func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredBuckets)
 	}
 
-	for {
+	if options.IsDestroyingCommand {
 		for _, check := range listServiceToCheckStatus {
 			check(sessions, options)
 		}
+	} else {
+		for {
+			for _, check := range listServiceToCheckStatus {
+				check(sessions, options)
+			}
 
-		time.Sleep(time.Duration(interval) * time.Second)
+			time.Sleep(time.Duration(interval) * time.Second)
+		}
 	}
 }
 
@@ -96,11 +104,17 @@ func runPleco(interval int64, wg *sync.WaitGroup, options DOOptions) {
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredVPCs)
 	}
 
-	for {
+	if options.IsDestroyingCommand {
 		for _, check := range listServiceToCheckStatus {
 			check(sessions, options)
 		}
+	} else {
+		for {
+			for _, check := range listServiceToCheckStatus {
+				check(sessions, options)
+			}
 
-		time.Sleep(time.Duration(interval) * time.Second)
+			time.Sleep(time.Duration(interval) * time.Second)
+		}
 	}
 }

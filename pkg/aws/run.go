@@ -24,6 +24,8 @@ import (
 
 type AwsOptions struct {
 	TagName              string
+	TagValue             string
+	IsDestroyingCommand  bool
 	DryRun               bool
 	EnableRDS            bool
 	EnableElastiCache    bool
@@ -192,14 +194,19 @@ func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredStacks)
 	}
 
-	for {
+	if options.IsDestroyingCommand {
 		for _, check := range listServiceToCheckStatus {
 			check(sessions, options)
 		}
+	} else {
+		for {
+			for _, check := range listServiceToCheckStatus {
+				check(sessions, options)
+			}
 
-		time.Sleep(time.Duration(interval) * time.Second)
+			time.Sleep(time.Duration(interval) * time.Second)
+		}
 	}
-
 }
 
 func runPlecoInGlobal(cmd *cobra.Command, interval int64, wg *sync.WaitGroup, currentSession *session.Session, options AwsOptions) {
@@ -215,13 +222,20 @@ func runPlecoInGlobal(cmd *cobra.Command, interval int64, wg *sync.WaitGroup, cu
 		currentIAMSession = iam.New(currentSession)
 	}
 
-	for {
-		// check IAM
-		if iamEnabled {
-			logrus.Debug("Listing all IAM access.")
-			DeleteExpiredIAM(currentIAMSession, options.TagName, options.DryRun)
+	if options.IsDestroyingCommand {
+		deleteExpiredIAM(iamEnabled, currentIAMSession, &options)
+	} else {
+		for {
+			deleteExpiredIAM(iamEnabled, currentIAMSession, &options)
+			time.Sleep(time.Duration(interval) * time.Second)
 		}
+	}
+}
 
-		time.Sleep(time.Duration(interval) * time.Second)
+func deleteExpiredIAM(iamEnabled bool, currentIAMSession *iam.IAM, options *AwsOptions) {
+	// check IAM
+	if iamEnabled {
+		logrus.Debug("Listing all IAM access.")
+		DeleteExpiredIAM(currentIAMSession, options)
 	}
 }

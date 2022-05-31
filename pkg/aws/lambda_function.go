@@ -1,20 +1,16 @@
 package aws
 
 import (
-	"time"
-
-	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/Qovery/pleco/pkg/common"
 )
 
 type lambdaFunction struct {
-	FunctionName string
-	CreateTime   time.Time
-	TTL          int64
-	IsProtected  bool
+	common.CloudProviderResource
 }
 
 func LambdaSession(sess session.Session, region string) *lambda.Lambda {
@@ -32,14 +28,18 @@ func tagFunctions(svc lambda.Lambda, functions *lambda.ListFunctionsOutput, tagN
 		if err != nil {
 			continue
 		}
-		
+
 		essentialTags := common.GetEssentialTags(getFunctionResult.Tags, tagName)
-		
+
 		taggedFunctions = append(taggedFunctions, lambdaFunction{
-			FunctionName: *function.FunctionName,
-			CreateTime:   essentialTags.CreationDate,
-			TTL:          essentialTags.TTL,
-			IsProtected:  essentialTags.IsProtected,
+			CloudProviderResource: common.CloudProviderResource{
+				Identifier:   *function.FunctionName,
+				Description:  "Lambda Function: " + *function.FunctionName,
+				CreationDate: essentialTags.CreationDate,
+				TTL:          essentialTags.TTL,
+				Tag:          essentialTags.Tag,
+				IsProtected:  essentialTags.IsProtected,
+			},
 		})
 
 	}
@@ -61,7 +61,7 @@ func listTaggedFunctions(svc lambda.Lambda, tagName string) ([]lambdaFunction, e
 	}
 
 	taggedFunctions := tagFunctions(svc, result, tagName)
-	
+
 	for result.NextMarker != nil {
 		result, err = svc.ListFunctions(&lambda.ListFunctionsInput{
 			Marker: result.NextMarker,
@@ -80,11 +80,11 @@ func listTaggedFunctions(svc lambda.Lambda, tagName string) ([]lambdaFunction, e
 func deleteLambdaFunction(svc lambda.Lambda, function lambdaFunction) error {
 
 	log.Infof("Deleting Lambda Function %s in %s, expired after %d seconds",
-				function.FunctionName, *svc.Config.Region, function.TTL)
+		function.Identifier, *svc.Config.Region, function.TTL)
 
 	_, err := svc.DeleteFunction(&lambda.DeleteFunctionInput{
-				FunctionName: &function.FunctionName,
-		},
+		FunctionName: &function.Identifier,
+	},
 	)
 	if err != nil {
 		return err
@@ -93,8 +93,8 @@ func deleteLambdaFunction(svc lambda.Lambda, function lambdaFunction) error {
 	return nil
 }
 
-func getExpiredLambdaFunctions(ECsession *lambda.Lambda, tagName string) ([]lambdaFunction, string) {
-	functions, err := listTaggedFunctions(*ECsession, tagName)
+func getExpiredLambdaFunctions(ECsession *lambda.Lambda, options *AwsOptions) ([]lambdaFunction, string) {
+	functions, err := listTaggedFunctions(*ECsession, options.TagName)
 	region := *ECsession.Config.Region
 	if err != nil {
 		log.Errorf("can't list Lambda Functions in region %s: %s", region, err.Error())
@@ -102,8 +102,8 @@ func getExpiredLambdaFunctions(ECsession *lambda.Lambda, tagName string) ([]lamb
 
 	var expiredFunctions []lambdaFunction
 	for _, function := range functions {
-		log.Infof("Checking if %s function is expired", function.FunctionName)
-		if common.CheckIfExpired(function.CreateTime, function.TTL, "lambda: "+function.FunctionName) && !function.IsProtected {
+		log.Infof("Checking if %s function is expired", function.Identifier)
+		if function.IsResourceExpired(options.TagValue) {
 			expiredFunctions = append(expiredFunctions, function)
 		}
 	}
@@ -112,7 +112,7 @@ func getExpiredLambdaFunctions(ECsession *lambda.Lambda, tagName string) ([]lamb
 }
 
 func DeleteExpiredLambdaFunctions(sessions AWSSessions, options AwsOptions) {
-	expiredFunctions, region := getExpiredLambdaFunctions(sessions.LambdaFunction, options.TagName)
+	expiredFunctions, region := getExpiredLambdaFunctions(sessions.LambdaFunction, &options)
 
 	count, start := common.ElemToDeleteFormattedInfos("expired Lambda Function", len(expiredFunctions), region)
 
@@ -127,7 +127,7 @@ func DeleteExpiredLambdaFunctions(sessions AWSSessions, options AwsOptions) {
 	for _, function := range expiredFunctions {
 		deletionErr := deleteLambdaFunction(*sessions.LambdaFunction, function)
 		if deletionErr != nil {
-			log.Errorf("Deletion Lambda function error %s/%s: %s", function.FunctionName, region, deletionErr.Error())
+			log.Errorf("Deletion Lambda function error %s/%s: %s", function.Identifier, region, deletionErr.Error())
 		}
 	}
 }

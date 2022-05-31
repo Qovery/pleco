@@ -1,16 +1,16 @@
 package aws
 
 import (
-	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	log "github.com/sirupsen/logrus"
 	"sync"
-	"time"
+
+	"github.com/Qovery/pleco/pkg/common"
 )
 
 type VpcInfo struct {
-	VpcId             *string
+	common.CloudProviderResource
 	SecurityGroups    []SecurityGroup
 	NatGateways       []NatGateway
 	InternetGateways  []InternetGateway
@@ -19,10 +19,6 @@ type VpcInfo struct {
 	ElasticIps        []ElasticIp
 	NetworkInterfaces []NetworkInterface
 	Status            string
-	TTL               int64
-	Tag               string
-	CreationDate      time.Time
-	IsProtected       bool
 }
 
 func GetVpcsIdsByClusterNameTag(ec2Session ec2.EC2, clusterName string) []*string {
@@ -86,18 +82,22 @@ func GetAllVPCs(ec2Session *ec2.EC2) []*ec2.Vpc {
 	return result.Vpcs
 }
 
-func listTaggedVPC(ec2Session *ec2.EC2, tagName string) ([]VpcInfo, error) {
+func listTaggedVPC(ec2Session *ec2.EC2, options *AwsOptions) ([]VpcInfo, error) {
 	var taggedVPCs []VpcInfo
-	var VPCs = getVPCs(ec2Session, tagName)
+	var VPCs = getVPCs(ec2Session, options.TagName)
 
 	for _, vpc := range VPCs {
-		essentialTags := common.GetEssentialTags(vpc.Tags, tagName)
+		essentialTags := common.GetEssentialTags(vpc.Tags, options.TagName)
 		taggedVpc := VpcInfo{
-			VpcId:        vpc.VpcId,
-			Status:       *vpc.State,
-			CreationDate: essentialTags.CreationDate,
-			TTL:          essentialTags.TTL,
-			IsProtected:  essentialTags.IsProtected,
+			CloudProviderResource: common.CloudProviderResource{
+				Identifier:   *vpc.VpcId,
+				Description:  "VPC: " + *vpc.VpcId,
+				CreationDate: essentialTags.CreationDate,
+				TTL:          essentialTags.TTL,
+				Tag:          essentialTags.Tag,
+				IsProtected:  essentialTags.IsProtected,
+			},
+			Status: *vpc.State,
 		}
 
 		if *vpc.State != "available" {
@@ -108,7 +108,7 @@ func listTaggedVPC(ec2Session *ec2.EC2, tagName string) ([]VpcInfo, error) {
 		}
 
 		for _, tag := range vpc.Tags {
-			if *tag.Key == tagName {
+			if *tag.Key == options.TagName {
 				if *tag.Value == "" {
 					log.Warnf("Tag %s was empty and it wasn't expected, skipping", *tag.Value)
 					continue
@@ -117,10 +117,10 @@ func listTaggedVPC(ec2Session *ec2.EC2, tagName string) ([]VpcInfo, error) {
 				taggedVpc.Tag = *tag.Value
 			}
 
-			getCompleteVpc(ec2Session, &taggedVpc, tagName)
+			getCompleteVpc(ec2Session, &taggedVpc, options.TagName)
 		}
 
-		if common.CheckIfExpired(taggedVpc.CreationDate, taggedVpc.TTL, "vpc: "+*taggedVpc.VpcId) && !taggedVpc.IsProtected {
+		if taggedVpc.IsResourceExpired(options.TagValue) {
 			taggedVPCs = append(taggedVPCs, taggedVpc)
 		}
 
@@ -143,22 +143,22 @@ func deleteVPC(sessions AWSSessions, VpcList []VpcInfo, dryRun bool) error {
 
 	for _, vpc := range VpcList {
 		DeleteLoadBalancerByVpcId(sessions.ELB, vpc, dryRun)
-		DeleteNetworkInterfacesByVpcId(ec2Session, *vpc.VpcId)
+		DeleteNetworkInterfacesByVpcId(ec2Session, vpc.Identifier)
 		ReleaseElasticIps(ec2Session, vpc.ElasticIps)
 		DeleteSecurityGroupsByIds(ec2Session, vpc.SecurityGroups)
 		DeleteNatGatewaysByIds(ec2Session, vpc.NatGateways)
-		DeleteInternetGatewaysByIds(ec2Session, vpc.InternetGateways, *vpc.VpcId)
+		DeleteInternetGatewaysByIds(ec2Session, vpc.InternetGateways, vpc.Identifier)
 		DeleteSubnetsByIds(ec2Session, vpc.Subnets)
 		DeleteRouteTablesByIds(ec2Session, vpc.RouteTables)
 		DeleteNatGatewaysByIds(ec2Session, vpc.NatGateways)
 
 		_, deleteErr := ec2Session.DeleteVpc(
 			&ec2.DeleteVpcInput{
-				VpcId: aws.String(*vpc.VpcId),
+				VpcId: aws.String(vpc.Identifier),
 			},
 		)
 		if deleteErr != nil {
-			log.Errorf("Can't delete VPC %s in %s yet: %s", *vpc.VpcId, region, deleteErr.Error())
+			log.Errorf("Can't delete VPC %s in %s yet: %s", vpc.Identifier, region, deleteErr.Error())
 		}
 	}
 
@@ -166,7 +166,7 @@ func deleteVPC(sessions AWSSessions, VpcList []VpcInfo, dryRun bool) error {
 }
 
 func DeleteExpiredVPC(sessions AWSSessions, options AwsOptions) {
-	VPCs, err := listTaggedVPC(sessions.EC2, options.TagName)
+	VPCs, err := listTaggedVPC(sessions.EC2, &options)
 	region := sessions.EC2.Config.Region
 	if err != nil {
 		log.Errorf("can't list VPC: %s\n", err)

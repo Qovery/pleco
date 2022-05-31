@@ -1,21 +1,17 @@
 package aws
 
 import (
-	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/kms"
 	log "github.com/sirupsen/logrus"
-	"time"
+
+	"github.com/Qovery/pleco/pkg/common"
 )
 
 type CompleteKey struct {
-	KeyId        string
-	TTL          int64
-	Tag          string
-	Status       string
-	CreationDate time.Time
-	IsProtected  bool
+	common.CloudProviderResource
+	Status string
 }
 
 func getKeys(svc kms.KMS) []*kms.KeyListEntry {
@@ -36,11 +32,15 @@ func getCompleteKey(svc kms.KMS, keyId *string, tagName string) CompleteKey {
 	essentialTags := common.GetEssentialTags(tags, tagName)
 
 	return CompleteKey{
-		KeyId:        *keyId,
-		Status:       *metaData.KeyMetadata.KeyState,
-		CreationDate: metaData.KeyMetadata.CreationDate.UTC(),
-		TTL:          essentialTags.TTL,
-		IsProtected:  essentialTags.IsProtected,
+		CloudProviderResource: common.CloudProviderResource{
+			Identifier:   *keyId,
+			Description:  "KMS: " + *keyId,
+			CreationDate: metaData.KeyMetadata.CreationDate.UTC(),
+			TTL:          essentialTags.TTL,
+			Tag:          essentialTags.Tag,
+			IsProtected:  essentialTags.IsProtected,
+		},
+		Status: *metaData.KeyMetadata.KeyState,
 	}
 }
 
@@ -107,11 +107,8 @@ func DeleteExpiredKeys(sessions AWSSessions, options AwsOptions) {
 	for _, key := range keys {
 		completeKey := getCompleteKey(*sessions.KMS, key.KeyId, options.TagName)
 
-		if completeKey.Status != "PendingDeletion" && completeKey.Status != "Disabled" &&
-			common.CheckIfExpired(completeKey.CreationDate, completeKey.TTL, "kms key: "+completeKey.KeyId) && !completeKey.IsProtected {
-			if completeKey.Tag == options.TagName || options.TagName == "ttl" {
-				expiredKeys = append(expiredKeys, completeKey)
-			}
+		if completeKey.Status != "PendingDeletion" && completeKey.Status != "Disabled" && completeKey.IsResourceExpired(options.TagValue) {
+			expiredKeys = append(expiredKeys, completeKey)
 		}
 	}
 
@@ -126,10 +123,9 @@ func DeleteExpiredKeys(sessions AWSSessions, options AwsOptions) {
 	log.Debug(start)
 
 	for _, key := range expiredKeys {
-		_, deletionErr := deleteKey(*sessions.KMS, key.KeyId)
+		_, deletionErr := deleteKey(*sessions.KMS, key.Identifier)
 		if deletionErr != nil {
-			log.Errorf("Deletion KMS key error %s/%s: %s",
-				key.KeyId, *region, deletionErr)
+			log.Errorf("Deletion KMS key error %s/%s: %s", key.Identifier, *region, deletionErr)
 		}
 	}
 }

@@ -2,10 +2,11 @@ package scaleway
 
 import (
 	"fmt"
-	"github.com/Qovery/pleco/pkg/common"
 	"github.com/scaleway/scaleway-sdk-go/api/instance/v1"
 	log "github.com/sirupsen/logrus"
 	"time"
+
+	"github.com/Qovery/pleco/pkg/common"
 )
 
 type ScalewayVolume struct {
@@ -16,7 +17,7 @@ type ScalewayVolume struct {
 }
 
 func DeleteExpiredVolumes(sessions ScalewaySessions, options ScalewayOptions) {
-	expiredVolumes := getDetachedVolumes(sessions.Volume, options.Zone)
+	expiredVolumes := getDetachedVolumes(sessions.Volume, &options)
 
 	count, start := common.ElemToDeleteFormattedInfos(fmt.Sprintf("detached (%d hours delay) volume", volumeTimeout()), len(expiredVolumes), options.Zone, true)
 
@@ -61,12 +62,13 @@ func getVolumes(volumeAPI *instance.API, zone string) []ScalewayVolume {
 	return volumes
 }
 
-func getDetachedVolumes(volumeAPI *instance.API, zone string) []ScalewayVolume {
-	volumes := getVolumes(volumeAPI, zone)
+func getDetachedVolumes(volumeAPI *instance.API, options *ScalewayOptions) []ScalewayVolume {
+	volumes := getVolumes(volumeAPI, options.Zone)
 
 	detachedVolumes := []ScalewayVolume{}
 	for _, volume := range volumes {
-		if volume.UpdatedAt.UTC().Add(volumeTimeout()*time.Hour).Before(time.Now().UTC()) && volume.ServerId == "null" {
+		if volume.ServerId == "null" &&
+			(options.IsDestroyingCommand || volume.UpdatedAt.UTC().Add(volumeTimeout()*time.Hour).Before(time.Now().UTC())) {
 			detachedVolumes = append(detachedVolumes, volume)
 		}
 	}

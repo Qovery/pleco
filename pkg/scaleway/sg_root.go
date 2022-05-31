@@ -1,10 +1,11 @@
 package scaleway
 
 import (
-	"github.com/Qovery/pleco/pkg/common"
 	"github.com/scaleway/scaleway-sdk-go/api/instance/v1"
 	log "github.com/sirupsen/logrus"
 	"time"
+
+	"github.com/Qovery/pleco/pkg/common"
 )
 
 type ScalewaySecurityGroup struct {
@@ -18,7 +19,7 @@ type ScalewaySecurityGroup struct {
 }
 
 func DeleteDetachedSecurityGroups(sessions ScalewaySessions, options ScalewayOptions) {
-	detachedSGs, _ := getDetachedSG(sessions.SG)
+	detachedSGs, _ := getDetachedSG(sessions.SG, &options)
 
 	count, start := common.ElemToDeleteFormattedInfos("detached security group", len(detachedSGs), options.Zone, true)
 
@@ -63,12 +64,13 @@ func listSecurityGroups(instanceAPI *instance.API) ([]ScalewaySecurityGroup, str
 	return SGs, region
 }
 
-func getDetachedSG(instanceAPI *instance.API) ([]ScalewaySecurityGroup, string) {
+func getDetachedSG(instanceAPI *instance.API, options *ScalewayOptions) ([]ScalewaySecurityGroup, string) {
 	SGs, region := listSecurityGroups(instanceAPI)
 
 	detachedSgs := []ScalewaySecurityGroup{}
 	for _, SG := range SGs {
-		if SG.UpdateDate.UTC().Add(6*time.Hour).Before(time.Now().UTC()) && !SG.IsDefault && !SG.IsAttached {
+		if !SG.IsDefault && !SG.IsAttached &&
+			(options.IsDestroyingCommand || SG.UpdateDate.UTC().Add(6*time.Hour).Before(time.Now().UTC())) {
 			detachedSgs = append(detachedSgs, SG)
 		}
 	}

@@ -1,21 +1,18 @@
 package aws
 
 import (
-	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	log "github.com/sirupsen/logrus"
 	"sync"
-	"time"
+
+	"github.com/Qovery/pleco/pkg/common"
 )
 
 type ElasticIp struct {
-	Id            string
+	common.CloudProviderResource
 	AssociationId string
 	Ip            string
-	CreationDate  time.Time
-	ttl           int64
-	IsProtected   bool
 }
 
 func getElasticIps(ec2Session *ec2.EC2, tagName string) []ElasticIp {
@@ -68,7 +65,7 @@ func ReleaseElasticIps(ec2Session *ec2.EC2, eips []ElasticIp) {
 			})
 
 		if detachErr != nil {
-			log.Errorf("Can't release EIP %s: %s", eip.Id, detachErr.Error())
+			log.Errorf("Can't release EIP %s: %s", eip.Identifier, detachErr.Error())
 		}
 	}
 
@@ -77,20 +74,21 @@ func ReleaseElasticIps(ec2Session *ec2.EC2, eips []ElasticIp) {
 func deleteElasticIp(ec2Session *ec2.EC2, eip ElasticIp) {
 	_, releaseErr := ec2Session.ReleaseAddress(
 		&ec2.ReleaseAddressInput{
-			AllocationId: aws.String(eip.Id),
+			AllocationId: aws.String(eip.Identifier),
 		})
 
 	if releaseErr != nil {
-		log.Errorf("Can't release EIP %s: %s", eip.Id, releaseErr.Error())
+		log.Errorf("Can't release EIP %s: %s", eip.Identifier, releaseErr.Error())
 	}
 }
 
-func getExpiredEIPs(ec2Session *ec2.EC2, tagName string) []ElasticIp {
-	elasticIps := getElasticIps(ec2Session, tagName)
+func getExpiredEIPs(ec2Session *ec2.EC2, options *AwsOptions) []ElasticIp {
+	elasticIps := getElasticIps(ec2Session, options.TagName)
 
 	expiredEips := []ElasticIp{}
 	for _, eip := range elasticIps {
-		if common.CheckIfExpired(eip.CreationDate, eip.ttl, "eip: "+eip.Id) && !eip.IsProtected {
+
+		if eip.IsResourceExpired(options.TagValue) {
 			expiredEips = append(expiredEips, eip)
 		}
 	}
@@ -99,7 +97,7 @@ func getExpiredEIPs(ec2Session *ec2.EC2, tagName string) []ElasticIp {
 }
 
 func DeleteExpiredElasticIps(sessions AWSSessions, options AwsOptions) {
-	expiredEips := getExpiredEIPs(sessions.EC2, options.TagName)
+	expiredEips := getExpiredEIPs(sessions.EC2, &options)
 
 	count, start := common.ElemToDeleteFormattedInfos("expired EIP", len(expiredEips), *sessions.EC2.Config.Region)
 
@@ -119,7 +117,7 @@ func DeleteExpiredElasticIps(sessions AWSSessions, options AwsOptions) {
 func SetElasticIpsByVpcId(ec2Session *ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup, tagName string) {
 	defer waitGroup.Done()
 	for _, ni := range vpc.NetworkInterfaces {
-		vpc.ElasticIps = append(vpc.ElasticIps, getElasticIpByNetworkInterfaceId(ec2Session, ni.Id, *vpc.VpcId, tagName)...)
+		vpc.ElasticIps = append(vpc.ElasticIps, getElasticIpByNetworkInterfaceId(ec2Session, ni.Id, vpc.Identifier, tagName)...)
 	}
 }
 
@@ -128,12 +126,16 @@ func responseToStruct(result *ec2.DescribeAddressesOutput, tagName string) []Ela
 	for _, key := range result.Addresses {
 		essentialTags := common.GetEssentialTags(key.Tags, tagName)
 		eip := ElasticIp{
-			Id:            *key.AllocationId,
+			CloudProviderResource: common.CloudProviderResource{
+				Identifier:   *key.AllocationId,
+				Description:  "Elastic IP: " + *key.AllocationId,
+				CreationDate: essentialTags.CreationDate,
+				TTL:          essentialTags.TTL,
+				Tag:          essentialTags.Tag,
+				IsProtected:  essentialTags.IsProtected,
+			},
 			AssociationId: "",
 			Ip:            "",
-			CreationDate:  essentialTags.CreationDate,
-			ttl:           essentialTags.TTL,
-			IsProtected:   essentialTags.IsProtected,
 		}
 
 		if key.AssociationId != nil && key.PublicIp != nil {

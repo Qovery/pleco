@@ -3,10 +3,11 @@ package do
 import (
 	"context"
 	"fmt"
-	"github.com/Qovery/pleco/pkg/common"
 	"github.com/digitalocean/godo"
 	log "github.com/sirupsen/logrus"
 	"time"
+
+	"github.com/Qovery/pleco/pkg/common"
 )
 
 type DOVpc struct {
@@ -17,7 +18,7 @@ type DOVpc struct {
 }
 
 func DeleteExpiredVPCs(sessions DOSessions, options DOOptions) {
-	expiredVPCs := getExpiredVPCs(sessions.Client, options.Region)
+	expiredVPCs := getExpiredVPCs(sessions.Client, &options)
 
 	count, start := common.ElemToDeleteFormattedInfos(fmt.Sprintf("expired (%d hours delay) VPC", volumeTimeout()), len(expiredVPCs), options.Region)
 
@@ -70,12 +71,13 @@ func getVPCs(client *godo.Client, region string) []DOVpc {
 	return VPCs
 }
 
-func getExpiredVPCs(client *godo.Client, region string) []DOVpc {
-	VPCs := getVPCs(client, region)
+func getExpiredVPCs(client *godo.Client, options *DOOptions) []DOVpc {
+	VPCs := getVPCs(client, options.Region)
 
 	expiredVPCs := []DOVpc{}
 	for _, VPC := range VPCs {
-		if VPC.CreationDate.UTC().Add(volumeTimeout()*time.Hour).Before(time.Now().UTC()) && len(VPC.Members) == 0 {
+		if len(VPC.Members) == 0 &&
+			(options.IsDestroyingCommand || VPC.CreationDate.UTC().Add(volumeTimeout()*time.Hour).Before(time.Now().UTC())) {
 			expiredVPCs = append(expiredVPCs, VPC)
 		}
 	}

@@ -1,12 +1,13 @@
 package scaleway
 
 import (
-	"github.com/Qovery/pleco/pkg/common"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/Qovery/pleco/pkg/common"
 )
 
 func DeleteExpiredBuckets(sessions ScalewaySessions, options ScalewayOptions) {
-	expiredBuckets := common.GetExpiredBuckets(sessions.Bucket, options.TagName, options.Region.String())
+	expiredBuckets := common.GetExpiredBuckets(sessions.Bucket, options.TagName, options.Region.String(), options.TagValue)
 
 	count, start := common.ElemToDeleteFormattedInfos("expired bucket", len(expiredBuckets), string(options.Region))
 
@@ -19,7 +20,7 @@ func DeleteExpiredBuckets(sessions ScalewaySessions, options ScalewayOptions) {
 	log.Debug(start)
 
 	for _, expiredBucket := range expiredBuckets {
-		common.EmptyBucket(sessions.Bucket, expiredBucket.Name, expiredBucket.ObjectsInfos)
+		common.EmptyBucket(sessions.Bucket, expiredBucket.Identifier, expiredBucket.ObjectsInfos)
 		common.DeleteBucket(sessions.Bucket, expiredBucket)
 	}
 }

@@ -170,7 +170,7 @@ func deleteUserPolicies(iamSession *iam.IAM, userName string, policies []Policy)
 				})
 
 			if err != nil {
-				log.Errorf("Can not delete policiy %s for user %s : %s", policy.Name, userName, err.Error())
+				log.Errorf("Can not delete policy %s for user %s : %s", policy.Name, userName, err.Error())
 			}
 		}
 	}

@@ -14,17 +14,19 @@ import (
 )
 
 type ScalewayOptions struct {
-	TagName       string
-	DryRun        bool
-	Zone          string
-	Region        scw.Region
-	EnableCluster bool
-	EnableDB      bool
-	EnableCR      bool
-	EnableBucket  bool
-	EnableLB      bool
-	EnableVolume  bool
-	EnableSG      bool
+	TagValue            string
+	TagName             string
+	IsDestroyingCommand bool
+	DryRun              bool
+	Zone                string
+	Region              scw.Region
+	EnableCluster       bool
+	EnableDB            bool
+	EnableCR            bool
+	EnableBucket        bool
+	EnableLB            bool
+	EnableVolume        bool
+	EnableSG            bool
 }
 
 type ScalewaySessions struct {
@@ -97,12 +99,18 @@ func runPlecoInZone(zone string, interval int64, wg *sync.WaitGroup, options Sca
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteDetachedSecurityGroups)
 	}
 
-	for {
+	if options.IsDestroyingCommand {
 		for _, check := range listServiceToCheckStatus {
 			check(sessions, options)
 		}
+	} else {
+		for {
+			for _, check := range listServiceToCheckStatus {
+				check(sessions, options)
+			}
 
-		time.Sleep(time.Duration(interval) * time.Second)
+			time.Sleep(time.Duration(interval) * time.Second)
+		}
 	}
 }
 
@@ -126,11 +134,16 @@ func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredLBs)
 	}
 
-	for {
+	if options.IsDestroyingCommand {
 		for _, check := range listServiceToCheckStatus {
 			check(sessions, options)
 		}
-
-		time.Sleep(time.Duration(interval) * time.Second)
+	} else {
+		for {
+			for _, check := range listServiceToCheckStatus {
+				check(sessions, options)
+			}
+			time.Sleep(time.Duration(interval) * time.Second)
+		}
 	}
 }

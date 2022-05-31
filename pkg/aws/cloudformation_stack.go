@@ -1,20 +1,16 @@
 package aws
 
 import (
-	"time"
-
-	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/Qovery/pleco/pkg/common"
 )
 
 type CloudformationStack struct {
-	StackName 	string
-	CreateTime   time.Time
-	TTL          int64
-	IsProtected  bool
+	common.CloudProviderResource
 }
 
 func CloudformationSession(sess session.Session, region string) *cloudformation.CloudFormation {
@@ -39,8 +35,8 @@ func listTaggedStacks(svc cloudformation.CloudFormation, tagName string) ([]Clou
 		}
 
 		stackDescriptionList, err := svc.DescribeStacks(describeStacksInput)
-		
-		if err != nil  {
+
+		if err != nil {
 			continue
 		}
 		stackDescription := stackDescriptionList.Stacks[0]
@@ -48,10 +44,14 @@ func listTaggedStacks(svc cloudformation.CloudFormation, tagName string) ([]Clou
 		essentialTags := common.GetEssentialTags(stackDescription.Tags, tagName)
 
 		taggedStacks = append(taggedStacks, CloudformationStack{
-			StackName: 	  *stack.StackName,
-			CreateTime:   *stack.CreationTime,
-			TTL:          essentialTags.TTL,
-			IsProtected:  essentialTags.IsProtected,
+			CloudProviderResource: common.CloudProviderResource{
+				Identifier:   *stack.StackName,
+				Description:  "Cloud Formation Stack: " + *stack.StackName,
+				CreationDate: *stack.CreationTime,
+				TTL:          essentialTags.TTL,
+				Tag:          essentialTags.Tag,
+				IsProtected:  essentialTags.IsProtected,
+			},
 		})
 
 	}
@@ -62,11 +62,11 @@ func listTaggedStacks(svc cloudformation.CloudFormation, tagName string) ([]Clou
 func deleteStack(svc cloudformation.CloudFormation, stack CloudformationStack) error {
 
 	log.Infof("Deleting CloudFormation Stack %s in %s, expired after %d seconds",
-				stack.StackName, *svc.Config.Region, stack.TTL)
+		stack.Identifier, *svc.Config.Region, stack.TTL)
 
 	_, err := svc.DeleteStack(&cloudformation.DeleteStackInput{
-				StackName: &stack.StackName,
-		},
+		StackName: &stack.Identifier,
+	},
 	)
 	if err != nil {
 		return err
@@ -75,8 +75,8 @@ func deleteStack(svc cloudformation.CloudFormation, stack CloudformationStack) e
 	return nil
 }
 
-func getExpiredStacks(ECsession *cloudformation.CloudFormation, tagName string) ([]CloudformationStack, string) {
-	stacks, err := listTaggedStacks(*ECsession, tagName)
+func getExpiredStacks(ECsession *cloudformation.CloudFormation, options *AwsOptions) ([]CloudformationStack, string) {
+	stacks, err := listTaggedStacks(*ECsession, options.TagName)
 	region := *ECsession.Config.Region
 	if err != nil {
 		log.Errorf("can't list CloudFormation Stacks in region %s: %s", region, err.Error())
@@ -84,7 +84,7 @@ func getExpiredStacks(ECsession *cloudformation.CloudFormation, tagName string) 
 
 	var expiredStacks []CloudformationStack
 	for _, stack := range stacks {
-		if common.CheckIfExpired(stack.CreateTime, stack.TTL, "cloudformation: "+stack.StackName) && !stack.IsProtected {
+		if stack.IsResourceExpired(options.TagValue) {
 			expiredStacks = append(expiredStacks, stack)
 		}
 	}
@@ -93,7 +93,7 @@ func getExpiredStacks(ECsession *cloudformation.CloudFormation, tagName string) 
 }
 
 func DeleteExpiredStacks(sessions AWSSessions, options AwsOptions) {
-	expiredStacks, region := getExpiredStacks(sessions.CloudFormation, options.TagName)
+	expiredStacks, region := getExpiredStacks(sessions.CloudFormation, &options)
 
 	count, start := common.ElemToDeleteFormattedInfos("expired CloudFormation Stacks", len(expiredStacks), region)
 
@@ -108,7 +108,7 @@ func DeleteExpiredStacks(sessions AWSSessions, options AwsOptions) {
 	for _, stack := range expiredStacks {
 		deletionErr := deleteStack(*sessions.CloudFormation, stack)
 		if deletionErr != nil {
-			log.Errorf("Deletion CloudFormation Stack error %s/%s: %s", stack.StackName, region, deletionErr.Error())
+			log.Errorf("Deletion CloudFormation Stack error %s/%s: %s", stack.Identifier, region, deletionErr.Error())
 		}
 	}
 }

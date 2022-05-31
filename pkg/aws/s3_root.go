@@ -2,23 +2,16 @@ package aws
 
 import (
 	"fmt"
-	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	log "github.com/sirupsen/logrus"
 	"strings"
-	"time"
+
+	"github.com/Qovery/pleco/pkg/common"
 )
 
-type s3Bucket struct {
-	Name        string
-	CreateTime  time.Time
-	TTL         int64
-	IsProtected bool
-}
-
-func listTaggedBuckets(s3Session s3.S3, tagName string) ([]s3Bucket, error) {
-	var taggedS3Buckets []s3Bucket
+func listTaggedBuckets(s3Session s3.S3, tagName string) ([]common.CloudProviderResource, error) {
+	var taggedS3Buckets []common.CloudProviderResource
 	currentRegion := s3Session.Config.Region
 
 	result, bucketErr := s3Session.ListBuckets(&s3.ListBucketsInput{})
@@ -57,11 +50,13 @@ func listTaggedBuckets(s3Session s3.S3, tagName string) ([]s3Bucket, error) {
 
 		essentialTags := common.GetEssentialTags(bucketTags.TagSet, tagName)
 
-		taggedS3Buckets = append(taggedS3Buckets, s3Bucket{
-			Name:        *bucket.Name,
-			CreateTime:  essentialTags.CreationDate,
-			TTL:         essentialTags.TTL,
-			IsProtected: essentialTags.IsProtected,
+		taggedS3Buckets = append(taggedS3Buckets, common.CloudProviderResource{
+			Identifier:   *bucket.Name,
+			Description:  "S3 bucket: " + *bucket.Name,
+			CreationDate: essentialTags.CreationDate,
+			TTL:          essentialTags.TTL,
+			Tag:          essentialTags.Tag,
+			IsProtected:  essentialTags.IsProtected,
 		})
 	}
 
@@ -212,9 +207,9 @@ func DeleteExpiredBuckets(sessions AWSSessions, options AwsOptions) {
 		log.Errorf("can't list S3 buckets: %s\n", err)
 		return
 	}
-	var expiredBuckets []s3Bucket
+	var expiredBuckets []common.CloudProviderResource
 	for _, bucket := range buckets {
-		if common.CheckIfExpired(bucket.CreateTime, bucket.TTL, "S3 bucket: "+bucket.Name) && !bucket.IsProtected {
+		if bucket.IsResourceExpired(options.TagValue) {
 			expiredBuckets = append(expiredBuckets, bucket)
 		}
 	}
@@ -236,10 +231,10 @@ func DeleteExpiredBuckets(sessions AWSSessions, options AwsOptions) {
 	log.Debug("Starting expired S3 buckets deletion.")
 
 	for _, bucket := range expiredBuckets {
-		deletionErr := deleteS3Buckets(*sessions.S3, bucket.Name)
+		deletionErr := deleteS3Buckets(*sessions.S3, bucket.Identifier)
 		if deletionErr != nil {
 			log.Errorf("Deletion S3 Bucket %s/%s error: %s",
-				bucket.Name, *region, err)
+				bucket.Identifier, *region, err)
 		}
 	}
 }

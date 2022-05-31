@@ -2,22 +2,20 @@ package do
 
 import (
 	"context"
-	"github.com/Qovery/pleco/pkg/common"
 	"github.com/digitalocean/godo"
 	log "github.com/sirupsen/logrus"
 	"time"
+
+	"github.com/Qovery/pleco/pkg/common"
 )
 
 type DOCluster struct {
-	ID           string
-	Name         string
-	CreationDate time.Time
-	TTL          int64
-	IsProtected  bool
+	common.CloudProviderResource
+	Name string
 }
 
 func DeleteExpiredClusters(sessions DOSessions, options DOOptions) {
-	expiredClusters, region := getExpiredClusters(sessions.Client, options.TagName, options.Region)
+	expiredClusters, region := getExpiredClusters(sessions.Client, &options)
 
 	count, start := common.ElemToDeleteFormattedInfos("expired cluster", len(expiredClusters), region)
 
@@ -48,32 +46,36 @@ func listClusters(client *godo.Client, tagName string, region string) []DOCluste
 		creationDate, _ := time.Parse(time.RFC3339, cluster.CreatedAt.Format(time.RFC3339))
 
 		clusters = append(clusters, DOCluster{
-			ID:           cluster.ID,
-			Name:         cluster.Name,
-			CreationDate: creationDate,
-			TTL:          essentialTags.TTL,
-			IsProtected:  essentialTags.IsProtected,
+			CloudProviderResource: common.CloudProviderResource{
+				Identifier:   cluster.ID,
+				Description:  "Cluster: " + cluster.Name,
+				CreationDate: creationDate,
+				TTL:          essentialTags.TTL,
+				Tag:          essentialTags.Tag,
+				IsProtected:  essentialTags.IsProtected,
+			},
+			Name: cluster.Name,
 		})
 	}
 
 	return clusters
 }
 
-func getExpiredClusters(client *godo.Client, tagName string, region string) ([]DOCluster, string) {
-	clusters := listClusters(client, tagName, region)
+func getExpiredClusters(client *godo.Client, options *DOOptions) ([]DOCluster, string) {
+	clusters := listClusters(client, options.TagName, options.Region)
 
 	expiredClusters := []DOCluster{}
 	for _, cluster := range clusters {
-		if common.CheckIfExpired(cluster.CreationDate, cluster.TTL, "cluster"+cluster.Name) && !cluster.IsProtected {
+		if cluster.IsResourceExpired(options.TagValue) {
 			expiredClusters = append(expiredClusters, cluster)
 		}
 	}
 
-	return expiredClusters, region
+	return expiredClusters, options.Region
 }
 
 func deleteCluster(client *godo.Client, cluster DOCluster) {
-	_, err := client.Kubernetes.Delete(context.TODO(), cluster.ID)
+	_, err := client.Kubernetes.Delete(context.TODO(), cluster.Identifier)
 
 	if err != nil {
 		log.Errorf("Can't delete cluster %s: %s", cluster.Name, err.Error())

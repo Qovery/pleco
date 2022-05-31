@@ -1,12 +1,13 @@
 package aws
 
 import (
-	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	log "github.com/sirupsen/logrus"
 	"sync"
 	"time"
+
+	"github.com/Qovery/pleco/pkg/common"
 )
 
 type SecurityGroup struct {
@@ -40,7 +41,7 @@ func SetSecurityGroupsIdsByVpcId(ec2Session *ec2.EC2, vpc *VpcInfo, waitGroup *s
 	defer waitGroup.Done()
 	var securityGroupsStruct []SecurityGroup
 
-	securityGroups := getSecurityGroupsByVpcId(ec2Session, *vpc.VpcId)
+	securityGroups := getSecurityGroupsByVpcId(ec2Session, vpc.Identifier)
 
 	for _, securityGroup := range securityGroups {
 		if *securityGroup.GroupName != "default" {

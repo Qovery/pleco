@@ -1,15 +1,17 @@
 package pkg
 
 import (
+	"strings"
+	"sync"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+
 	"github.com/Qovery/pleco/pkg/aws"
 	"github.com/Qovery/pleco/pkg/common"
 	"github.com/Qovery/pleco/pkg/do"
 	"github.com/Qovery/pleco/pkg/k8s"
 	"github.com/Qovery/pleco/pkg/scaleway"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-	"strings"
-	"sync"
 )
 
 func StartDaemon(cloudProvider string, disableDryRun bool, interval int64, cmd *cobra.Command) {
@@ -33,6 +35,24 @@ func StartDaemon(cloudProvider string, disableDryRun bool, interval int64, cmd *
 	wg.Wait()
 }
 
+func StartDestroy(cloudProvider string, disableDryRun bool, cmd *cobra.Command) {
+	var wg sync.WaitGroup
+	dryRun := true
+	if disableDryRun {
+		dryRun = false
+		log.Warn("Dry run mode disabled")
+	} else {
+		log.Info("Dry run mode enabled")
+	}
+	log.Infof("Cloud provider: %s", strings.ToUpper(cloudProvider))
+
+	common.CheckEnvVars(cloudProvider, cmd)
+
+	run(cloudProvider, dryRun, 0, cmd, &wg)
+
+	wg.Wait()
+}
+
 func run(cloudProvider string, dryRun bool, interval int64, cmd *cobra.Command, wg *sync.WaitGroup) {
 	switch cloudProvider {
 	case "aws":
@@ -48,9 +68,13 @@ func run(cloudProvider string, dryRun bool, interval int64, cmd *cobra.Command, 
 
 func startAWS(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGroup) {
 	regions, _ := cmd.Flags().GetStringSlice("aws-regions")
+	tagValue := getCmdString(cmd, "tag-value")
+
 	awsOptions := aws.AwsOptions{
 		DryRun:               dryRun,
 		TagName:              getCmdString(cmd, "tag-name"),
+		TagValue:             tagValue,
+		IsDestroyingCommand:  strings.TrimSpace(tagValue) != "",
 		EnableRDS:            getCmdBool(cmd, "enable-rds"),
 		EnableDocumentDB:     getCmdBool(cmd, "enable-documentdb"),
 		EnableElastiCache:    getCmdBool(cmd, "enable-elasticache"),
@@ -75,16 +99,20 @@ func startAWS(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGrou
 
 func startScaleway(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGroup) {
 	zones, _ := cmd.Flags().GetStringSlice("scw-zones")
+	tagValue := getCmdString(cmd, "tag-value")
+
 	scalewayOptions := scaleway.ScalewayOptions{
-		TagName:       getCmdString(cmd, "tag-name"),
-		DryRun:        dryRun,
-		EnableCluster: getCmdBool(cmd, "enable-cluster"),
-		EnableDB:      getCmdBool(cmd, "enable-db"),
-		EnableCR:      getCmdBool(cmd, "enable-cr"),
-		EnableBucket:  getCmdBool(cmd, "enable-s3"),
-		EnableLB:      getCmdBool(cmd, "enable-lb"),
-		EnableVolume:  getCmdBool(cmd, "enable-volume"),
-		EnableSG:      getCmdBool(cmd, "enable-sg"),
+		TagName:             getCmdString(cmd, "tag-name"),
+		TagValue:            tagValue,
+		IsDestroyingCommand: strings.TrimSpace(tagValue) != "",
+		DryRun:              dryRun,
+		EnableCluster:       getCmdBool(cmd, "enable-cluster"),
+		EnableDB:            getCmdBool(cmd, "enable-db"),
+		EnableCR:            getCmdBool(cmd, "enable-cr"),
+		EnableBucket:        getCmdBool(cmd, "enable-s3"),
+		EnableLB:            getCmdBool(cmd, "enable-lb"),
+		EnableVolume:        getCmdBool(cmd, "enable-volume"),
+		EnableSG:            getCmdBool(cmd, "enable-sg"),
 	}
 	scaleway.RunPlecoScaleway(zones, interval, wg, scalewayOptions)
 	wg.Done()
@@ -92,16 +120,20 @@ func startScaleway(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.Wai
 
 func startDO(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGroup) {
 	regions, _ := cmd.Flags().GetStringSlice("do-regions")
+	tagValue := getCmdString(cmd, "tag-value")
+
 	DOOptions := do.DOOptions{
-		TagName:        getCmdString(cmd, "tag-name"),
-		DryRun:         dryRun,
-		EnableCluster:  getCmdBool(cmd, "enable-cluster"),
-		EnableDB:       getCmdBool(cmd, "enable-db"),
-		EnableBucket:   getCmdBool(cmd, "enable-s3"),
-		EnableLB:       getCmdBool(cmd, "enable-lb"),
-		EnableVolume:   getCmdBool(cmd, "enable-volume"),
-		EnableFirewall: getCmdBool(cmd, "enable-firewall"),
-		EnableVPC:      getCmdBool(cmd, "enable-vpc"),
+		TagName:             getCmdString(cmd, "tag-name"),
+		TagValue:            tagValue,
+		IsDestroyingCommand: strings.TrimSpace(tagValue) != "",
+		DryRun:              dryRun,
+		EnableCluster:       getCmdBool(cmd, "enable-cluster"),
+		EnableDB:            getCmdBool(cmd, "enable-db"),
+		EnableBucket:        getCmdBool(cmd, "enable-s3"),
+		EnableLB:            getCmdBool(cmd, "enable-lb"),
+		EnableVolume:        getCmdBool(cmd, "enable-volume"),
+		EnableFirewall:      getCmdBool(cmd, "enable-firewall"),
+		EnableVPC:           getCmdBool(cmd, "enable-vpc"),
 	}
 	do.RunPlecoDO(regions, interval, wg, DOOptions)
 	wg.Done()

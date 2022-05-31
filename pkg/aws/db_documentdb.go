@@ -1,57 +1,64 @@
 package aws
 
 import (
-	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/rds"
 	log "github.com/sirupsen/logrus"
 	"time"
+
+	"github.com/Qovery/pleco/pkg/common"
 )
 
 type documentDBCluster struct {
-	DBClusterIdentifier string
-	DBClusterMembers    []string
-	ClusterCreateTime   time.Time
-	SubnetGroupName     string
-	Status              string
-	TTL                 int64
-	IsProtected         bool
+	common.CloudProviderResource
+	DBClusterMembers []string
+	SubnetGroupName  string
+	Status           string
 }
 
-func getDBClusters(svc rds.RDS) []*rds.DBCluster {
+func getDBClusters(svc rds.RDS, tagName string) []documentDBCluster {
 	result, err := svc.DescribeDBClusters(&rds.DescribeDBClustersInput{})
 	if err != nil {
 		log.Errorf("Can't get DB clusters in %s: %s", *svc.Config.Region, err.Error())
 		return nil
 	}
 
-	return result.DBClusters
-}
-
-func listExpiredDocumentDBClusters(svc rds.RDS, tagName string) []documentDBCluster {
-	dbClusters := getDBClusters(svc)
-
-	var expiredClusters []documentDBCluster
-
-	for _, cluster := range dbClusters {
-		var instances []string
+	var dbClusters []documentDBCluster
+	for _, cluster := range result.DBClusters {
+		var dbClusterMembers []string
 		for _, instance := range cluster.DBClusterMembers {
-			instances = append(instances, *instance.DBInstanceIdentifier)
+			dbClusterMembers = append(dbClusterMembers, *instance.DBInstanceIdentifier)
 		}
 
 		essentialTags := common.GetEssentialTags(cluster.TagList, tagName)
 		time, _ := time.Parse(time.RFC3339, cluster.ClusterCreateTime.Format(time.RFC3339))
 
-		if common.CheckIfExpired(time, essentialTags.TTL, "document Db: "+*cluster.DBClusterIdentifier) && !essentialTags.IsProtected {
-			expiredClusters = append(expiredClusters, documentDBCluster{
-				DBClusterIdentifier: *cluster.DBClusterIdentifier,
-				DBClusterMembers:    instances,
-				ClusterCreateTime:   time,
-				SubnetGroupName:     *cluster.DBSubnetGroup,
-				Status:              *cluster.Status,
-				TTL:                 essentialTags.TTL,
-				IsProtected:         essentialTags.IsProtected,
-			})
+		dbClusters = append(dbClusters, documentDBCluster{
+			CloudProviderResource: common.CloudProviderResource{
+				Identifier:   *cluster.DBClusterIdentifier,
+				Description:  "Document DB: " + *cluster.DBClusterIdentifier,
+				CreationDate: time,
+				TTL:          essentialTags.TTL,
+				Tag:          essentialTags.Tag,
+				IsProtected:  essentialTags.IsProtected,
+			},
+			DBClusterMembers: dbClusterMembers,
+			SubnetGroupName:  *cluster.DBSubnetGroup,
+			Status:           *cluster.Status,
+		})
+	}
+
+	return dbClusters
+}
+
+func listExpiredDocumentDBClusters(svc rds.RDS, options *AwsOptions) []documentDBCluster {
+	dbClusters := getDBClusters(svc, options.TagName)
+
+	var expiredClusters []documentDBCluster
+
+	for _, cluster := range dbClusters {
+		if cluster.IsResourceExpired(options.TagValue) {
+			expiredClusters = append(expiredClusters, cluster)
 		}
 	}
 
@@ -63,7 +70,7 @@ func deleteClusterInstances(svc rds.RDS, cluster documentDBCluster) {
 		rdsInstanceInfo, err := GetRDSInstanceInfos(svc, instance)
 		if err != nil {
 			log.Errorf("Can't access RDS instance %s information for DocumentDB cluster %s: %s",
-				instance, cluster.DBClusterIdentifier, err)
+				instance, cluster.Identifier, err)
 			continue
 		}
 
@@ -73,11 +80,11 @@ func deleteClusterInstances(svc rds.RDS, cluster documentDBCluster) {
 
 func deleteDocumentDBCluster(svc rds.RDS, cluster documentDBCluster, dryRun bool) error {
 	if cluster.Status == "deleting" {
-		log.Infof("DocumentDB cluster %s is already in deletion process, skipping...", cluster.DBClusterIdentifier)
+		log.Infof("DocumentDB cluster %s is already in deletion process, skipping...", cluster.Identifier)
 		return nil
 	} else {
 		log.Infof("Deleting DocumentDB cluster %s in %s, expired after %d seconds",
-			cluster.DBClusterIdentifier, *svc.Config.Region, cluster.TTL)
+			cluster.Identifier, *svc.Config.Region, cluster.TTL)
 	}
 
 	if dryRun {
@@ -89,7 +96,7 @@ func deleteDocumentDBCluster(svc rds.RDS, cluster documentDBCluster, dryRun bool
 	// delete cluster
 	_, err := svc.DeleteDBCluster(
 		&rds.DeleteDBClusterInput{
-			DBClusterIdentifier: aws.String(cluster.DBClusterIdentifier),
+			DBClusterIdentifier: aws.String(cluster.Identifier),
 			SkipFinalSnapshot:   aws.Bool(true),
 		},
 	)
@@ -102,7 +109,7 @@ func deleteDocumentDBCluster(svc rds.RDS, cluster documentDBCluster, dryRun bool
 
 func DeleteExpiredDocumentDBClusters(sessions AWSSessions, options AwsOptions) {
 	region := *sessions.RDS.Config.Region
-	expiredClusters := listExpiredDocumentDBClusters(*sessions.RDS, options.TagName)
+	expiredClusters := listExpiredDocumentDBClusters(*sessions.RDS, &options)
 
 	count, start := common.ElemToDeleteFormattedInfos("expired DocumentDB database", len(expiredClusters), region)
 
@@ -119,7 +126,7 @@ func DeleteExpiredDocumentDBClusters(sessions AWSSessions, options AwsOptions) {
 		deletionErr := deleteDocumentDBCluster(*sessions.RDS, cluster, options.DryRun)
 		if deletionErr != nil {
 			log.Errorf("Deletion DocumentDB cluster error %s in %s: %s",
-				cluster.DBClusterIdentifier, region, deletionErr.Error())
+				cluster.Identifier, region, deletionErr.Error())
 		}
 	}
 }
@@ -134,7 +141,7 @@ func listClusterSnapshots(svc rds.RDS) []*rds.DBClusterSnapshot {
 	return result.DBClusterSnapshots
 }
 
-func getExpiredClusterSnapshots(svc rds.RDS) []*rds.DBClusterSnapshot {
+func getExpiredClusterSnapshots(svc rds.RDS, options *AwsOptions) []*rds.DBClusterSnapshot {
 	dbs := listRDSDatabases(svc)
 	snaps := listClusterSnapshots(svc)
 
@@ -142,7 +149,8 @@ func getExpiredClusterSnapshots(svc rds.RDS) []*rds.DBClusterSnapshot {
 
 	if len(dbs) == 0 {
 		for _, snap := range snaps {
-			if snap.SnapshotCreateTime.Before(time.Now().UTC().Add(3 * time.Hour)) && common.CheckClusterSnapshot(snap) {
+			if common.CheckClusterSnapshot(snap) &&
+				(options.IsDestroyingCommand || snap.SnapshotCreateTime.Before(time.Now().UTC().Add(3*time.Hour)) && common.CheckClusterSnapshot(snap)) {
 				expiredSnaps = append(expiredSnaps, snap)
 			}
 		}
@@ -181,7 +189,7 @@ func deleteClusterSnapshot(svc rds.RDS, snapName string) {
 }
 
 func DeleteExpiredClusterSnapshots(sessions AWSSessions, options AwsOptions) {
-	expiredSnapshots := getExpiredClusterSnapshots(*sessions.RDS)
+	expiredSnapshots := getExpiredClusterSnapshots(*sessions.RDS, &options)
 	region := *sessions.RDS.Config.Region
 
 	count, start := common.ElemToDeleteFormattedInfos("expired RDS cluster snapshot", len(expiredSnapshots), region)

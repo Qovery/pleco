@@ -2,15 +2,16 @@ package do
 
 import (
 	"fmt"
-	"github.com/Qovery/pleco/pkg/common"
 	"github.com/digitalocean/godo"
 	"github.com/minio/minio-go/v7"
 	log "github.com/sirupsen/logrus"
 	"strings"
+
+	"github.com/Qovery/pleco/pkg/common"
 )
 
 func DeleteExpiredBuckets(sessions DOSessions, options DOOptions) {
-	expiredBuckets := emptyBuckets(sessions.Client, sessions.Bucket, options.TagName, options.Region, options.DryRun)
+	expiredBuckets := emptyBuckets(sessions.Client, sessions.Bucket, &options)
 
 	count, start := common.ElemToDeleteFormattedInfos("expired bucket", len(expiredBuckets), options.Region)
 
@@ -27,11 +28,11 @@ func DeleteExpiredBuckets(sessions DOSessions, options DOOptions) {
 	}
 }
 
-func emptyBuckets(doApi *godo.Client, bucketApi *minio.Client, tagName string, region string, dryRun bool) []common.MinioBucket {
-	buckets := getBucketsToEmpty(doApi, bucketApi, tagName, region)
+func emptyBuckets(doApi *godo.Client, bucketApi *minio.Client, options *DOOptions) []common.MinioBucket {
+	buckets := getBucketsToEmpty(doApi, bucketApi, options)
 
 	for _, bucket := range buckets {
-		if !dryRun {
+		if !options.DryRun {
 			common.EmptyBucket(bucketApi, bucket.Name, bucket.ObjectsInfos)
 		}
 	}
@@ -39,9 +40,9 @@ func emptyBuckets(doApi *godo.Client, bucketApi *minio.Client, tagName string, r
 	return buckets
 }
 
-func getBucketsToEmpty(doApi *godo.Client, bucketApi *minio.Client, tagName string, region string) []common.MinioBucket {
-	buckets := common.GetUnusedBuckets(bucketApi, tagName, region)
-	clusters := listClusters(doApi, tagName, region)
+func getBucketsToEmpty(doApi *godo.Client, bucketApi *minio.Client, options *DOOptions) []common.MinioBucket {
+	buckets := common.GetUnusedBuckets(bucketApi, options.TagName, options.Region, options.IsDestroyingCommand)
+	clusters := listClusters(doApi, options.TagName, options.Region)
 	_, _ = buckets, clusters
 
 	checkingBuckets := make(map[string]common.MinioBucket)
@@ -59,6 +60,7 @@ func getBucketsToEmpty(doApi *godo.Client, bucketApi *minio.Client, tagName stri
 
 	emptyBuckets := []common.MinioBucket{}
 	for _, bucket := range checkingBuckets {
+		// do we need to force delete every bucket on detroy command ?
 		if !strings.Contains(bucket.Name, "keep-me") {
 			emptyBuckets = append(emptyBuckets, bucket)
 		}
