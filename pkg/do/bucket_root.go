@@ -33,7 +33,7 @@ func emptyBuckets(doApi *godo.Client, bucketApi *minio.Client, options *DOOption
 
 	for _, bucket := range buckets {
 		if !options.DryRun {
-			common.EmptyBucket(bucketApi, bucket.Name, bucket.ObjectsInfos)
+			common.EmptyBucket(bucketApi, bucket.Identifier, bucket.ObjectsInfos)
 		}
 	}
 
@@ -47,21 +47,25 @@ func getBucketsToEmpty(doApi *godo.Client, bucketApi *minio.Client, options *DOO
 
 	checkingBuckets := make(map[string]common.MinioBucket)
 	for _, bucket := range buckets {
-		checkingBuckets[bucket.Name] = bucket
+		checkingBuckets[bucket.Identifier] = bucket
 	}
 
 	for _, cluster := range clusters {
 		splitedName := strings.Split(cluster.Name, "-")
 		configName := fmt.Sprintf("%s-kubeconfigs-%s", splitedName[0], splitedName[1])
 		logsName := fmt.Sprintf("%s-logs-%s", splitedName[0], splitedName[1])
-		checkingBuckets[configName] = common.MinioBucket{Name: "keep-me"}
-		checkingBuckets[logsName] = common.MinioBucket{Name: "keep-me"}
+		checkingBuckets[configName] = common.MinioBucket{CloudProviderResource: common.CloudProviderResource{
+			Identifier: "keep-me",
+		}}
+		checkingBuckets[logsName] = common.MinioBucket{CloudProviderResource: common.CloudProviderResource{
+			Identifier: "keep-me",
+		}}
 	}
 
 	emptyBuckets := []common.MinioBucket{}
 	for _, bucket := range checkingBuckets {
 		// do we need to force delete every bucket on detroy command ?
-		if !strings.Contains(bucket.Name, "keep-me") {
+		if !strings.Contains(bucket.Identifier, "keep-me") {
 			emptyBuckets = append(emptyBuckets, bucket)
 		}
 	}

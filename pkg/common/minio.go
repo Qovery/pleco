@@ -9,13 +9,11 @@ import (
 
 type MinioBucket struct {
 	CloudProviderResource
-	Name         string
 	ObjectsInfos []minio.ObjectInfo
 }
 
 func listBuckets(bucketApi *minio.Client, tagName string, region string, withTags bool) []MinioBucket {
-	ctx := context.Background()
-	buckets, err := bucketApi.ListBuckets(ctx)
+	buckets, err := bucketApi.ListBuckets(context.TODO())
 	if err != nil {
 		log.Errorf("Can't list bucket for region %s: %s", region, err.Error())
 		return []MinioBucket{}
@@ -28,7 +26,6 @@ func listBuckets(bucketApi *minio.Client, tagName string, region string, withTag
 
 	scwBuckets := []MinioBucket{}
 	for _, bucket := range buckets[:bucketLimit] {
-		objectsInfos := ListBucketObjects(bucketApi, ctx, bucket.Name)
 		essentialTags := EssentialTags{}
 		if withTags {
 			bucketTags := listBucketTags(bucketApi, context.TODO(), bucket.Name)
@@ -44,7 +41,7 @@ func listBuckets(bucketApi *minio.Client, tagName string, region string, withTag
 				Tag:          essentialTags.Tag,
 				IsProtected:  false,
 			},
-			ObjectsInfos: objectsInfos,
+			ObjectsInfos: nil,
 		})
 	}
 
@@ -67,7 +64,7 @@ func listBucketTags(bucketApi *minio.Client, ctx context.Context, bucketName str
 }
 
 func ListBucketObjects(bucketApi *minio.Client, ctx context.Context, bucketName string) []minio.ObjectInfo {
-	objects := bucketApi.ListObjects(ctx, bucketName, minio.ListObjectsOptions{Recursive: false})
+	objects := bucketApi.ListObjects(ctx, bucketName, minio.ListObjectsOptions{Recursive: true})
 	objectsInfos := []minio.ObjectInfo{}
 	for object := range objects {
 		objectsInfos = append(objectsInfos, object)
@@ -82,6 +79,8 @@ func GetExpiredBuckets(bucketApi *minio.Client, tagName string, region string, t
 	expiredBuckets := []MinioBucket{}
 	for _, bucket := range buckets {
 		if bucket.IsResourceExpired(tagValue) {
+			objectsInfos := ListBucketObjects(bucketApi, context.TODO(), bucket.Identifier)
+			bucket.ObjectsInfos = objectsInfos
 			expiredBuckets = append(expiredBuckets, bucket)
 		}
 	}
