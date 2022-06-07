@@ -50,7 +50,7 @@ jobs:
       - name: Build
         run: task build
 
-  # Run tests in a matrix with Terraform CLI versions
+  # Run tests
   test:
     name: Run tests
     needs:
@@ -71,6 +71,6 @@ jobs:
       - name: Check out source code
         uses: actions/checkout@v3
 
-      - name: Run acceptance tests
+      - name: Run tests
         timeout-minutes: 120
         run: task test

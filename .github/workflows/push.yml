@@ -19,7 +19,7 @@ jobs:
           go-version: 1.18
       -
         name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v2
+        uses: golangci/golangci-lint-action@v3
         with:
           args: "--timeout 5m0s"
       -
