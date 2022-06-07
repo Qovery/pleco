@@ -219,25 +219,6 @@ func IsAssociatedToLivingCluster(tagsInput interface{}, svc *eks.EKS) bool {
 	return false
 }
 
-func getSlicedArray(arrayToSlice []*string, sliceRange int) [][]*string {
-	var slicedArray [][]*string
-	slicesCount := len(arrayToSlice)/sliceRange + 1
-
-	if len(arrayToSlice) <= sliceRange {
-		slicedArray = append(slicedArray, arrayToSlice)
-	} else {
-		for i := 0; i < slicesCount; i++ {
-			if (i+1)*sliceRange > len(arrayToSlice) {
-				slicedArray = append(slicedArray, arrayToSlice[i*sliceRange:len(arrayToSlice)-1])
-			} else {
-				slicedArray = append(slicedArray, arrayToSlice[i*sliceRange:(i+1)*sliceRange])
-			}
-		}
-	}
-
-	return slicedArray
-}
-
 func stringDateToTimeDate(date string) time.Time {
 	year, _ := strconv.ParseInt(date[0:4], 10, 32)
 	month, _ := strconv.ParseInt(date[5:7], 10, 32)

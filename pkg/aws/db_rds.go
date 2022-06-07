@@ -233,7 +233,7 @@ func getExpiredRDSSubnetGroups(svc rds.RDS, options *AwsOptions) []RDSSubnetGrou
 			ID: *SG.DBSubnetGroupArn,
 		}
 		if rDSSubnetGroup.IsResourceExpired(options.TagValue) {
-			expiredRDSSubnetGroups = append(expiredRDSSubnetGroups)
+			expiredRDSSubnetGroups = append(expiredRDSSubnetGroups, rDSSubnetGroup)
 		}
 	}
 

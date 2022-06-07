@@ -2,7 +2,6 @@ package aws
 
 import (
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sfn"
 	log "github.com/sirupsen/logrus"
 
@@ -12,10 +11,6 @@ import (
 type stateMachine struct {
 	common.CloudProviderResource
 	machineName string
-}
-
-func stateMachineSession(sess session.Session, region string) *sfn.SFN {
-	return sfn.New(&sess, &aws.Config{Region: aws.String(region)})
 }
 
 func listTaggedStateMachines(svc sfn.SFN, tagName string) ([]stateMachine, error) {
