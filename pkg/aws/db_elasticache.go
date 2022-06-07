@@ -1,12 +1,13 @@
 package aws
 
 import (
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	log "github.com/sirupsen/logrus"
-	"time"
 
 	"github.com/Qovery/pleco/pkg/common"
 )

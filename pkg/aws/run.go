@@ -1,6 +1,9 @@
 package aws
 
 import (
+	"sync"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
@@ -18,8 +21,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"sync"
-	"time"
 )
 
 type AwsOptions struct {

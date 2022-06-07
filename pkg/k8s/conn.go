@@ -2,10 +2,11 @@ package k8s
 
 import (
 	"fmt"
+	"os"
+
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"os"
 )
 
 func AuthenticateInCluster() (*kubernetes.Clientset, error) {

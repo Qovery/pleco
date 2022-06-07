@@ -1,0 +1,47 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  BINARY_FOLDER: bin
+  BINARY_NAME: pleco
+  GOLANGCI_LINT_VERSION: v1.46.2
+
+dotenv: ['.env']
+
+tasks:
+  build:
+    desc: Build pleco binary
+    cmds:
+      - go build -v -o {{.BINARY_FOLDER}}/{{.BINARY_NAME}}
+    sources:
+      - "**/*.go"
+      - go.mod
+      - go.sum
+    generates:
+      - '{{.BINARY_FOLDER}}/{{.BINARY_NAME}}'
+
+  test:
+    desc: Run acceptance tests
+    cmds:
+      - go test -v -cover ./... {{.CLI_ARGS}}
+
+  lint:
+    desc: Run linters
+    deps:
+      - install-golangci-lint
+    cmds:
+      - golangci-lint run ./...
+    sources:
+      - "**/*.go"
+      - go.mod
+      - go.sum
+      - .golangci.yml
+
+  install-golangci-lint:
+    desc: Install the golangci-lint tool
+    cmds:
+      - go install github.com/golangci/golangci-lint/cmd/golangci-lint@{{.GOLANGCI_LINT_VERSION}}
+    status:
+      - which golangci-lint
+      - golangci-lint version | grep {{.GOLANGCI_LINT_VERSION}}

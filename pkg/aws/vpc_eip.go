@@ -1,10 +1,11 @@
 package aws
 
 import (
+	"sync"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	log "github.com/sirupsen/logrus"
-	"sync"
 
 	"github.com/Qovery/pleco/pkg/common"
 )

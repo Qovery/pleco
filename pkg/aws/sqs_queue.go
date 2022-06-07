@@ -51,7 +51,7 @@ func listTaggedSqsQueues(svc sqs.SQS, tagName string) ([]sqsQueue, error) {
 		createdTimestamp, err := strconv.ParseInt(*attributes.Attributes["CreatedTimestamp"], 10, 64)
 
 		if err != nil {
-			log.Error("Failed to get queue createdTimestamp: %s", *queue)
+			log.Errorf("Failed to get queue createdTimestamp: %s", *queue)
 			continue
 		}
 

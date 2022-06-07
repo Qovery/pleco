@@ -1,9 +1,10 @@
 package scaleway
 
 import (
+	"time"
+
 	"github.com/scaleway/scaleway-sdk-go/api/k8s/v1"
 	log "github.com/sirupsen/logrus"
-	"time"
 
 	"github.com/Qovery/pleco/pkg/common"
 )

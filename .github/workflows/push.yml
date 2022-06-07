@@ -16,7 +16,7 @@ jobs:
         name: Set up Go
         uses: actions/setup-go@main
         with:
-          go-version: 1.17.x
+          go-version: 1.18
       -
         name: Run golangci-lint
         uses: golangci/golangci-lint-action@v2

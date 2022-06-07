@@ -2,10 +2,11 @@ package do
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/digitalocean/godo"
 	"github.com/minio/minio-go/v7"
 	log "github.com/sirupsen/logrus"
-	"strings"
 
 	"github.com/Qovery/pleco/pkg/common"
 )

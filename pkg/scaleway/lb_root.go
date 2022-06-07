@@ -1,11 +1,12 @@
 package scaleway
 
 import (
+	"strings"
+
 	"github.com/scaleway/scaleway-sdk-go/api/k8s/v1"
 	"github.com/scaleway/scaleway-sdk-go/api/lb/v1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	log "github.com/sirupsen/logrus"
-	"strings"
 
 	"github.com/Qovery/pleco/pkg/common"
 )

@@ -2,14 +2,15 @@ package do
 
 import (
 	"fmt"
-	"github.com/digitalocean/godo"
-	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
-	"github.com/sirupsen/logrus"
 	"log"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/digitalocean/godo"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
+	"github.com/sirupsen/logrus"
 )
 
 func CreateSession() *godo.Client {

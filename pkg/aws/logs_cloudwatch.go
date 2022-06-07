@@ -1,12 +1,14 @@
 package aws
 
 import (
+	"fmt"
+	"strings"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	log "github.com/sirupsen/logrus"
-	"strings"
-	"time"
 
 	"github.com/Qovery/pleco/pkg/common"
 )
@@ -124,7 +126,7 @@ func DeleteExpiredLogs(sessions AWSSessions, options AwsOptions) {
 func addTtlToLogGroup(svc *cloudwatchlogs.CloudWatchLogs, logGroupName string, ttl int64) (string, error) {
 	input := &cloudwatchlogs.TagLogGroupInput{
 		LogGroupName: aws.String(logGroupName),
-		Tags:         aws.StringMap(map[string]string{"ttl": string(ttl)}),
+		Tags:         aws.StringMap(map[string]string{"ttl": fmt.Sprintf("%d", ttl)}),
 	}
 
 	result, err := svc.TagLogGroup(input)

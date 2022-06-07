@@ -2,6 +2,10 @@ package common
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/eks"
@@ -13,9 +17,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sfn"
 	log "github.com/sirupsen/logrus"
-	"strconv"
-	"strings"
-	"time"
 )
 
 type Tag struct {

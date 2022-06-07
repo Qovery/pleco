@@ -2,9 +2,10 @@ package do
 
 import (
 	"context"
+	"time"
+
 	"github.com/digitalocean/godo"
 	log "github.com/sirupsen/logrus"
-	"time"
 
 	"github.com/Qovery/pleco/pkg/common"
 )

@@ -1,10 +1,11 @@
 package aws
 
 import (
+	"sync"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	log "github.com/sirupsen/logrus"
-	"sync"
 
 	"github.com/Qovery/pleco/pkg/common"
 )
@@ -158,7 +159,7 @@ func deleteVPC(sessions AWSSessions, VpcList []VpcInfo, dryRun bool) error {
 			},
 		)
 		if deleteErr != nil {
-			log.Errorf("Can't delete VPC %s in %s yet: %s", vpc.Identifier, region, deleteErr.Error())
+			log.Errorf("Can't delete VPC %s in %s yet: %s", vpc.Identifier, *region, deleteErr.Error())
 		}
 	}
 
