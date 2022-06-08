@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/aws/aws-sdk-go v1.42.23
-	github.com/digitalocean/godo v1.69.1
+	github.com/digitalocean/godo v1.80.0
 	github.com/minio/minio-go/v7 v7.0.27
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.9
@@ -26,7 +26,7 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.8 // indirect
-	github.com/google/go-querystring v1.0.0 // indirect
+	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/gofuzz v1.1.0 // indirect
 	github.com/google/uuid v1.1.2 // indirect
 	github.com/googleapis/gnostic v0.5.5 // indirect
