@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/aws/aws-sdk-go v1.42.23
 	github.com/digitalocean/godo v1.69.1
-	github.com/minio/minio-go/v7 v7.0.14
+	github.com/minio/minio-go/v7 v7.0.27
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.9
 	github.com/sirupsen/logrus v1.8.1
@@ -35,6 +35,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
+	github.com/klauspost/compress v1.13.5 // indirect
 	github.com/klauspost/cpuid v1.3.1 // indirect
 	github.com/magiconair/properties v1.8.6 // indirect
 	github.com/minio/md5-simd v1.1.0 // indirect
