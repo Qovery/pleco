@@ -1,11 +1,12 @@
 package k8s
 
 import (
+	"sync"
+	"time"
+
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/kubernetes"
-	"sync"
-	"time"
 )
 
 func RunPlecoKubernetes(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGroup) {

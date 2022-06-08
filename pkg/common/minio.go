@@ -2,9 +2,10 @@ package common
 
 import (
 	"context"
+	"time"
+
 	"github.com/minio/minio-go/v7"
 	log "github.com/sirupsen/logrus"
-	"time"
 )
 
 type MinioBucket struct {

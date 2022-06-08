@@ -1,11 +1,12 @@
 package aws
 
 import (
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/rds"
 	log "github.com/sirupsen/logrus"
-	"time"
 
 	"github.com/Qovery/pleco/pkg/common"
 )
@@ -232,7 +233,7 @@ func getExpiredRDSSubnetGroups(svc rds.RDS, options *AwsOptions) []RDSSubnetGrou
 			ID: *SG.DBSubnetGroupArn,
 		}
 		if rDSSubnetGroup.IsResourceExpired(options.TagValue) {
-			expiredRDSSubnetGroups = append(expiredRDSSubnetGroups)
+			expiredRDSSubnetGroups = append(expiredRDSSubnetGroups, rDSSubnetGroup)
 		}
 	}
 

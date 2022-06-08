@@ -2,6 +2,10 @@ package common
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/eks"
@@ -13,9 +17,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sfn"
 	log "github.com/sirupsen/logrus"
-	"strconv"
-	"strings"
-	"time"
 )
 
 type Tag struct {
@@ -216,25 +217,6 @@ func IsAssociatedToLivingCluster(tagsInput interface{}, svc *eks.EKS) bool {
 	}
 
 	return false
-}
-
-func getSlicedArray(arrayToSlice []*string, sliceRange int) [][]*string {
-	var slicedArray [][]*string
-	slicesCount := len(arrayToSlice)/sliceRange + 1
-
-	if len(arrayToSlice) <= sliceRange {
-		slicedArray = append(slicedArray, arrayToSlice)
-	} else {
-		for i := 0; i < slicesCount; i++ {
-			if (i+1)*sliceRange > len(arrayToSlice) {
-				slicedArray = append(slicedArray, arrayToSlice[i*sliceRange:len(arrayToSlice)-1])
-			} else {
-				slicedArray = append(slicedArray, arrayToSlice[i*sliceRange:(i+1)*sliceRange])
-			}
-		}
-	}
-
-	return slicedArray
 }
 
 func stringDateToTimeDate(date string) time.Time {

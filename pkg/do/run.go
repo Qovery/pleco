@@ -1,11 +1,12 @@
 package do
 
 import (
+	"sync"
+	"time"
+
 	"github.com/digitalocean/godo"
 	"github.com/minio/minio-go/v7"
 	"github.com/sirupsen/logrus"
-	"sync"
-	"time"
 )
 
 type DOOptions struct {

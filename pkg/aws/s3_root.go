@@ -2,10 +2,11 @@ package aws
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	log "github.com/sirupsen/logrus"
-	"strings"
 
 	"github.com/Qovery/pleco/pkg/common"
 )

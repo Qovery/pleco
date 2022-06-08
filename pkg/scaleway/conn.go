@@ -2,14 +2,15 @@ package scaleway
 
 import (
 	"fmt"
-	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
-	"github.com/scaleway/scaleway-sdk-go/scw"
-	"github.com/sirupsen/logrus"
 	"log"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
+	"github.com/scaleway/scaleway-sdk-go/scw"
+	"github.com/sirupsen/logrus"
 )
 
 func CreateSessionWithZone(zone scw.Zone) *scw.Client {

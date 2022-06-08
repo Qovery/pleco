@@ -1,10 +1,11 @@
 package aws
 
 import (
+	"strconv"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
 	log "github.com/sirupsen/logrus"
-	"strconv"
 )
 
 func getGroups(iamSession *iam.IAM) []*iam.Group {

@@ -1,6 +1,9 @@
 package scaleway
 
 import (
+	"sync"
+	"time"
+
 	"github.com/minio/minio-go/v7"
 	"github.com/scaleway/scaleway-sdk-go/api/instance/v1"
 	"github.com/scaleway/scaleway-sdk-go/api/k8s/v1"
@@ -9,8 +12,6 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/api/registry/v1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"github.com/sirupsen/logrus"
-	"sync"
-	"time"
 )
 
 type ScalewayOptions struct {

@@ -1,0 +1,76 @@
+# Terraform Provider testing workflow.
+name: Tests
+
+# This GitHub action runs your tests for each pull request and push.
+# Optionally, you can turn it on using a schedule for regular testing.
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - 'README.md'
+      - '.gitignore'
+  pull_request:
+      # The branches below must be a subset of the branches above
+      branches: [ main ]
+      paths-ignore:
+        - 'README.md'
+        - '.gitignore'
+
+# Testing only needs permissions to read the repository contents.
+permissions:
+  contents: read
+
+# Default values to simplify job configurations below.
+env:
+  # Go language version to use for building. This value should also be updated
+  # in the release workflow if changed.
+  GO_VERSION: 1.18
+  TASK_VERSION: 3.x
+
+jobs:
+  # Ensure project builds before running tests
+  build:
+    name: Build Pleco
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Set up Task
+        uses: arduino/setup-task@v1
+        with:
+          version: ${{ env.TASK_VERSION }}
+
+      - name: Check out source code
+        uses: actions/checkout@v3
+
+      - name: Build
+        run: task build
+
+  # Run tests
+  test:
+    name: Run tests
+    needs:
+      - build
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Set up Task
+        uses: arduino/setup-task@v1
+        with:
+          version: ${{ env.TASK_VERSION }}
+
+      - name: Check out source code
+        uses: actions/checkout@v3
+
+      - name: Run tests
+        timeout-minutes: 120
+        run: task test
