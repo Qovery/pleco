@@ -55,7 +55,7 @@ func listSecurityGroups(instanceAPI *instance.API) ([]ScalewaySecurityGroup, str
 			ID:          sg.ID,
 			Name:        sg.Name,
 			UpdateDate:  updateDate,
-			IsDefault:   sg.ProjectDefault && sg.OrganizationDefault,
+			IsDefault:   sg.ProjectDefault && sg.OrganizationDefault, //nolint:staticcheck
 			IsAttached:  len(sg.Servers) > 0,
 			TTL:         0,
 			IsProtected: false,
