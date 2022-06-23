@@ -45,6 +45,7 @@ type AwsOptions struct {
 	EnableLambda         bool
 	EnableSFN            bool
 	EnableCloudFormation bool
+	EnableEC2Instance    bool
 }
 
 type AWSSessions struct {
@@ -193,6 +194,11 @@ func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options
 	if options.EnableCloudFormation {
 		sessions.CloudFormation = cloudformation.New(currentSession)
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredStacks)
+	}
+
+	if options.EnableEC2Instance {
+		sessions.EC2 = ec2.New(currentSession)
+		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredEC2Instances)
 	}
 
 	if options.IsDestroyingCommand {
