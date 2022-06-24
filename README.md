@@ -53,6 +53,7 @@ Check out our Blog announcement of Pleco: https://www.qovery.com/blog/announceme
   - [X] Lambda Functions
   - [X] SQS Queues
   - [X] Step Functions
+  - [X] EC2 instances
 - [X] SCALEWAY
   - [X] Kubernetes clusters
   - [X] Database instances
