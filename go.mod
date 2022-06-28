@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/aws/aws-sdk-go v1.44.43
 	github.com/digitalocean/godo v1.81.0
-	github.com/minio/minio-go/v7 v7.0.29
+	github.com/minio/minio-go/v7 v7.0.30
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.9
 	github.com/sirupsen/logrus v1.8.1
