@@ -5,6 +5,5 @@ import (
 )
 
 func main() {
-	println("Starting application.")
 	cmd.Execute()
 }
