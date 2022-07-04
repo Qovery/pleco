@@ -103,6 +103,9 @@ spec:
             {{ if or (eq .Values.awsFeatures.lambda true)}}
             - --enable-lambda
             {{ end }}
+            {{ if or (eq .Values.awsFeatures.ec2 true)}}
+            - --enable-ec2-instance
+            {{ end }}
             {{- end }}
 
 #            Scaleway features
