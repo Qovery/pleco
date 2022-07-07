@@ -14,7 +14,7 @@ import (
 	"github.com/Qovery/pleco/pkg/scaleway"
 )
 
-func StartDaemon(cloudProvider string, disableDryRun bool, interval int64, cmd *cobra.Command) {
+func StartDaemon(cloudProvider string, disableDryRun bool, interval int64, cmd *cobra.Command, disableTTLCheck bool) {
 	var wg sync.WaitGroup
 	dryRun := true
 	if disableDryRun {
@@ -22,6 +22,12 @@ func StartDaemon(cloudProvider string, disableDryRun bool, interval int64, cmd *
 		log.Warn("Dry run mode disabled")
 	} else {
 		log.Info("Dry run mode enabled")
+	}
+
+	if disableTTLCheck {
+		log.Warn("TTL check disabled")
+	} else {
+		log.Info("TTL check enabled")
 	}
 
 	log.Infof("Cloud provider: %s", strings.ToUpper(cloudProvider))

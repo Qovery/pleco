@@ -7,7 +7,7 @@ import (
 )
 
 func DeleteExpiredBuckets(sessions ScalewaySessions, options ScalewayOptions) {
-	expiredBuckets := common.GetExpiredBuckets(sessions.Bucket, options.TagName, options.Region.String(), options.TagValue)
+	expiredBuckets := common.GetExpiredBuckets(sessions.Bucket, options.TagName, options.Region.String(), options.TagValue, options.DisableTTLCheck)
 
 	count, start := common.ElemToDeleteFormattedInfos("expired bucket", len(expiredBuckets), string(options.Region))
 

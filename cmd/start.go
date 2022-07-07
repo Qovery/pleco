@@ -20,6 +20,7 @@ var startCmd = &cobra.Command{
 
 		disableDryRun, _ := cmd.Flags().GetBool("disable-dry-run")
 		interval, _ := cmd.Flags().GetInt64("check-interval")
+		disableTTLCheck, _ := cmd.Flags().GetBool("disable-ttl-check")
 
 		fmt.Println("")
 		fmt.Println(" ____  _     _____ ____ ___  \n|  _ \\| |   | ____/ ___/ _ \\ \n| |_) | |   |  _|| |  | | | |\n|  __/| |___| |__| |__| |_| |\n|_|   |_____|_____\\____\\___/\nBy Qovery")
@@ -30,7 +31,7 @@ var startCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		pkg.StartDaemon(args[0], disableDryRun, interval, cmd)
+		pkg.StartDaemon(args[0], disableDryRun, interval, cmd, disableTTLCheck)
 	},
 }
 
@@ -41,7 +42,7 @@ func init() {
 	startCmd.Flags().Int64P("check-interval", "i", 120, "Check interval in seconds")
 	startCmd.Flags().StringP("tag-name", "t", "ttl", "Set the tag name to check for deletion")
 	startCmd.Flags().StringP("kube-conn", "k", "off", "Kubernetes connection method, choose between : off/in/out")
-	startCmd.Flags().BoolP("disable-ttl-check", "dtc", false, "Disable ttl check and delete resources created more than 4 hours ago")
+	startCmd.Flags().BoolP("disable-ttl-check", "j", false, "Disable ttl check and delete resources created more than 4 hours ago")
 
 	if len(os.Args) > 2 {
 		common.InitFlags(os.Args[2], startCmd)

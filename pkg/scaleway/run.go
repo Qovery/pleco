@@ -1,6 +1,7 @@
 package scaleway
 
 import (
+	"github.com/minio/minio-go/v7"
 	"sync"
 	"time"
 

@@ -2,9 +2,9 @@ package common
 
 import (
 	"context"
-	"time"
-
+	"github.com/minio/minio-go/v7"
 	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 type MinioBucket struct {
@@ -73,12 +73,12 @@ func ListBucketObjects(bucketApi *minio.Client, ctx context.Context, bucketName 
 	return objectsInfos
 }
 
-func GetExpiredBuckets(bucketApi *minio.Client, tagName string, region string, tagValue string) []MinioBucket {
+func GetExpiredBuckets(bucketApi *minio.Client, tagName string, region string, tagValue string, disableTTLCheck bool) []MinioBucket {
 	buckets := listBuckets(bucketApi, tagName, region, true)
 
 	expiredBuckets := []MinioBucket{}
 	for _, bucket := range buckets {
-		if bucket.IsResourceExpired(tagValue, options.DisableTTLCheck) {
+		if bucket.IsResourceExpired(tagValue, disableTTLCheck) {
 			objectsInfos := ListBucketObjects(bucketApi, context.TODO(), bucket.Identifier)
 			bucket.ObjectsInfos = objectsInfos
 			expiredBuckets = append(expiredBuckets, bucket)
