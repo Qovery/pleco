@@ -36,7 +36,7 @@ func StartDaemon(cloudProvider string, disableDryRun bool, interval int64, cmd *
 
 	k8s.RunPlecoKubernetes(cmd, interval, dryRun, &wg)
 
-	run(cloudProvider, dryRun, interval, cmd, &wg)
+	run(cloudProvider, dryRun, interval, disableTTLCheck, cmd, &wg)
 
 	wg.Wait()
 }
@@ -54,25 +54,25 @@ func StartDestroy(cloudProvider string, disableDryRun bool, cmd *cobra.Command) 
 
 	common.CheckEnvVars(cloudProvider, cmd)
 
-	run(cloudProvider, dryRun, 0, cmd, &wg)
+	run(cloudProvider, dryRun, 0, false, cmd, &wg)
 
 	wg.Wait()
 }
 
-func run(cloudProvider string, dryRun bool, interval int64, cmd *cobra.Command, wg *sync.WaitGroup) {
+func run(cloudProvider string, dryRun bool, interval int64, disableTTLCheck bool, cmd *cobra.Command, wg *sync.WaitGroup) {
 	switch cloudProvider {
 	case "aws":
-		startAWS(cmd, interval, dryRun, wg)
+		startAWS(cmd, interval, dryRun, disableTTLCheck, wg)
 	case "scaleway":
-		startScaleway(cmd, interval, dryRun, wg)
+		startScaleway(cmd, interval, dryRun, disableTTLCheck, wg)
 	case "do":
-		startDO(cmd, interval, dryRun, wg)
+		startDO(cmd, interval, dryRun, disableTTLCheck, wg)
 	default:
 		log.Fatalf("Unknown cloud provider: %s", cloudProvider)
 	}
 }
 
-func startAWS(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGroup) {
+func startAWS(cmd *cobra.Command, interval int64, dryRun bool, disableTTLCheck bool, wg *sync.WaitGroup) {
 	regions, _ := cmd.Flags().GetStringSlice("aws-regions")
 	tagValue := getCmdString(cmd, "tag-value")
 
@@ -80,6 +80,7 @@ func startAWS(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGrou
 		DryRun:               dryRun,
 		TagName:              getCmdString(cmd, "tag-name"),
 		TagValue:             tagValue,
+		DisableTTLCheck:      disableTTLCheck,
 		IsDestroyingCommand:  strings.TrimSpace(tagValue) != "",
 		EnableRDS:            getCmdBool(cmd, "enable-rds"),
 		EnableDocumentDB:     getCmdBool(cmd, "enable-documentdb"),
@@ -104,13 +105,14 @@ func startAWS(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGrou
 	wg.Done()
 }
 
-func startScaleway(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGroup) {
+func startScaleway(cmd *cobra.Command, interval int64, dryRun bool, disableTTLCheck bool, wg *sync.WaitGroup) {
 	zones, _ := cmd.Flags().GetStringSlice("scw-zones")
 	tagValue := getCmdString(cmd, "tag-value")
 
 	scalewayOptions := scaleway.ScalewayOptions{
 		TagName:             getCmdString(cmd, "tag-name"),
 		TagValue:            tagValue,
+		DisableTTLCheck:     disableTTLCheck,
 		IsDestroyingCommand: strings.TrimSpace(tagValue) != "",
 		DryRun:              dryRun,
 		EnableCluster:       getCmdBool(cmd, "enable-cluster"),
@@ -125,13 +127,14 @@ func startScaleway(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.Wai
 	wg.Done()
 }
 
-func startDO(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGroup) {
+func startDO(cmd *cobra.Command, interval int64, dryRun bool, disableTTLCheck bool, wg *sync.WaitGroup) {
 	regions, _ := cmd.Flags().GetStringSlice("do-regions")
 	tagValue := getCmdString(cmd, "tag-value")
 
 	DOOptions := do.DOOptions{
 		TagName:             getCmdString(cmd, "tag-name"),
 		TagValue:            tagValue,
+		DisableTTLCheck:     disableTTLCheck,
 		IsDestroyingCommand: strings.TrimSpace(tagValue) != "",
 		DryRun:              dryRun,
 		EnableCluster:       getCmdBool(cmd, "enable-cluster"),
