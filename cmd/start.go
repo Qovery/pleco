@@ -41,6 +41,7 @@ func init() {
 	startCmd.Flags().Int64P("check-interval", "i", 120, "Check interval in seconds")
 	startCmd.Flags().StringP("tag-name", "t", "ttl", "Set the tag name to check for deletion")
 	startCmd.Flags().StringP("kube-conn", "k", "off", "Kubernetes connection method, choose between : off/in/out")
+	startCmd.Flags().BoolP("disable-ttl-check", "dtc", false, "Disable ttl check and delete resources created more than 4 hours ago")
 
 	if len(os.Args) > 2 {
 		common.InitFlags(os.Args[2], startCmd)

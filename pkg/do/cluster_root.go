@@ -67,7 +67,7 @@ func getExpiredClusters(client *godo.Client, options *DOOptions) ([]DOCluster, s
 
 	expiredClusters := []DOCluster{}
 	for _, cluster := range clusters {
-		if cluster.IsResourceExpired(options.TagValue) {
+		if cluster.IsResourceExpired(options.TagValue, options.DisableTTLCheck) {
 			expiredClusters = append(expiredClusters, cluster)
 		}
 	}

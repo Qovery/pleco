@@ -68,7 +68,7 @@ func getExpiredLBs(client *godo.Client, options *DOOptions) []DOLB {
 
 	expiredLBs := []DOLB{}
 	for _, lb := range lbs {
-		if lb.IsResourceExpired(options.TagValue) {
+		if lb.IsResourceExpired(options.TagValue, options.DisableTTLCheck) {
 			expiredLBs = append(expiredLBs, lb)
 		}
 

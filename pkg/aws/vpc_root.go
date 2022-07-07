@@ -121,7 +121,7 @@ func listTaggedVPC(ec2Session *ec2.EC2, options *AwsOptions) ([]VpcInfo, error) 
 			getCompleteVpc(ec2Session, &taggedVpc, options.TagName)
 		}
 
-		if taggedVpc.IsResourceExpired(options.TagValue) {
+		if taggedVpc.IsResourceExpired(options.TagValue, options.DisableTTLCheck) {
 			taggedVPCs = append(taggedVPCs, taggedVpc)
 		}
 

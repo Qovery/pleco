@@ -102,7 +102,7 @@ func getExpiredLBs(clusterAPI *k8s.API, lbAPI *lb.API, options *ScalewayOptions)
 
 	expiredLBs := []ScalewayLB{}
 	for _, lb := range lbs {
-		if lb.IsResourceExpired(options.TagValue) {
+		if lb.IsResourceExpired(options.TagValue, options.DisableTTLCheck) {
 			expiredLBs = append(expiredLBs, lb)
 		}
 	}

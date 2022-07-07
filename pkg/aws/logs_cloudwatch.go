@@ -98,7 +98,7 @@ func DeleteExpiredLogs(sessions AWSSessions, options AwsOptions) {
 	var expiredLogs []CompleteLogGroup
 	for _, log := range logs {
 		completeLogGroup := getCompleteLogGroup(sessions.CloudWatchLogs, *log, options.TagName)
-		if completeLogGroup.IsResourceExpired(options.TagValue) {
+		if completeLogGroup.IsResourceExpired(options.TagValue, options.DisableTTLCheck) {
 			expiredLogs = append(expiredLogs, completeLogGroup)
 		}
 	}

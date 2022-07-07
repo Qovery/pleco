@@ -38,7 +38,7 @@ func getExpiredDatabases(client *godo.Client, options *DOOptions) []DODB {
 
 	expiredDbs := []DODB{}
 	for _, db := range databases {
-		if db.IsResourceExpired(options.TagValue) {
+		if db.IsResourceExpired(options.TagValue, options.DisableTTLCheck) {
 			expiredDbs = append(expiredDbs, db)
 		}
 	}

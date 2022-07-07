@@ -41,6 +41,9 @@ spec:
             - --check-interval
             - "{{ .Values.enabledFeatures.checkInterval | default 120 }}"
             {{ end }}
+            {{ if eq .Values.enabledFeatures.disableTTLCheck true }}
+            - --disable-ttl-check
+            {{ end }}
             {{ if eq .Values.enabledFeatures.disableDryRun true }}
             - --disable-dry-run
             {{ end }}

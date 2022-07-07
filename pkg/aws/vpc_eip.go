@@ -89,7 +89,7 @@ func getExpiredEIPs(ec2Session *ec2.EC2, options *AwsOptions) []ElasticIp {
 	expiredEips := []ElasticIp{}
 	for _, eip := range elasticIps {
 
-		if eip.IsResourceExpired(options.TagValue) {
+		if eip.IsResourceExpired(options.TagValue, options.DisableTTLCheck) {
 			expiredEips = append(expiredEips, eip)
 		}
 	}

@@ -67,7 +67,7 @@ func getExpiredClusters(clusterAPI *k8s.API, options *ScalewayOptions) ([]Scalew
 
 	expiredClusters := []ScalewayCluster{}
 	for _, cluster := range clusters {
-		if cluster.IsResourceExpired(options.TagValue) {
+		if cluster.IsResourceExpired(options.TagValue, options.DisableTTLCheck) {
 			expiredClusters = append(expiredClusters, cluster)
 		}
 	}

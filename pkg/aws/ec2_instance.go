@@ -53,7 +53,7 @@ func listExpiredEC2Instances(ec2Session *ec2.EC2, options *AwsOptions) ([]EC2Ins
 				},
 			}
 
-			if ec2Instance.IsResourceExpired(options.TagValue) {
+			if ec2Instance.IsResourceExpired(options.TagValue, options.DisableTTLCheck) {
 				expiredEC2Instances = append(expiredEC2Instances, ec2Instance)
 			}
 		}

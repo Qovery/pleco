@@ -26,6 +26,7 @@ import (
 type AwsOptions struct {
 	TagName              string
 	TagValue             string
+	DisableTTLCheck      bool
 	IsDestroyingCommand  bool
 	DryRun               bool
 	EnableRDS            bool

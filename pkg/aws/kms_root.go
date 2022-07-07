@@ -107,7 +107,7 @@ func DeleteExpiredKeys(sessions AWSSessions, options AwsOptions) {
 	for _, key := range keys {
 		completeKey := getCompleteKey(*sessions.KMS, key.KeyId, options.TagName)
 
-		if completeKey.Status != "PendingDeletion" && completeKey.Status != "Disabled" && completeKey.IsResourceExpired(options.TagValue) {
+		if completeKey.Status != "PendingDeletion" && completeKey.Status != "Disabled" && completeKey.IsResourceExpired(options.TagValue, options.DisableTTLCheck) {
 			expiredKeys = append(expiredKeys, completeKey)
 		}
 	}

@@ -84,7 +84,7 @@ func getExpiredStacks(ECsession *cloudformation.CloudFormation, options *AwsOpti
 
 	var expiredStacks []CloudformationStack
 	for _, stack := range stacks {
-		if stack.IsResourceExpired(options.TagValue) {
+		if stack.IsResourceExpired(options.TagValue, options.DisableTTLCheck) {
 			expiredStacks = append(expiredStacks, stack)
 		}
 	}

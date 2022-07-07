@@ -51,7 +51,7 @@ func getExpiredNamespaces(clientSet *kubernetes.Clientset, tagName string) []kub
 					continue
 				}
 				creationDate, _ := time.Parse(time.RFC3339, namespace.CreationTimestamp.Time.Format(time.RFC3339))
-				if common.CheckIfExpired(creationDate, int64(ttlValue), "Namespace: "+namespace.Name) {
+				if common.CheckIfExpired(creationDate, int64(ttlValue), "Namespace: "+namespace.Name, false) {
 					expiredNamespaces = append(expiredNamespaces, kubernetesNamespace{
 						Name:                namespace.Name,
 						NamespaceCreateTime: namespace.CreationTimestamp.Time,

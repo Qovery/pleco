@@ -28,6 +28,7 @@ environmentVariables:
 enabledFeatures:
   disableDryRun: false
   checkInterval: 120
+  disableTTLCheck: false
   # Choose between in/out/off
   kubernetes: "in"
   s3: false

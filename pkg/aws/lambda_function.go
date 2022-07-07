@@ -103,7 +103,7 @@ func getExpiredLambdaFunctions(ECsession *lambda.Lambda, options *AwsOptions) ([
 	var expiredFunctions []lambdaFunction
 	for _, function := range functions {
 		log.Infof("Checking if %s function is expired", function.Identifier)
-		if function.IsResourceExpired(options.TagValue) {
+		if function.IsResourceExpired(options.TagValue, options.DisableTTLCheck) {
 			expiredFunctions = append(expiredFunctions, function)
 		}
 	}

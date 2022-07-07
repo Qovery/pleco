@@ -45,7 +45,7 @@ func DeleteEmptyRepositories(sessions AWSSessions, options AwsOptions) {
 	for _, repository := range repositories {
 		time, _ := time.Parse(time.RFC3339, repository.CreatedAt.Format(time.RFC3339))
 
-		if common.CheckIfExpired(time, 600, "ECR repository: ") {
+		if common.CheckIfExpired(time, 600, "ECR repository: ", options.DisableTTLCheck) {
 			images := getRepositoryImages(sessions.ECR, *repository.RepositoryName)
 
 			if len(images) == 0 {

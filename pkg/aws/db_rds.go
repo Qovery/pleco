@@ -79,7 +79,7 @@ func listExpiredRDSDatabases(svc rds.RDS, options *AwsOptions) []rdsDatabase {
 				SubnetGroup:      instance.DBSubnetGroup,
 				ParameterGroups:  instance.DBParameterGroups,
 			}
-			if database.CloudProviderResource.IsResourceExpired(options.TagValue) {
+			if database.CloudProviderResource.IsResourceExpired(options.TagValue, options.DisableTTLCheck) {
 				expiredDatabases = append(expiredDatabases, database)
 			}
 		}
@@ -232,7 +232,7 @@ func getExpiredRDSSubnetGroups(svc rds.RDS, options *AwsOptions) []RDSSubnetGrou
 			},
 			ID: *SG.DBSubnetGroupArn,
 		}
-		if rDSSubnetGroup.IsResourceExpired(options.TagValue) {
+		if rDSSubnetGroup.IsResourceExpired(options.TagValue, options.DisableTTLCheck) {
 			expiredRDSSubnetGroups = append(expiredRDSSubnetGroups, rDSSubnetGroup)
 		}
 	}
@@ -311,7 +311,7 @@ func listExpiredCompleteRDSParameterGroups(svc rds.RDS, options *AwsOptions) []R
 	expiredCompleteRDSParameterGroups := []RDSParameterGroups{}
 
 	for _, item := range completeRDSParameterGroups {
-		if item.IsResourceExpired(options.TagValue) {
+		if item.IsResourceExpired(options.TagValue, options.DisableTTLCheck) {
 			expiredCompleteRDSParameterGroups = append(expiredCompleteRDSParameterGroups, item)
 		}
 	}

@@ -121,7 +121,7 @@ func listExpiredVolumes(eksSession *eks.EKS, ec2Session *ec2.EC2, options *AwsOp
 			Status: *currentVolume.State,
 		}
 
-		if !volume.IsProtected && (!common.IsAssociatedToLivingCluster(currentVolume.Tags, eksSession) || volume.IsResourceExpired(options.TagValue)) {
+		if !volume.IsProtected && (!common.IsAssociatedToLivingCluster(currentVolume.Tags, eksSession) || volume.IsResourceExpired(options.TagValue, options.DisableTTLCheck)) {
 			expiredVolumes = append(expiredVolumes, volume)
 		}
 	}

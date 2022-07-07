@@ -5,13 +5,13 @@ import (
 	"time"
 
 	"github.com/digitalocean/godo"
-	"github.com/minio/minio-go/v7"
 	"github.com/sirupsen/logrus"
 )
 
 type DOOptions struct {
 	TagName             string
 	TagValue            string
+	DisableTTLCheck     bool
 	IsDestroyingCommand bool
 	DryRun              bool
 	Region              string

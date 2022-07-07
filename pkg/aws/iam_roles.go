@@ -83,7 +83,7 @@ func DeleteExpiredRoles(iamSession *iam.IAM, options *AwsOptions) {
 	var expiredRoles []Role
 
 	for _, role := range roles {
-		if role.IsResourceExpired(options.TagValue) {
+		if role.IsResourceExpired(options.TagValue, options.DisableTTLCheck) {
 			expiredRoles = append(expiredRoles, role)
 		}
 	}

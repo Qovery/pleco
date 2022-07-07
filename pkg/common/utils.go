@@ -48,7 +48,7 @@ type CloudProviderResource struct {
 	IsProtected  bool
 }
 
-func (resource *CloudProviderResource) IsResourceExpired(commandLineTagValue string) bool {
+func (resource *CloudProviderResource) IsResourceExpired(commandLineTagValue string, disableTTLCheck bool) bool {
 	if resource.IsProtected {
 		return false
 	}
@@ -56,7 +56,7 @@ func (resource *CloudProviderResource) IsResourceExpired(commandLineTagValue str
 	if isDestroyingCommand {
 		return strings.EqualFold(resource.Tag, commandLineTagValue)
 	} else {
-		return CheckIfExpired(resource.CreationDate, resource.TTL, resource.Description)
+		return CheckIfExpired(resource.CreationDate, resource.TTL, resource.Description, disableTTLCheck)
 	}
 }
 
@@ -151,7 +151,11 @@ func GetEssentialTags(tagsInput interface{}, tagName string) EssentialTags {
 	return essentialTags
 }
 
-func CheckIfExpired(creationTime time.Time, ttl int64, resourceNameDescription string) bool {
+func CheckIfExpired(creationTime time.Time, ttl int64, resourceNameDescription string, disableTTLCheck bool) bool {
+	if disableTTLCheck {
+		return time.Now().UTC().After(creationTime.Add(4 * time.Hour))
+	}
+
 	if ttl == 0 {
 		return false
 	}

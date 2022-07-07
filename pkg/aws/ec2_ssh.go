@@ -56,7 +56,7 @@ func DeleteExpiredKeyPairs(sessions AWSSessions, options AwsOptions) {
 	region := sessions.EC2.Config.Region
 	var expiredKeys []KeyPair
 	for _, key := range keys {
-		if key.IsResourceExpired(options.TagValue) {
+		if key.IsResourceExpired(options.TagValue, options.DisableTTLCheck) {
 			expiredKeys = append(expiredKeys, key)
 		}
 	}

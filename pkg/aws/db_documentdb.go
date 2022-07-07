@@ -58,7 +58,7 @@ func listExpiredDocumentDBClusters(svc rds.RDS, options *AwsOptions) []documentD
 	var expiredClusters []documentDBCluster
 
 	for _, cluster := range dbClusters {
-		if cluster.IsResourceExpired(options.TagValue) {
+		if cluster.IsResourceExpired(options.TagValue, options.DisableTTLCheck) {
 			expiredClusters = append(expiredClusters, cluster)
 		}
 	}

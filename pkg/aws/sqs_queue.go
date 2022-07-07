@@ -99,7 +99,7 @@ func getExpiredQueues(ECsession *sqs.SQS, options *AwsOptions) ([]sqsQueue, stri
 	var expiredQueues []sqsQueue
 	for _, queue := range queues {
 
-		if queue.IsResourceExpired(options.TagValue) {
+		if queue.IsResourceExpired(options.TagValue, options.DisableTTLCheck) {
 			expiredQueues = append(expiredQueues, queue)
 		}
 	}

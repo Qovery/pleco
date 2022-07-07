@@ -72,7 +72,7 @@ func ListExpiredLoadBalancers(eksSession *eks.EKS, lbSession *elbv2.ELBV2, optio
 	}
 
 	for _, currentLb := range allLoadBalancers {
-		if !currentLb.IsProtected && (!common.IsAssociatedToLivingCluster(currentLb.Tags, eksSession) || currentLb.IsResourceExpired(options.TagValue)) {
+		if !currentLb.IsProtected && (!common.IsAssociatedToLivingCluster(currentLb.Tags, eksSession) || currentLb.IsResourceExpired(options.TagValue, options.DisableTTLCheck)) {
 			taggedLoadBalancers = append(taggedLoadBalancers, currentLb)
 		}
 	}

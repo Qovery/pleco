@@ -106,7 +106,7 @@ func DeleteExpiredUsers(iamSession *iam.IAM, options *AwsOptions) {
 	var expiredUsers []User
 
 	for _, user := range users {
-		if user.IsResourceExpired(options.TagValue) {
+		if user.IsResourceExpired(options.TagValue, options.DisableTTLCheck) {
 			expiredUsers = append(expiredUsers, user)
 		}
 	}

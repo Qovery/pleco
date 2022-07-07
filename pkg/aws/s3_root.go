@@ -210,7 +210,7 @@ func DeleteExpiredBuckets(sessions AWSSessions, options AwsOptions) {
 	}
 	var expiredBuckets []common.CloudProviderResource
 	for _, bucket := range buckets {
-		if bucket.IsResourceExpired(options.TagValue) {
+		if bucket.IsResourceExpired(options.TagValue, options.DisableTTLCheck) {
 			expiredBuckets = append(expiredBuckets, bucket)
 		}
 	}

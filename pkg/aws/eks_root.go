@@ -240,7 +240,7 @@ func DeleteExpiredEKSClusters(sessions AWSSessions, options AwsOptions) {
 	var expiredCluster []eksCluster
 	for _, cluster := range clusters {
 
-		if cluster.IsResourceExpired(options.TagValue) {
+		if cluster.IsResourceExpired(options.TagValue, options.DisableTTLCheck) {
 			expiredCluster = append(expiredCluster, cluster)
 		}
 	}

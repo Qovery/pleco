@@ -78,7 +78,7 @@ func getExpiredMachines(ECsession *sfn.SFN, options *AwsOptions) ([]stateMachine
 
 	var expiredMachines []stateMachine
 	for _, machine := range machines {
-		if machine.IsResourceExpired(options.TagValue) {
+		if machine.IsResourceExpired(options.TagValue, options.DisableTTLCheck) {
 			expiredMachines = append(expiredMachines, machine)
 		}
 	}

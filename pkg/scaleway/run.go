@@ -4,7 +4,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/minio/minio-go/v7"
 	"github.com/scaleway/scaleway-sdk-go/api/instance/v1"
 	"github.com/scaleway/scaleway-sdk-go/api/k8s/v1"
 	"github.com/scaleway/scaleway-sdk-go/api/lb/v1"
@@ -17,6 +16,7 @@ import (
 type ScalewayOptions struct {
 	TagValue            string
 	TagName             string
+	DisableTTLCheck     bool
 	IsDestroyingCommand bool
 	DryRun              bool
 	Zone                string

@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/minio/minio-go/v7"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -79,7 +78,7 @@ func GetExpiredBuckets(bucketApi *minio.Client, tagName string, region string, t
 
 	expiredBuckets := []MinioBucket{}
 	for _, bucket := range buckets {
-		if bucket.IsResourceExpired(tagValue) {
+		if bucket.IsResourceExpired(tagValue, options.DisableTTLCheck) {
 			objectsInfos := ListBucketObjects(bucketApi, context.TODO(), bucket.Identifier)
 			bucket.ObjectsInfos = objectsInfos
 			expiredBuckets = append(expiredBuckets, bucket)
