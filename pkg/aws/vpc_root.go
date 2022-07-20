@@ -47,14 +47,7 @@ func GetVpcsIdsByClusterNameTag(ec2Session ec2.EC2, clusterName string) []*strin
 }
 
 func getVPCs(ec2Session *ec2.EC2, tagName string) []*ec2.Vpc {
-	input := &ec2.DescribeVpcsInput{
-		Filters: []*ec2.Filter{
-			{
-				Name:   aws.String("tag-key"),
-				Values: []*string{&tagName},
-			},
-		},
-	}
+	input := &ec2.DescribeVpcsInput{}
 
 	result, err := ec2Session.DescribeVpcs(input)
 	if err != nil {
