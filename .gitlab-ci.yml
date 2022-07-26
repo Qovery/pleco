@@ -21,6 +21,7 @@ before_script:
   - curl -o helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 && chmod 755 helm.sh && ./helm.sh -v $HELM_VERSION
 
 ec2-test-cluster:
+  start_in: 10 minutes
   stage: deploy
   script:
     - helm --kubeconfig $KUBECONFIG_EC2_TEST_CLUSTER upgrade --install --wait -n kube-system -f $PLECO_VALUES_EC2 --create-namespace pleco-ec2 charts/pleco
@@ -30,6 +31,7 @@ ec2-test-cluster:
     - vm-250mcpu-1gmem-0g
 
 scaleway-test-cluster:
+  start_in: 10 minutes
   stage: deploy
   script:
     - helm --kubeconfig $KUBECONFIG_SCW_TEST_CLUSTER upgrade --install --wait -n kube-system -f $PLECO_VALUES_SCALEWAY --create-namespace pleco-scaleway charts/pleco
@@ -39,6 +41,7 @@ scaleway-test-cluster:
     - vm-250mcpu-1gmem-0g
 
 eks-test-cluster:
+  start_in: 10 minutes
   stage: deploy
   script:
     - curl -o /usr/local/bin/aws-iam-authenticator https://s3.us-west-2.amazonaws.com/amazon-eks/1.21.2/2021-07-05/bin/linux/amd64/aws-iam-authenticator && chmod 755 /usr/local/bin/aws-iam-authenticator
@@ -49,10 +52,11 @@ eks-test-cluster:
     - vm-250mcpu-1gmem-0g
 
 aws-sandbox:
+  start_in: 10 minutes
   stage: deploy
   script:
     - curl -o /usr/local/bin/aws-iam-authenticator https://s3.us-west-2.amazonaws.com/amazon-eks/1.21.2/2021-07-05/bin/linux/amd64/aws-iam-authenticator && chmod 755 /usr/local/bin/aws-iam-authenticator
-    - AWS_ACCESS_KEY_ID=$EKS_AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$EKS_AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION=$EKS_AWS_DEFAULT_REGION PROTECTED_VPC_ID=$SANDBOX_VPC_ID helm --kubeconfig $KUBECONFIG_EKS_TEST_CLUSTER upgrade --install --wait -n kube-system -f $PLECO_VALUES_SANDBOX --create-namespace pleco-sandbox charts/pleco
+    - AWS_ACCESS_KEY_ID=$EKS_AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$EKS_AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION=$EKS_AWS_DEFAULT_REGION helm --kubeconfig $KUBECONFIG_EKS_TEST_CLUSTER upgrade --install --wait -n kube-system -f $PLECO_VALUES_SANDBOX --create-namespace pleco-sandbox charts/pleco
   only:
     - main
   tags:
