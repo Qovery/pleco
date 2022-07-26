@@ -30,6 +30,7 @@ ec2-test-cluster:
     - vm-250mcpu-1gmem-0g
 
 scaleway-test-cluster:
+  stage: deploy
   script:
     - helm --kubeconfig $KUBECONFIG_SCW_TEST_CLUSTER upgrade --install --wait -n kube-system -f $PLECO_VALUES_SCALEWAY --create-namespace pleco-scaleway charts/pleco
   only:
