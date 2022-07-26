@@ -45,7 +45,7 @@ func listExpiredEC2Instances(ec2Session *ec2.EC2, options *AwsOptions) ([]EC2Ins
 
 			if options.DisableTTLCheck {
 				vpcId, isOk := os.LookupEnv("PROTECTED_VPC_ID")
-				if !isOk {
+				if !isOk || vpcId == "" {
 					log.Fatalf("Unable to get PROTECTED_VPC_ID environment variable in order to protect VPC resources.")
 				}
 				if vpcId == *ec2Instance.VpcId {
