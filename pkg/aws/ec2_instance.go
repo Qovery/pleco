@@ -3,6 +3,7 @@ package aws
 import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	log "github.com/sirupsen/logrus"
+	"os"
 
 	"github.com/Qovery/pleco/pkg/common"
 )
@@ -41,6 +42,19 @@ func listExpiredEC2Instances(ec2Session *ec2.EC2, options *AwsOptions) ([]EC2Ins
 				log.Infof("Skipping EC2 instance %s in region %s (current status is %s)", *ec2Instance.InstanceId, *ec2Session.Config.Region, *ec2Instance.State.Name)
 				continue
 			}
+
+			if options.DisableTTLCheck {
+				vpcId, isOk := os.LookupEnv("PROTECTED_VPC_ID")
+				if !isOk {
+					log.Fatalf("Unable to get PROTECTED_VPC_ID environment variable in order to protect VPC resources.")
+				}
+				if vpcId == *ec2Instance.VpcId {
+					log.Infof("Skipping EC2 instance %s in region %s (protected vpc)", *ec2Instance.InstanceId, *ec2Session.Config.Region)
+					continue
+				}
+
+			}
+
 			essentialTags := common.GetEssentialTags(ec2Instance.Tags, options.TagName)
 			ec2Instance := EC2Instance{
 				CloudProviderResource: common.CloudProviderResource{

@@ -3,7 +3,7 @@ module github.com/Qovery/pleco
 go 1.18
 
 require (
-	github.com/aws/aws-sdk-go v1.44.45
+	github.com/aws/aws-sdk-go v1.42.23
 	github.com/digitalocean/godo v1.81.0
 	github.com/minio/minio-go/v7 v7.0.31
 	github.com/mitchellh/go-homedir v1.1.0
