@@ -85,6 +85,7 @@ func runPlecoInZone(zone string, interval int64, wg *sync.WaitGroup, options Sca
 
 	if options.EnableCR {
 		sessions.Namespace = registry.NewAPI(currentSession)
+		sessions.Cluster = k8s.NewAPI(currentSession)
 
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteEmptyContainerRegistries)
 	}

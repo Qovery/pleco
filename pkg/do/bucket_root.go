@@ -44,7 +44,6 @@ func emptyBuckets(doApi *godo.Client, bucketApi *minio.Client, options *DOOption
 func getBucketsToEmpty(doApi *godo.Client, bucketApi *minio.Client, options *DOOptions) []common.MinioBucket {
 	buckets := common.GetUnusedBuckets(bucketApi, options.TagName, options.Region, options.IsDestroyingCommand)
 	clusters := listClusters(doApi, options.TagName, options.Region)
-	_, _ = buckets, clusters
 
 	checkingBuckets := make(map[string]common.MinioBucket)
 	for _, bucket := range buckets {
