@@ -118,6 +118,11 @@ func listTaggedVPC(ec2Session *ec2.EC2, options *AwsOptions) ([]VpcInfo, error) 
 			taggedVPCs = append(taggedVPCs, taggedVpc)
 		}
 
+		// NOTE: this piece of code is meant to enable resources cleaning for some resources on cluster that should not be deleted.
+		// Doing this will make sure we never get quota issues on cluster we don't delete.
+		if options.TagName == "do_not_delete" && common.CheckIfExpired(taggedVpc.CreationDate, taggedVpc.TTL, taggedVpc.Description, options.DisableTTLCheck) {
+			taggedVPCs = append(taggedVPCs, taggedVpc)
+		}
 	}
 
 	return taggedVPCs, nil
