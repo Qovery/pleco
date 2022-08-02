@@ -202,6 +202,12 @@ func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredEC2Instances)
 	}
 
+	if options.DisableTTLCheck {
+		sessions.EC2 = ec2.New(currentSession)
+		sessions.ELB = elbv2.New(currentSession)
+		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteVPCLinkedResourcesWithQuota)
+	}
+
 	if options.IsDestroyingCommand {
 		for _, check := range listServiceToCheckStatus {
 			check(sessions, options)

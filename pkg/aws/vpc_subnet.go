@@ -72,3 +72,50 @@ func DeleteSubnetsByIds(ec2Session *ec2.EC2, subnets []Subnet) {
 		}
 	}
 }
+
+// DeleteVPCLinkedResourcesWithQuota is used to delete some resources linked to a vpc without deleting the vpc itself.
+// This will avoid quota issues on some resources
+func DeleteVPCLinkedResourcesWithQuota(sessions AWSSessions, options AwsOptions) {
+	vpcs, err := listTaggedVPC(sessions.EC2, &options)
+	if err != nil {
+		log.Errorf("can't list VPC: %s\n", err)
+		return
+	}
+
+	region := *sessions.EC2.Config.Region
+	if err != nil {
+		log.Errorf("Can't list instances: %s\n", err)
+		return
+	}
+
+	securityGroupCount := 0
+	subnetCount := 0
+	routeTableCount := 0
+	for _, vpc := range vpcs {
+		securityGroupCount += len(vpc.SecurityGroups)
+		subnetCount += len(vpc.Subnets)
+		routeTableCount += len(vpc.RouteTables)
+	}
+
+	sgCount, sgStart := common.ElemToDeleteFormattedInfos("expired VPC Security Group", securityGroupCount, region)
+	sCount, sStart := common.ElemToDeleteFormattedInfos("expired VPC Subnet", subnetCount, region)
+	rtCount, rtStart := common.ElemToDeleteFormattedInfos("expired VPC Route Table", routeTableCount, region)
+
+	log.Debug(sgCount)
+	log.Debug(sCount)
+	log.Debug(rtCount)
+
+	if options.DryRun || len(vpcs) == 0 {
+		return
+	}
+
+	log.Debug(sgStart)
+	log.Debug(sStart)
+	log.Debug(rtStart)
+
+	for _, vpc := range vpcs {
+		DeleteSecurityGroupsByIds(sessions.EC2, vpc.SecurityGroups)
+		DeleteSubnetsByIds(sessions.EC2, vpc.Subnets)
+		DeleteRouteTablesByIds(sessions.EC2, vpc.RouteTables)
+	}
+}
