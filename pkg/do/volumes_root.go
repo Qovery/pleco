@@ -22,16 +22,16 @@ func DeleteExpiredVolumes(sessions DOSessions, options DOOptions) {
 
 	count, start := common.ElemToDeleteFormattedInfos(fmt.Sprintf("detached (%d hours delay) volume", volumeTimeout()), len(expiredVolumes), options.Region)
 
-	log.Debug(count)
+	log.Info(count)
 
 	if options.DryRun || len(expiredVolumes) == 0 {
 		return
 	}
 
-	log.Debug(start)
+	log.Info(start)
 
 	for _, expiredVolume := range expiredVolumes {
-		deleteVolume(sessions.Client, expiredVolume)
+		deleteVolume(sessions.Client, expiredVolume, options.Region)
 	}
 }
 
@@ -70,10 +70,12 @@ func getDetachedVolumes(client *godo.Client, options *DOOptions) []DOVolume {
 	return detachedVolumes
 }
 
-func deleteVolume(client *godo.Client, detachedVolume DOVolume) {
+func deleteVolume(client *godo.Client, detachedVolume DOVolume, region string) {
 	_, err := client.Storage.DeleteVolume(context.TODO(), detachedVolume.ID)
 
 	if err != nil {
 		log.Errorf("Can't delete detached volume %s: %s", detachedVolume.Name, err.Error())
+	} else {
+		log.Debugf("Detached volume  %s in %s deleted.", detachedVolume.Name, region)
 	}
 }

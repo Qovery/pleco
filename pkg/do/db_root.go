@@ -20,16 +20,16 @@ func DeleteExpiredDatabases(sessions DOSessions, options DOOptions) {
 
 	count, start := common.ElemToDeleteFormattedInfos("expired database", len(expiredDatabases), options.Region)
 
-	log.Debug(count)
+	log.Info(count)
 
 	if options.DryRun || len(expiredDatabases) == 0 {
 		return
 	}
 
-	log.Debug(start)
+	log.Info(start)
 
 	for _, expiredDb := range expiredDatabases {
-		deleteDB(sessions.Client, expiredDb)
+		deleteDB(sessions.Client, expiredDb, options.Region)
 	}
 }
 
@@ -75,10 +75,12 @@ func listDatabases(client *godo.Client, options *DOOptions) []DODB {
 	return databases
 }
 
-func deleteDB(client *godo.Client, db DODB) {
+func deleteDB(client *godo.Client, db DODB, region string) {
 	_, err := client.Databases.Delete(context.TODO(), db.Identifier)
 
 	if err != nil {
 		log.Errorf("Can't delete database %s: %s", db.Name, err.Error())
+	} else {
+		log.Debugf("Database %s in %s deleted.", db.Name, region)
 	}
 }

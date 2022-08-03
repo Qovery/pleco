@@ -38,6 +38,8 @@ func DeleteGroups(iamSession *iam.IAM, dryRun bool) {
 
 		if err != nil {
 			log.Errorf("Can't delete group %s : %s", *group.GroupName, err)
+		} else {
+			log.Debugf("IAM group %s in %s deleted.", group.GroupName, *iamSession.Config.Region)
 		}
 	}
 

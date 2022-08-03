@@ -71,7 +71,7 @@ func deleteVolumes(ec2Session ec2.EC2, VolumesList []EBSVolume) {
 	for _, volume := range VolumesList {
 		switch volume.Status {
 		case "deleting":
-			log.Infof("Volume %s in region %s is already in deletion process, skipping...", volume.Identifier, *ec2Session.Config.Region)
+			log.Debugf("Volume %s in region %s is already in deletion process, skipping...", volume.Identifier, *ec2Session.Config.Region)
 			continue
 		case "creating":
 			continue
@@ -88,6 +88,8 @@ func deleteVolumes(ec2Session ec2.EC2, VolumesList []EBSVolume) {
 		)
 		if err != nil {
 			log.Errorf("Can't delete EBS %s in %s", volume.Identifier, *ec2Session.Config.Region)
+		} else {
+			log.Debugf("EBS %s in %s deleted.", volume.Identifier, *ec2Session.Config.Region)
 		}
 	}
 }
@@ -139,13 +141,13 @@ func DeleteExpiredVolumes(sessions AWSSessions, options AwsOptions) {
 
 	count, start := common.ElemToDeleteFormattedInfos("expired EBS volume", len(expiredVolumes), region)
 
-	log.Debug(count)
+	log.Info(count)
 
 	if options.DryRun || len(expiredVolumes) == 0 {
 		return
 	}
 
-	log.Debug(start)
+	log.Info(start)
 
 	deleteVolumes(*sessions.EC2, expiredVolumes)
 }

@@ -19,16 +19,16 @@ func DeleteExpiredClusters(sessions ScalewaySessions, options ScalewayOptions) {
 
 	count, start := common.ElemToDeleteFormattedInfos("expired cluster", len(expiredClusters), options.Zone, true)
 
-	log.Debug(count)
+	log.Info(count)
 
 	if options.DryRun || len(expiredClusters) == 0 {
 		return
 	}
 
-	log.Debug(start)
+	log.Info(start)
 
 	for _, expiredCluster := range expiredClusters {
-		deleteCluster(sessions.Cluster, expiredCluster)
+		deleteCluster(sessions.Cluster, expiredCluster, options.Zone)
 	}
 }
 
@@ -75,7 +75,7 @@ func getExpiredClusters(clusterAPI *k8s.API, options *ScalewayOptions) ([]Scalew
 	return expiredClusters, region
 }
 
-func deleteCluster(clusterAPI *k8s.API, cluster ScalewayCluster) {
+func deleteCluster(clusterAPI *k8s.API, cluster ScalewayCluster, region string) {
 	_, err := clusterAPI.DeleteCluster(
 		&k8s.DeleteClusterRequest{
 			ClusterID:               cluster.Identifier,
@@ -84,5 +84,7 @@ func deleteCluster(clusterAPI *k8s.API, cluster ScalewayCluster) {
 
 	if err != nil {
 		log.Errorf("Can't delete cluster %s: %s", cluster.Name, err.Error())
+	} else {
+		log.Debugf("Kapsule cluster %s in %s deleted.", cluster.Name, region)
 	}
 }

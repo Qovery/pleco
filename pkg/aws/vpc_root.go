@@ -158,6 +158,8 @@ func deleteVPC(sessions AWSSessions, VpcList []VpcInfo, dryRun bool) error {
 		)
 		if deleteErr != nil {
 			log.Errorf("Can't delete VPC %s in %s yet: %s", vpc.Identifier, *region, deleteErr.Error())
+		} else {
+			log.Debugf("VPC %s in %s deleted.", vpc.Identifier, *ec2Session.Config.Region)
 		}
 	}
 
@@ -173,13 +175,13 @@ func DeleteExpiredVPC(sessions AWSSessions, options AwsOptions) {
 
 	count, start := common.ElemToDeleteFormattedInfos("tagged VPC resource", len(VPCs), *region)
 
-	log.Debug(count)
+	log.Info(count)
 
 	if options.DryRun || len(VPCs) == 0 {
 		return
 	}
 
-	log.Debug(start)
+	log.Info(start)
 
 	_ = deleteVPC(sessions, VPCs, options.DryRun)
 

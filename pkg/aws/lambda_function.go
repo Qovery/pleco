@@ -78,10 +78,6 @@ func listTaggedFunctions(svc lambda.Lambda, tagName string) ([]lambdaFunction, e
 }
 
 func deleteLambdaFunction(svc lambda.Lambda, function lambdaFunction) error {
-
-	log.Infof("Deleting Lambda Function %s in %s, expired after %d seconds",
-		function.Identifier, *svc.Config.Region, function.TTL)
-
 	_, err := svc.DeleteFunction(&lambda.DeleteFunctionInput{
 		FunctionName: &function.Identifier,
 	},
@@ -116,18 +112,20 @@ func DeleteExpiredLambdaFunctions(sessions AWSSessions, options AwsOptions) {
 
 	count, start := common.ElemToDeleteFormattedInfos("expired Lambda Function", len(expiredFunctions), region)
 
-	log.Debug(count)
+	log.Info(count)
 
 	if options.DryRun || len(expiredFunctions) == 0 {
 		return
 	}
 
-	log.Debug(start)
+	log.Info(start)
 
 	for _, function := range expiredFunctions {
 		deletionErr := deleteLambdaFunction(*sessions.LambdaFunction, function)
 		if deletionErr != nil {
 			log.Errorf("Deletion Lambda function error %s/%s: %s", function.Identifier, region, deletionErr.Error())
+		} else {
+			log.Debugf("Lambda function %s in %s deleted.", function.Identifier, region)
 		}
 	}
 }

@@ -111,9 +111,11 @@ func EmptyBucket(bucketApi *minio.Client, bucketName string, objects []minio.Obj
 
 }
 
-func DeleteBucket(bucketApi *minio.Client, bucket MinioBucket) {
+func DeleteBucket(bucketApi *minio.Client, bucket MinioBucket, region string) {
 	err := bucketApi.RemoveBucket(context.Background(), bucket.Identifier)
 	if err != nil {
 		log.Errorf("Can't delete bucket %s: %s", bucket.Identifier, err.Error())
+	} else {
+		log.Debugf("Bucket %s in %s deleted.", bucket.Identifier, region)
 	}
 }

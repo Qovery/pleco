@@ -223,19 +223,21 @@ func DeleteExpiredBuckets(sessions AWSSessions, options AwsOptions) {
 		s = fmt.Sprintf("There are %d expired S3 buckets to delete.", len(expiredBuckets))
 	}
 
-	log.Debug(s)
+	log.Info(s)
 
 	if options.DryRun || len(expiredBuckets) == 0 {
 		return
 	}
 
-	log.Debug("Starting expired S3 buckets deletion.")
+	log.Info("Starting expired S3 buckets deletion.")
 
 	for _, bucket := range expiredBuckets {
 		deletionErr := deleteS3Buckets(*sessions.S3, bucket.Identifier)
 		if deletionErr != nil {
 			log.Errorf("Deletion S3 Bucket %s/%s error: %s",
 				bucket.Identifier, *region, err)
+		} else {
+			log.Debugf("S3 bucket %s in %s deleted.", bucket.Identifier, region)
 		}
 	}
 }

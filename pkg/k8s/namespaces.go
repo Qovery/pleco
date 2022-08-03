@@ -69,11 +69,12 @@ func getExpiredNamespaces(clientSet *kubernetes.Clientset, tagName string) []kub
 func deleteNamespace(clientSet *kubernetes.Clientset, namespace kubernetesNamespace, dryRun bool) {
 	deleteOptions := metav1.DeleteOptions{}
 
-	log.Debugf("Deleting namespace %s, expired after %d seconds", namespace.Name, namespace.TTL)
 	if !dryRun {
 		err := clientSet.CoreV1().Namespaces().Delete(context.TODO(), namespace.Name, deleteOptions)
 		if err != nil {
 			log.Errorf("Can't delete namsespace %s", namespace.Name)
+		} else {
+			log.Debugf("K8S namespace %s deleted.", namespace.Name)
 		}
 	}
 
@@ -84,13 +85,13 @@ func DeleteExpiredNamespaces(clientSet *kubernetes.Clientset, tagName string, dr
 
 	count, start := common.ElemToDeleteFormattedInfos("expired Kubernetes namespace", len(namespaces), "")
 
-	log.Debug(count)
+	log.Info(count)
 
 	if dryRun || len(namespaces) == 0 {
 		return
 	}
 
-	log.Debug(start)
+	log.Info(start)
 
 	for _, namespace := range namespaces {
 		deleteNamespace(clientSet, namespace, dryRun)

@@ -80,6 +80,8 @@ func DeleteInternetGatewaysByIds(ec2Session *ec2.EC2, internetGateways []Interne
 
 			if deleteErr != nil {
 				log.Error(deleteErr)
+			} else {
+				log.Debugf("Internet Gateway %s in %s deleted.", internetGateway.Id, *ec2Session.Config.Region)
 			}
 		}
 	}

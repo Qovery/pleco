@@ -114,13 +114,13 @@ func DeleteExpiredDocumentDBClusters(sessions AWSSessions, options AwsOptions) {
 
 	count, start := common.ElemToDeleteFormattedInfos("expired DocumentDB database", len(expiredClusters), region)
 
-	log.Debug(count)
+	log.Info(count)
 
 	if options.DryRun || len(expiredClusters) == 0 {
 		return
 	}
 
-	log.Debug(start)
+	log.Info(start)
 
 	for _, cluster := range expiredClusters {
 		DeleteRDSSubnetGroup(*sessions.RDS, cluster.SubnetGroupName)
@@ -186,6 +186,8 @@ func deleteClusterSnapshot(svc rds.RDS, snapName string) {
 
 	if err != nil {
 		log.Errorf("Can't delete RDS snapshot %s in region %s: %s", snapName, *svc.Config.Region, err.Error())
+	} else {
+		log.Debugf("RDS snapshot %s in %s deleted.", snapName, *svc.Config.Region)
 	}
 }
 
@@ -195,13 +197,13 @@ func DeleteExpiredClusterSnapshots(sessions AWSSessions, options AwsOptions) {
 
 	count, start := common.ElemToDeleteFormattedInfos("expired RDS cluster snapshot", len(expiredSnapshots), region)
 
-	log.Debug(count)
+	log.Info(count)
 
 	if options.DryRun || len(expiredSnapshots) == 0 || expiredSnapshots == nil {
 		return
 	}
 
-	log.Debug(start)
+	log.Info(start)
 
 	for _, snapshot := range expiredSnapshots {
 		deleteClusterSnapshot(*sessions.RDS, *snapshot.DBClusterSnapshotIdentifier)

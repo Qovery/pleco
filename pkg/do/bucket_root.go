@@ -16,16 +16,16 @@ func DeleteExpiredBuckets(sessions DOSessions, options DOOptions) {
 
 	count, start := common.ElemToDeleteFormattedInfos("expired bucket", len(expiredBuckets), options.Region)
 
-	log.Debug(count)
+	log.Info(count)
 
 	if options.DryRun || len(expiredBuckets) == 0 {
 		return
 	}
 
-	log.Debug(start)
+	log.Info(start)
 
 	for _, expiredBucket := range expiredBuckets {
-		common.DeleteBucket(sessions.Bucket, expiredBucket)
+		common.DeleteBucket(sessions.Bucket, expiredBucket, options.Region)
 	}
 }
 

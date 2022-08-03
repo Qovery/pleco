@@ -136,12 +136,13 @@ func deleteLoadBalancers(lbSession *elbv2.ELBV2, loadBalancersList []ElasticLoad
 	}
 
 	for _, lb := range loadBalancersList {
-		log.Infof("Deleting ELB %s in %s", lb.Identifier, *lbSession.Config.Region)
 		_, err := lbSession.DeleteLoadBalancer(
 			&elbv2.DeleteLoadBalancerInput{LoadBalancerArn: &lb.Arn},
 		)
 		if err != nil {
 			log.Errorf("Can't delete ELB %s in %s", lb.Identifier, *lbSession.Config.Region)
+		} else {
+			log.Debugf("ELB %s in %s deleted.", lb.Identifier, *lbSession.Config.Region)
 		}
 	}
 }
@@ -156,13 +157,13 @@ func DeleteExpiredLoadBalancers(sessions AWSSessions, options AwsOptions) {
 
 	count, start := common.ElemToDeleteFormattedInfos("expired ELB load balancer", len(expiredLoadBalancers), region)
 
-	log.Debug(count)
+	log.Info(count)
 
 	if options.DryRun || len(expiredLoadBalancers) == 0 {
 		return
 	}
 
-	log.Debug(start)
+	log.Info(start)
 
 	deleteLoadBalancers(sessions.ELB, expiredLoadBalancers, options.DryRun)
 }

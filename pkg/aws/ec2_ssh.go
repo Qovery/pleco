@@ -63,18 +63,20 @@ func DeleteExpiredKeyPairs(sessions AWSSessions, options AwsOptions) {
 
 	count, start := common.ElemToDeleteFormattedInfos("expired ELB load balancer", len(expiredKeys), *region)
 
-	log.Debug(count)
+	log.Info(count)
 
 	if options.DryRun || len(expiredKeys) == 0 {
 		return
 	}
 
-	log.Debug(start)
+	log.Info(start)
 
 	for _, key := range expiredKeys {
 		deletionErr := deleteKeyPair(sessions.EC2, key.Identifier)
 		if deletionErr != nil {
 			log.Errorf("Deletion EC2 key pair error %s/%s: %s", key.KeyName, *region, deletionErr)
+		} else {
+			log.Debugf("Key Pair %s in %s deleted.", key.KeyName, *region)
 		}
 	}
 }

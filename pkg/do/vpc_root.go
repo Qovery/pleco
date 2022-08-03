@@ -23,16 +23,16 @@ func DeleteExpiredVPCs(sessions DOSessions, options DOOptions) {
 
 	count, start := common.ElemToDeleteFormattedInfos(fmt.Sprintf("expired (%d hours delay) VPC", volumeTimeout()), len(expiredVPCs), options.Region)
 
-	log.Debug(count)
+	log.Info(count)
 
 	if options.DryRun || len(expiredVPCs) == 0 {
 		return
 	}
 
-	log.Debug(start)
+	log.Info(start)
 
 	for _, expiredVPC := range expiredVPCs {
-		deleteVPC(sessions.Client, expiredVPC)
+		deleteVPC(sessions.Client, expiredVPC, options.Region)
 	}
 }
 
@@ -86,10 +86,12 @@ func getExpiredVPCs(client *godo.Client, options *DOOptions) []DOVpc {
 	return expiredVPCs
 }
 
-func deleteVPC(client *godo.Client, detachedVPC DOVpc) {
+func deleteVPC(client *godo.Client, detachedVPC DOVpc, region string) {
 	_, err := client.VPCs.Delete(context.TODO(), detachedVPC.ID)
 
 	if err != nil {
 		log.Errorf("Can't delete expired VPC %s: %s", detachedVPC.Name, err.Error())
+	} else {
+		log.Debugf("VPC %s in %s deleted.", detachedVPC.Name, region)
 	}
 }

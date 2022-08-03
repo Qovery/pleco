@@ -20,6 +20,8 @@ func deleteEC2Instances(ec2Session *ec2.EC2, ec2Instances []EC2Instance) {
 		})
 		if err != nil {
 			log.Errorf("Can't delete %s in %s", ec2Instance.Identifier, *ec2Session.Config.Region)
+		} else {
+			log.Debugf("EC2 instance %s in %s deleted.", ec2Instance.Identifier, *ec2Session.Config.Region)
 		}
 	}
 }
@@ -86,13 +88,13 @@ func DeleteExpiredEC2Instances(sessions AWSSessions, options AwsOptions) {
 
 	count, start := common.ElemToDeleteFormattedInfos("expired EC2 instance", len(expiredEC2Instances), region)
 
-	log.Debug(count)
+	log.Info(count)
 
 	if options.DryRun || len(expiredEC2Instances) == 0 {
 		return
 	}
 
-	log.Debug(start)
+	log.Info(start)
 
 	deleteEC2Instances(sessions.EC2, expiredEC2Instances)
 }

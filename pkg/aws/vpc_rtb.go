@@ -70,6 +70,8 @@ func DeleteRouteTablesByIds(ec2Session *ec2.EC2, routeTables []RouteTable) {
 
 			if err != nil {
 				log.Error(err)
+			} else {
+				log.Debugf("Route table %s in %s deleted.", routeTable.Id, *ec2Session.Config.Region)
 			}
 		}
 	}

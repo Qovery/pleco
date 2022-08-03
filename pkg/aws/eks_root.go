@@ -156,6 +156,8 @@ func deleteEKSCluster(svc *eks.EKS, ec2Session *ec2.EC2, elbSession *elbv2.ELBV2
 			err := deleteNodeGroupStatus(svc, cluster, *nodeGroupName, options.DryRun)
 			if err != nil {
 				return fmt.Errorf("Error while deleting node group %v: %s\n", *nodeGroupName, err)
+			} else {
+				log.Debugf("Node group %s in %s deleted.", nodeGroupName, *svc.Config.Region)
 			}
 		}
 	}
@@ -196,6 +198,9 @@ func deleteEKSCluster(svc *eks.EKS, ec2Session *ec2.EC2, elbSession *elbv2.ELBV2
 	)
 	if err != nil {
 		return err
+	} else {
+		log.Debugf("EKS cluster %s in %s deleted.", cluster.Identifier, *svc.Config.Region)
+
 	}
 
 	return nil
@@ -247,13 +252,13 @@ func DeleteExpiredEKSClusters(sessions AWSSessions, options AwsOptions) {
 
 	count, start := common.ElemToDeleteFormattedInfos("expired EKS cluster", len(expiredCluster), region)
 
-	log.Debug(count)
+	log.Info(count)
 
 	if options.DryRun || len(expiredCluster) == 0 {
 		return
 	}
 
-	log.Debug(start)
+	log.Info(start)
 
 	for _, cluster := range expiredCluster {
 		deletionErr := deleteEKSCluster(sessions.EKS, sessions.EC2, sessions.ELB, sessions.CloudWatchLogs, cluster, &options)

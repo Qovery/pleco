@@ -76,6 +76,8 @@ func DeleteSecurityGroupsByIds(ec2Session *ec2.EC2, securityGroups []SecurityGro
 
 			if err != nil {
 				log.Error(err)
+			} else {
+				log.Debugf("Security group %s in %s deleted.", securityGroup.Id, *ec2Session.Config.Region)
 			}
 		}
 	}

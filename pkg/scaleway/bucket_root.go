@@ -11,16 +11,16 @@ func DeleteExpiredBuckets(sessions ScalewaySessions, options ScalewayOptions) {
 
 	count, start := common.ElemToDeleteFormattedInfos("expired bucket", len(expiredBuckets), string(options.Region))
 
-	log.Debug(count)
+	log.Info(count)
 
 	if options.DryRun || len(expiredBuckets) == 0 {
 		return
 	}
 
-	log.Debug(start)
+	log.Info(start)
 
 	for _, expiredBucket := range expiredBuckets {
 		common.EmptyBucket(sessions.Bucket, expiredBucket.Identifier, expiredBucket.ObjectsInfos)
-		common.DeleteBucket(sessions.Bucket, expiredBucket)
+		common.DeleteBucket(sessions.Bucket, expiredBucket, options.Zone)
 	}
 }

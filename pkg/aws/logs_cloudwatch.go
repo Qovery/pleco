@@ -105,19 +105,21 @@ func DeleteExpiredLogs(sessions AWSSessions, options AwsOptions) {
 
 	count, start := common.ElemToDeleteFormattedInfos("expired Cloudwatch log", len(expiredLogs), region)
 
-	log.Debug(count)
+	log.Info(count)
 
 	if options.DryRun || len(expiredLogs) == 0 {
 		return
 	}
 
-	log.Debug(start)
+	log.Info(start)
 
 	for _, completeLog := range expiredLogs {
 		_, deletionErr := deleteCloudwatchLog(*sessions.CloudWatchLogs, completeLog.Identifier)
 		if deletionErr != nil {
 			log.Errorf("Deletion Cloudwatch error %s/%s: %s",
 				completeLog.Identifier, region, deletionErr)
+		} else {
+			log.Debugf("Cloudwatch logs %s in %s deleted.", completeLog.Identifier, region)
 		}
 	}
 
@@ -163,13 +165,13 @@ func DeleteUnlinkedLogs(sessions AWSSessions, options AwsOptions) {
 
 	count, start := common.ElemToDeleteFormattedInfos("unlinked Cloudwatch log", len(deletableLogs), region)
 
-	log.Debug(count)
+	log.Info(count)
 
 	if options.DryRun || len(deletableLogs) == 0 {
 		return
 	}
 
-	log.Debug(start)
+	log.Info(start)
 
 	for _, deletableLog := range deletableLogs {
 		if deletableLog != "null" {

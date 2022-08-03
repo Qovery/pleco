@@ -90,7 +90,10 @@ func deleteUserAccessKey(iamSession *iam.IAM, userName string, accessKeyId strin
 
 	if err != nil {
 		log.Errorf("Can't delete access key %s : %s", accessKeyId, err.Error())
+	} else {
+		log.Debugf("Iam Acces key %s for %s in %s deleted.", accessKeyId, userName, *iamSession.Config.Region)
 	}
+
 }
 
 func deleteExpiredUserAccessKeys(iamSession *iam.IAM, userName string) {
@@ -119,13 +122,13 @@ func DeleteExpiredUsers(iamSession *iam.IAM, options *AwsOptions) {
 		s = fmt.Sprintf("There are %d expired IAM users to delete.", len(expiredUsers))
 	}
 
-	log.Debug(s)
+	log.Info(s)
 
 	if options.DryRun || len(expiredUsers) == 0 {
 		return
 	}
 
-	log.Debug("Starting expired IAM users deletion.")
+	log.Info("Starting expired IAM users deletion.")
 
 	for _, user := range expiredUsers {
 		HandleUserPolicies(iamSession, user.Identifier)
@@ -137,6 +140,8 @@ func DeleteExpiredUsers(iamSession *iam.IAM, options *AwsOptions) {
 			})
 		if userErr != nil {
 			log.Errorf("Can't delete user %s : %s", user.Identifier, userErr.Error())
+		} else {
+			log.Debugf("IAM user %s in %s deleted.", user.Identifier, *iamSession.Config.Region)
 		}
 	}
 }

@@ -19,16 +19,16 @@ func DeleteExpiredDatabases(sessions ScalewaySessions, options ScalewayOptions) 
 
 	count, start := common.ElemToDeleteFormattedInfos("expired database", len(expiredDatabases), options.Zone, true)
 
-	log.Debug(count)
+	log.Info(count)
 
 	if options.DryRun || len(expiredDatabases) == 0 {
 		return
 	}
 
-	log.Debug(start)
+	log.Info(start)
 
 	for _, expiredDb := range expiredDatabases {
-		deleteDB(sessions.Database, expiredDb)
+		deleteDB(sessions.Database, expiredDb, options.Zone)
 	}
 }
 
@@ -75,7 +75,7 @@ func listDatabases(dbAPI *rdb.API, tagName string) ([]ScalewayDB, string) {
 	return databases, input.Region.String()
 }
 
-func deleteDB(dbAPI *rdb.API, db ScalewayDB) {
+func deleteDB(dbAPI *rdb.API, db ScalewayDB, region string) {
 	_, err := dbAPI.DeleteInstance(
 		&rdb.DeleteInstanceRequest{
 			InstanceID: db.Identifier,
@@ -83,5 +83,7 @@ func deleteDB(dbAPI *rdb.API, db ScalewayDB) {
 
 	if err != nil {
 		log.Errorf("Can't delete database %s: %s", db.Name, err.Error())
+	} else {
+		log.Debugf("Database %s in %s deleted.", db.Name, region)
 	}
 }

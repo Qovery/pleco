@@ -73,10 +73,6 @@ func listTaggedSqsQueues(svc sqs.SQS, tagName string) ([]sqsQueue, error) {
 }
 
 func deleteSqsQueue(svc sqs.SQS, queue sqsQueue) error {
-
-	log.Infof("Deleting SQS queue %s in %s, expired after %d seconds",
-		queue.Identifier, *svc.Config.Region, queue.TTL)
-
 	_, err := svc.DeleteQueue(
 		&sqs.DeleteQueueInput{
 			QueueUrl: aws.String(queue.Identifier),
@@ -112,18 +108,20 @@ func DeleteExpiredSQSQueues(sessions AWSSessions, options AwsOptions) {
 
 	count, start := common.ElemToDeleteFormattedInfos("expired SQS Queues", len(expiredQueues), region)
 
-	log.Debug(count)
+	log.Info(count)
 
 	if options.DryRun || len(expiredQueues) == 0 {
 		return
 	}
 
-	log.Debug(start)
+	log.Info(start)
 
 	for _, queue := range expiredQueues {
 		deletionErr := deleteSqsQueue(*sessions.SQS, queue)
 		if deletionErr != nil {
 			log.Errorf("Deletion SQS queue error %s/%s: %s", queue.Identifier, region, deletionErr.Error())
+		} else {
+			log.Debugf("SQS queue %s in %s deleted.", queue.Identifier, region)
 		}
 	}
 }

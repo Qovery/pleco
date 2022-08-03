@@ -19,18 +19,18 @@ type DOLB struct {
 func DeleteExpiredLBs(sessions DOSessions, options DOOptions) {
 	expiredLBs := getExpiredLBs(sessions.Client, &options)
 
-	count, start := common.ElemToDeleteFormattedInfos("expired load balancer", len(expiredLBs), "")
+	count, start := common.ElemToDeleteFormattedInfos("expired load balancer", len(expiredLBs), options.Region)
 
-	log.Debug(count)
+	log.Info(count)
 
 	if options.DryRun || len(expiredLBs) == 0 {
 		return
 	}
 
-	log.Debug(start)
+	log.Info(start)
 
 	for _, expiredLB := range expiredLBs {
-		deleteLB(sessions.Client, expiredLB)
+		deleteLB(sessions.Client, expiredLB, options.Region)
 	}
 }
 
@@ -80,10 +80,12 @@ func getExpiredLBs(client *godo.Client, options *DOOptions) []DOLB {
 	return expiredLBs
 }
 
-func deleteLB(client *godo.Client, loadBalancer DOLB) {
+func deleteLB(client *godo.Client, loadBalancer DOLB, region string) {
 	_, err := client.LoadBalancers.Delete(context.TODO(), loadBalancer.Identifier)
 
 	if err != nil {
 		log.Errorf("Can't delete load balancer %s: %s", loadBalancer.Name, err.Error())
+	} else {
+		log.Debugf("Load balancer %s in %s deleted.", loadBalancer.Name, region)
 	}
 }

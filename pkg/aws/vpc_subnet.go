@@ -68,6 +68,8 @@ func DeleteSubnetsByIds(ec2Session *ec2.EC2, subnets []Subnet) {
 
 			if err != nil {
 				log.Error(err)
+			} else {
+				log.Debugf("Subnet %s in %s deleted.", subnet.Id, *ec2Session.Config.Region)
 			}
 		}
 	}
@@ -101,17 +103,17 @@ func DeleteVPCLinkedResourcesWithQuota(sessions AWSSessions, options AwsOptions)
 	sCount, sStart := common.ElemToDeleteFormattedInfos("expired VPC Subnet", subnetCount, region)
 	rtCount, rtStart := common.ElemToDeleteFormattedInfos("expired VPC Route Table", routeTableCount, region)
 
-	log.Debug(sgCount)
-	log.Debug(sCount)
-	log.Debug(rtCount)
+	log.Info(sgCount)
+	log.Info(sCount)
+	log.Info(rtCount)
 
 	if options.DryRun || len(vpcs) == 0 {
 		return
 	}
 
-	log.Debug(sgStart)
-	log.Debug(sStart)
-	log.Debug(rtStart)
+	log.Info(sgStart)
+	log.Info(sStart)
+	log.Info(rtStart)
 
 	for _, vpc := range vpcs {
 		DeleteSecurityGroupsByIds(sessions.EC2, vpc.SecurityGroups)

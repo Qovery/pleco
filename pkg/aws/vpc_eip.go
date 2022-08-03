@@ -67,6 +67,8 @@ func ReleaseElasticIps(ec2Session *ec2.EC2, eips []ElasticIp) {
 
 		if detachErr != nil {
 			log.Errorf("Can't release EIP %s: %s", eip.Identifier, detachErr.Error())
+		} else {
+			log.Debugf("EIP %s in %s released.", eip.Identifier, *ec2Session.Config.Region)
 		}
 	}
 
@@ -80,6 +82,8 @@ func deleteElasticIp(ec2Session *ec2.EC2, eip ElasticIp) {
 
 	if releaseErr != nil {
 		log.Errorf("Can't release EIP %s: %s", eip.Identifier, releaseErr.Error())
+	} else {
+		log.Debugf("EIP %s in %s deleted.", eip.Identifier, *ec2Session.Config.Region)
 	}
 }
 
@@ -102,13 +106,13 @@ func DeleteExpiredElasticIps(sessions AWSSessions, options AwsOptions) {
 
 	count, start := common.ElemToDeleteFormattedInfos("expired EIP", len(expiredEips), *sessions.EC2.Config.Region)
 
-	log.Debug(count)
+	log.Info(count)
 
 	if options.DryRun || len(expiredEips) == 0 {
 		return
 	}
 
-	log.Debug(start)
+	log.Info(start)
 
 	for _, elasticIp := range expiredEips {
 		deleteElasticIp(sessions.EC2, elasticIp)

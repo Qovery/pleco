@@ -22,13 +22,13 @@ func DeleteExpiredLBs(sessions ScalewaySessions, options ScalewayOptions) {
 
 	count, start := common.ElemToDeleteFormattedInfos("expired load balancer", len(expiredLBs), region)
 
-	log.Debug(count)
+	log.Info(count)
 
 	if options.DryRun || len(expiredLBs) == 0 {
 		return
 	}
 
-	log.Debug(start)
+	log.Info(start)
 
 	for _, expiredLB := range expiredLBs {
 		deleteLB(sessions.LoadBalancer, options.Region, expiredLB)
@@ -123,5 +123,7 @@ func deleteLB(lbAPI *lb.API, region scw.Region, loadBalancer ScalewayLB) {
 
 	if err != nil {
 		log.Errorf("Can't delete load balancer %s: %s", loadBalancer.Name, err.Error())
+	} else {
+		log.Debugf("Load balancer %s in %s deleted.", loadBalancer.Name, region)
 	}
 }

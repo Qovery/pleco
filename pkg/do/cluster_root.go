@@ -20,16 +20,16 @@ func DeleteExpiredClusters(sessions DOSessions, options DOOptions) {
 
 	count, start := common.ElemToDeleteFormattedInfos("expired cluster", len(expiredClusters), region)
 
-	log.Debug(count)
+	log.Info(count)
 
 	if options.DryRun || len(expiredClusters) == 0 {
 		return
 	}
 
-	log.Debug(start)
+	log.Info(start)
 
 	for _, expiredCluster := range expiredClusters {
-		deleteCluster(sessions.Client, expiredCluster)
+		deleteCluster(sessions.Client, expiredCluster, region)
 	}
 }
 
@@ -75,10 +75,12 @@ func getExpiredClusters(client *godo.Client, options *DOOptions) ([]DOCluster, s
 	return expiredClusters, options.Region
 }
 
-func deleteCluster(client *godo.Client, cluster DOCluster) {
+func deleteCluster(client *godo.Client, cluster DOCluster, region string) {
 	_, err := client.Kubernetes.Delete(context.TODO(), cluster.Identifier)
 
 	if err != nil {
 		log.Errorf("Can't delete cluster %s: %s", cluster.Name, err.Error())
+	} else {
+		log.Debugf("DOKS cluster %s in %s deleted.", cluster.Name, region)
 	}
 }

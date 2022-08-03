@@ -1,8 +1,8 @@
 package scaleway
 
 import (
-	"fmt"
 	"github.com/scaleway/scaleway-sdk-go/api/k8s/v1"
+	"github.com/scaleway/scaleway-sdk-go/scw"
 	"strings"
 	"time"
 
@@ -15,37 +15,33 @@ import (
 func DeleteEmptyContainerRegistries(sessions ScalewaySessions, options ScalewayOptions) {
 	emptyRegistries, _ := getEmptyRegistries(sessions.Namespace, &options)
 	expiredRegirstries, _ := getExpiredRegistries(sessions.Cluster, sessions.Namespace, &options)
-	deletableRegistries := make(map[string]string)
+	deletableRegistriesIds := make(map[string]string)
 
 	for _, emptyRegistry := range emptyRegistries {
-		deletableRegistries[emptyRegistry.ID] = emptyRegistry.ID
+		deletableRegistriesIds[emptyRegistry.ID] = emptyRegistry.ID
 	}
 
 	for _, expiredRegirstry := range expiredRegirstries {
-		deletableRegistries[expiredRegirstry] = expiredRegirstry
+		deletableRegistriesIds[expiredRegirstry] = expiredRegirstry
 	}
 
-	count, start := common.ElemToDeleteFormattedInfos("expired Scaleway namespace", len(deletableRegistries), options.Zone, true)
+	count, start := common.ElemToDeleteFormattedInfos("expired Scaleway namespace", len(deletableRegistriesIds), options.Region.String(), false)
 
-	log.Debug(count)
+	log.Info(count)
 
-	if options.DryRun || len(emptyRegistries) == 0 {
+	if options.DryRun || len(deletableRegistriesIds) == 0 {
 		return
 	}
 
-	log.Debug(start)
+	log.Info(start)
 
-	for _, emptyRegistry := range emptyRegistries {
-		deleteRegistry(sessions.Namespace, emptyRegistry.ID)
-	}
-
-	for _, expiredRegistryId := range expiredRegirstries {
-		deleteRegistry(sessions.Namespace, expiredRegistryId)
+	for _, deletableRegistryId := range deletableRegistriesIds {
+		deleteRegistry(sessions.Namespace, deletableRegistryId, options.Region.String())
 	}
 }
 
-func listRegistries(registryAPI *registry.API) ([]*registry.Namespace, string) {
-	input := &registry.ListNamespacesRequest{}
+func listRegistries(registryAPI *registry.API, region string) ([]*registry.Namespace, string) {
+	input := &registry.ListNamespacesRequest{Region: scw.Region(region), PageSize: scw.Uint32Ptr(100)}
 	result, err := registryAPI.ListNamespaces(input)
 	if err != nil {
 		log.Errorf("Can't list container registries for region %s: %s", input.Region, err.Error())
@@ -56,11 +52,11 @@ func listRegistries(registryAPI *registry.API) ([]*registry.Namespace, string) {
 }
 
 func getEmptyRegistries(registryAPI *registry.API, options *ScalewayOptions) ([]*registry.Namespace, string) {
-	registries, region := listRegistries(registryAPI)
+	registries, region := listRegistries(registryAPI, options.Region.String())
 
 	emptyRegistries := []*registry.Namespace{}
 	for _, reg := range registries {
-		if options.IsDestroyingCommand || (reg.ImageCount == 0 && reg.CreatedAt.UTC().Add(time.Hour).Before(time.Now().UTC())) {
+		if options.IsDestroyingCommand || (reg.ImageCount == 0 && reg.CreatedAt.UTC().Add(time.Hour).Before(time.Now().UTC())) && reg.Status != "deleting" {
 			emptyRegistries = append(emptyRegistries, reg)
 		}
 	}
@@ -70,20 +66,17 @@ func getEmptyRegistries(registryAPI *registry.API, options *ScalewayOptions) ([]
 
 func getExpiredRegistries(clusterAPI *k8s.API, registryAPI *registry.API, options *ScalewayOptions) ([]string, string) {
 	clusters, _ := ListClusters(clusterAPI, options.TagName)
-	registries, region := listRegistries(registryAPI)
+	registries, region := listRegistries(registryAPI, options.Region.String())
 
 	checkingRegistries := make(map[string]string)
 	for _, registry := range registries {
-		if options.IsDestroyingCommand || registry.CreatedAt.UTC().Add(4*time.Hour).Before(time.Now().UTC()) {
-			checkingRegistries[registry.ID] = registry.ID
+		if options.IsDestroyingCommand || (registry.CreatedAt.UTC().Add(3*time.Hour).Before(time.Now().UTC()) && registry.Status != "deleting") {
+			checkingRegistries[registry.Name] = registry.ID
 		}
 	}
 	for _, cluster := range clusters {
 		splitedName := strings.Split(cluster.Name, "-")
-		configName := fmt.Sprintf("%s-kubeconfigs-%s", splitedName[0], splitedName[1])
-		logsName := fmt.Sprintf("%s-logs-%s", splitedName[0], splitedName[1])
-		checkingRegistries[configName] = "keep-me"
-		checkingRegistries[logsName] = "keep-me"
+		checkingRegistries[splitedName[1]] = "keep-me"
 	}
 
 	expiredRegistriesId := []string{}
@@ -97,14 +90,17 @@ func getExpiredRegistries(clusterAPI *k8s.API, registryAPI *registry.API, option
 	return expiredRegistriesId, region
 }
 
-func deleteRegistry(registryAPI *registry.API, registryId string) {
-	_, err := registryAPI.DeleteNamespace(
+func deleteRegistry(registryAPI *registry.API, registryId string, region string) {
+	ns, err := registryAPI.DeleteNamespace(
 		&registry.DeleteNamespaceRequest{
+			Region:      scw.Region(region),
 			NamespaceID: registryId,
 		},
 	)
 
 	if err != nil {
-		log.Errorf("Can't delete container registry with Id %s: %s", registryId, err.Error())
+		log.Errorf("Can't delete container registry %s in %s: %s", ns.Name, ns.Region, err.Error())
+	} else {
+		log.Debugf("Registry %s in %s deleted.", ns.Name, ns.Region)
 	}
 }

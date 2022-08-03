@@ -24,16 +24,16 @@ func DeleteDetachedSecurityGroups(sessions ScalewaySessions, options ScalewayOpt
 
 	count, start := common.ElemToDeleteFormattedInfos("detached security group", len(detachedSGs), options.Zone, true)
 
-	log.Debug(count)
+	log.Info(count)
 
 	if options.DryRun || len(detachedSGs) == 0 {
 		return
 	}
 
-	log.Debug(start)
+	log.Info(start)
 
 	for _, detachedSG := range detachedSGs {
-		deleteSG(sessions.SG, detachedSG)
+		deleteSG(sessions.SG, detachedSG, options.Zone)
 	}
 }
 
@@ -79,7 +79,7 @@ func getDetachedSG(instanceAPI *instance.API, options *ScalewayOptions) ([]Scale
 	return detachedSgs, region
 }
 
-func deleteSG(instanceAPI *instance.API, securityGroup ScalewaySecurityGroup) {
+func deleteSG(instanceAPI *instance.API, securityGroup ScalewaySecurityGroup, region string) {
 	err := instanceAPI.DeleteSecurityGroup(
 		&instance.DeleteSecurityGroupRequest{
 			SecurityGroupID: securityGroup.ID,
@@ -88,5 +88,7 @@ func deleteSG(instanceAPI *instance.API, securityGroup ScalewaySecurityGroup) {
 
 	if err != nil {
 		log.Errorf("Can't delete security group %s: %s", securityGroup.Name, err.Error())
+	} else {
+		log.Debugf("Database %s in %s deleted.", securityGroup.Name, region)
 	}
 }

@@ -6,12 +6,12 @@ import (
 )
 
 func DeleteExpiredIAM(iamSession *iam.IAM, options *AwsOptions) {
-	log.Debug("Listing all IAM users.")
+	log.Info("Listing all IAM users.")
 	DeleteExpiredUsers(iamSession, options)
 
-	log.Debug("Listing all IAM roles.")
+	log.Info("Listing all IAM roles.")
 	DeleteExpiredRoles(iamSession, options)
 
-	log.Debug("Listing all IAM policies.")
+	log.Info("Listing all IAM policies.")
 	DeleteDetachedPolicies(iamSession, options.DryRun)
 }

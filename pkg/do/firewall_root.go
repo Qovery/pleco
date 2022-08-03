@@ -23,16 +23,16 @@ func DeleteExpiredFirewalls(sessions DOSessions, options DOOptions) {
 
 	count, start := common.ElemToDeleteFormattedInfos(fmt.Sprintf("detached (%d hours delay) firewall", volumeTimeout()), len(expiredFirewalls), options.Region)
 
-	log.Debug(count)
+	log.Info(count)
 
 	if options.DryRun || len(expiredFirewalls) == 0 {
 		return
 	}
 
-	log.Debug(start)
+	log.Info(start)
 
 	for _, expiredFirewall := range expiredFirewalls {
-		deleteFirewall(sessions.Client, expiredFirewall)
+		deleteFirewall(sessions.Client, expiredFirewall, options.Region)
 	}
 }
 
@@ -76,10 +76,12 @@ func getDetachedFirewalls(client *godo.Client, options *DOOptions) []DOFirewall 
 	return detachedFirewalls
 }
 
-func deleteFirewall(client *godo.Client, detachedFirewall DOFirewall) {
+func deleteFirewall(client *godo.Client, detachedFirewall DOFirewall, region string) {
 	_, err := client.Firewalls.Delete(context.TODO(), detachedFirewall.ID)
 
 	if err != nil {
 		log.Errorf("Can't delete detached firewall %s: %s", detachedFirewall.Name, err.Error())
+	} else {
+		log.Debugf("Firewall %s in %s deleted.", detachedFirewall.Name, region)
 	}
 }

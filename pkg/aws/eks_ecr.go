@@ -63,13 +63,13 @@ func DeleteEmptyRepositories(sessions AWSSessions, options AwsOptions) {
 		s = fmt.Sprintf("There are %d empty ECR repositories to delete in region %s.", len(emptyRepositoryNames), *region)
 	}
 
-	log.Debug(s)
+	log.Info(s)
 
 	if options.DryRun || len(emptyRepositoryNames) == 0 {
 		return
 	}
 
-	log.Debugf("Starting ECR repositories deletion for region %s.", *region)
+	log.Infof("Starting ECR repositories deletion for region %s.", *region)
 
 	for _, repositoryName := range emptyRepositoryNames {
 		_, err := sessions.ECR.DeleteRepository(
@@ -80,6 +80,8 @@ func DeleteEmptyRepositories(sessions AWSSessions, options AwsOptions) {
 		if err != nil {
 			log.Errorf("Deletion ECR repository error %s/%s: %s",
 				repositoryName, *region, err)
+		} else {
+			log.Debugf("ECR %s in %s deleted.", repositoryName, *region)
 		}
 	}
 }

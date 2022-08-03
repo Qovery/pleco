@@ -57,6 +57,8 @@ func deletePolicyVersions(iamSession *iam.IAM, policy iam.Policy) {
 			if err != nil {
 				log.Errorf("Can't delete versions of policy %s : %s", *policy.PolicyName, err.Error())
 			}
+
+			log.Debugf("IAM policy version %s in %s deleted.", policy.PolicyName, *iamSession.Config.Region)
 		}
 	}
 }
@@ -80,13 +82,13 @@ func DeleteDetachedPolicies(iamSession *iam.IAM, dryRun bool) {
 		s = fmt.Sprintf("There are %d detached IAM policies to delete.", len(detachedPolicies))
 	}
 
-	log.Debug(s)
+	log.Info(s)
 
 	if dryRun || len(detachedPolicies) == 0 {
 		return
 	}
 
-	log.Debug("Starting detached policies deletion.")
+	log.Info("Starting detached policies deletion.")
 
 	for _, expiredPolicy := range detachedPolicies {
 		deletePolicyVersions(iamSession, expiredPolicy)
@@ -157,6 +159,8 @@ func detachUserPolicies(iamSession *iam.IAM, userName string, policies []Policy)
 			if err != nil {
 				log.Errorf("Can not detach policiy %s for user %s : %s", policy.Name, userName, err.Error())
 			}
+
+			log.Debugf("IAM policy %s in %s detached.", policy.Name, *iamSession.Config.Region)
 		}
 	}
 }
@@ -172,6 +176,8 @@ func deleteUserPolicies(iamSession *iam.IAM, userName string, policies []Policy)
 
 			if err != nil {
 				log.Errorf("Can not delete policy %s for user %s : %s", policy.Name, userName, err.Error())
+			} else {
+				log.Debugf("Iam Policy %s in %s deleted.", policy.Name, *iamSession.Config.Region)
 			}
 		}
 	}
@@ -179,8 +185,8 @@ func deleteUserPolicies(iamSession *iam.IAM, userName string, policies []Policy)
 
 func HandleUserPolicies(iamSession *iam.IAM, userName string) {
 	policies := getUserPolicies(iamSession, userName)
-	deleteUserPolicies(iamSession, userName, policies)
 	detachUserPolicies(iamSession, userName, policies)
+	deleteUserPolicies(iamSession, userName, policies)
 }
 
 func getRolePolicies(iamSession *iam.IAM, roleName string) []Policy {

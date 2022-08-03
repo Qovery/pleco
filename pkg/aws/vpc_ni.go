@@ -73,6 +73,8 @@ func deleteNetworkInterface(ec2Session *ec2.EC2, ni NetworkInterface) {
 		})
 	if err != nil {
 		logrus.Errorf("Can't delete network interface %s: %s", ni.Id, err.Error())
+	} else {
+		logrus.Debugf("Network interface %s in %s deleted.", ni.Id, *ec2Session.Config.Region)
 	}
 }
 

@@ -131,13 +131,13 @@ func DeleteExpiredElasticacheDatabases(sessions AWSSessions, options AwsOptions)
 
 	count, start := common.ElemToDeleteFormattedInfos("expired Elasticache database", len(expiredClusters), region)
 
-	log.Debug(count)
+	log.Info(count)
 
 	if options.DryRun || len(expiredClusters) == 0 {
 		return
 	}
 
-	log.Debug(start)
+	log.Info(start)
 
 	for _, cluster := range expiredClusters {
 		deleteECSubnetGroups(sessions.ElastiCache, cluster.SubnetGroup)
@@ -157,6 +157,8 @@ func deleteECSubnetGroups(ECsession *elasticache.ElastiCache, subnetGroupName st
 
 	if err != nil {
 		log.Errorf("Can't delete elasticache subnet group %s: %s", subnetGroupName, err.Error())
+	} else {
+		log.Debugf("elasticache subnet group %s in %s deleted.", subnetGroupName, *ECsession.Config.Region)
 	}
 }
 
@@ -200,13 +202,13 @@ func DeleteUnlinkedECSubnetGroups(sessions AWSSessions, options AwsOptions) {
 
 	count, start := common.ElemToDeleteFormattedInfos("unliked Elasticache subnet group", len(unlinkedSubnetGroupNames), *sessions.ElastiCache.Config.Region)
 
-	log.Debug(count)
+	log.Info(count)
 
 	if options.DryRun || len(unlinkedSubnetGroupNames) == 0 {
 		return
 	}
 
-	log.Debug(start)
+	log.Info(start)
 
 	for _, unlinkedSubnetGroupName := range unlinkedSubnetGroupNames {
 		deleteECSubnetGroups(sessions.ElastiCache, unlinkedSubnetGroupName)

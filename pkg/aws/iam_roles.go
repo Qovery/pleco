@@ -96,13 +96,13 @@ func DeleteExpiredRoles(iamSession *iam.IAM, options *AwsOptions) {
 		s = fmt.Sprintf("There are %d expired IAM roles to delete.", len(expiredRoles))
 	}
 
-	log.Debug(s)
+	log.Info(s)
 
 	if options.DryRun || len(expiredRoles) == 0 {
 		return
 	}
 
-	log.Debug("Starting expired IAM roles deletion.")
+	log.Info("Starting expired IAM roles deletion.")
 
 	for _, role := range expiredRoles {
 		HandleRolePolicies(iamSession, role.Identifier)
@@ -115,6 +115,8 @@ func DeleteExpiredRoles(iamSession *iam.IAM, options *AwsOptions) {
 
 		if err != nil {
 			log.Errorf("Can't delete role %s : %s", role.Identifier, err)
+		} else {
+			log.Debugf("Iam Role %s in %s deleted.", role.Identifier, *iamSession.Config.Region)
 		}
 	}
 }
@@ -143,6 +145,8 @@ func removeRoleFromInstanceProfile(iamSession *iam.IAM, roleInstanceProfiles []*
 
 		if err != nil {
 			log.Errorf("Can't remove instance profile %s for role %s : %s", *instanceProfile.InstanceProfileName, roleName, err)
+		} else {
+			log.Debugf("Instance profile %s for role %s in %s removed.", *instanceProfile.InstanceProfileName, roleName, *iamSession.Config.Region)
 		}
 	}
 }

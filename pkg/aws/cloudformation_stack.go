@@ -97,18 +97,20 @@ func DeleteExpiredStacks(sessions AWSSessions, options AwsOptions) {
 
 	count, start := common.ElemToDeleteFormattedInfos("expired CloudFormation Stacks", len(expiredStacks), region)
 
-	log.Debug(count)
+	log.Info(count)
 
 	if options.DryRun || len(expiredStacks) == 0 {
 		return
 	}
 
-	log.Debug(start)
+	log.Info(start)
 
 	for _, stack := range expiredStacks {
 		deletionErr := deleteStack(*sessions.CloudFormation, stack)
 		if deletionErr != nil {
 			log.Errorf("Deletion CloudFormation Stack error %s/%s: %s", stack.Identifier, region, deletionErr.Error())
+		} else {
+			log.Debugf("CloudFormation Stack %s in %s deleted.", stack.Identifier, region)
 		}
 	}
 }

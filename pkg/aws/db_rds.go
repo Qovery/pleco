@@ -157,13 +157,13 @@ func DeleteExpiredRDSDatabases(sessions AWSSessions, options AwsOptions) {
 
 	count, start := common.ElemToDeleteFormattedInfos("expired RDS database", len(expiredDatabases), region)
 
-	log.Debug(count)
+	log.Info(count)
 
 	if options.DryRun || len(expiredDatabases) == 0 || expiredDatabases == nil {
 		return
 	}
 
-	log.Debug(start)
+	log.Info(start)
 
 	for _, database := range expiredDatabases {
 		DeleteRDSDatabase(*sessions.RDS, database)
@@ -246,13 +246,13 @@ func DeleteExpiredRDSSubnetGroups(sessions AWSSessions, options AwsOptions) {
 
 	count, start := common.ElemToDeleteFormattedInfos("expired RDS subnet group", len(expiredRDSSubnetGroups), region)
 
-	log.Debug(count)
+	log.Info(count)
 
 	if options.DryRun || len(expiredRDSSubnetGroups) == 0 {
 		return
 	}
 
-	log.Debug(start)
+	log.Info(start)
 
 	for _, expiredRDSSubnetGroup := range expiredRDSSubnetGroups {
 		DeleteRDSSubnetGroup(*sessions.RDS, expiredRDSSubnetGroup.Identifier)
@@ -325,13 +325,13 @@ func DeleteExpiredCompleteRDSParameterGroups(sessions AWSSessions, options AwsOp
 
 	count, start := common.ElemToDeleteFormattedInfos("expired RDS Parameter Group", len(expiredRDSParameterGroups), region)
 
-	log.Debug(count)
+	log.Info(count)
 
 	if options.DryRun || len(expiredRDSParameterGroups) == 0 || expiredRDSParameterGroups == nil {
 		return
 	}
 
-	log.Debug(start)
+	log.Info(start)
 
 	for _, dbParameterGroup := range expiredRDSParameterGroups {
 		deleteRDSParameterGroups(*sessions.RDS, dbParameterGroup.Identifier)
@@ -393,7 +393,10 @@ func deleteSnapshot(svc rds.RDS, snapName string) {
 
 	if err != nil {
 		log.Errorf("Can't delete RDS snapshot %s in region %s: %s", snapName, *svc.Config.Region, err.Error())
+	} else {
+		log.Debugf("RDS snapshot %s in %s deleted.", snapName, *svc.Config.Region)
 	}
+
 }
 
 func DeleteExpiredSnapshots(sessions AWSSessions, options AwsOptions) {
@@ -402,13 +405,13 @@ func DeleteExpiredSnapshots(sessions AWSSessions, options AwsOptions) {
 
 	count, start := common.ElemToDeleteFormattedInfos("expired RDS snapshot", len(expiredSnapshots), region)
 
-	log.Debug(count)
+	log.Info(count)
 
 	if options.DryRun || len(expiredSnapshots) == 0 || expiredSnapshots == nil {
 		return
 	}
 
-	log.Debug(start)
+	log.Info(start)
 
 	for _, snapshot := range expiredSnapshots {
 		deleteSnapshot(*sessions.RDS, *snapshot.DBSnapshotIdentifier)

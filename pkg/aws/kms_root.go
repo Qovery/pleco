@@ -114,18 +114,20 @@ func DeleteExpiredKeys(sessions AWSSessions, options AwsOptions) {
 
 	count, start := common.ElemToDeleteFormattedInfos("expired KMS key", len(expiredKeys), *region)
 
-	log.Debug(count)
+	log.Info(count)
 
 	if options.DryRun || len(expiredKeys) == 0 {
 		return
 	}
 
-	log.Debug(start)
+	log.Info(start)
 
 	for _, key := range expiredKeys {
 		_, deletionErr := deleteKey(*sessions.KMS, key.Identifier)
 		if deletionErr != nil {
 			log.Errorf("Deletion KMS key error %s/%s: %s", key.Identifier, *region, deletionErr)
+		} else {
+			log.Debugf("KMS key %s in %s deleted.", key.Identifier, *sessions.KMS.Config.Region)
 		}
 	}
 }

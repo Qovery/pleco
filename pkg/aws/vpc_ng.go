@@ -69,6 +69,8 @@ func DeleteNatGatewaysByIds(ec2Session *ec2.EC2, natGateways []NatGateway) {
 
 			if deleteErr != nil {
 				log.Error(deleteErr)
+			} else {
+				log.Debugf("Nat Gateway %s in %s deleted.", natGateway.Id, *ec2Session.Config.Region)
 			}
 		}
 	}

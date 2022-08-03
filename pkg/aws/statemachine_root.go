@@ -54,10 +54,6 @@ func listTaggedStateMachines(svc sfn.SFN, tagName string) ([]stateMachine, error
 }
 
 func deleteStateMachine(svc sfn.SFN, machine stateMachine) error {
-
-	log.Infof("Deleting Step Function %s in %s, expired after %d seconds",
-		machine.machineName, *svc.Config.Region, machine.TTL)
-
 	_, err := svc.DeleteStateMachine(&sfn.DeleteStateMachineInput{
 		StateMachineArn: &machine.Identifier,
 	},
@@ -91,18 +87,20 @@ func DeleteExpiredStateMachines(sessions AWSSessions, options AwsOptions) {
 
 	count, start := common.ElemToDeleteFormattedInfos("expired Step Function", len(expiredMachines), region)
 
-	log.Debug(count)
+	log.Info(count)
 
 	if options.DryRun || len(expiredMachines) == 0 {
 		return
 	}
 
-	log.Debug(start)
+	log.Info(start)
 
 	for _, machine := range expiredMachines {
 		deletionErr := deleteStateMachine(*sessions.SFN, machine)
 		if deletionErr != nil {
 			log.Errorf("Deletion Step function error %s/%s: %s", machine.machineName, region, deletionErr.Error())
+		} else {
+			log.Debugf("Step function %s in %s deleted.", machine.machineName, region)
 		}
 	}
 }
