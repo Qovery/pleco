@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"os"
 	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -128,8 +129,8 @@ func listTaggedVPC(ec2Session *ec2.EC2, options *AwsOptions) ([]VpcInfo, error) 
 	return taggedVPCs, nil
 }
 
-func deleteVPC(sessions AWSSessions, VpcList []VpcInfo, dryRun bool) error {
-	if dryRun {
+func deleteVPC(sessions AWSSessions, options AwsOptions, VpcList []VpcInfo) error {
+	if options.DryRun {
 		return nil
 	}
 
@@ -141,7 +142,18 @@ func deleteVPC(sessions AWSSessions, VpcList []VpcInfo, dryRun bool) error {
 	region := ec2Session.Config.Region
 
 	for _, vpc := range VpcList {
-		DeleteLoadBalancerByVpcId(sessions.ELB, vpc, dryRun)
+		if options.DisableTTLCheck {
+			vpcId, isOk := os.LookupEnv("PROTECTED_VPC_ID")
+			if !isOk || vpcId == "" {
+				log.Fatalf("Unable to get PROTECTED_VPC_ID environment variable in order to protect VPC resources.")
+			}
+			if vpcId == vpc.Identifier {
+				log.Debugf("Skipping VPC %s in region %s (protected vpc)", vpc.Identifier, *region)
+				continue
+			}
+		}
+
+		DeleteLoadBalancerByVpcId(sessions.ELB, vpc, options.DryRun)
 		DeleteNetworkInterfacesByVpcId(ec2Session, vpc.Identifier)
 		ReleaseElasticIps(ec2Session, vpc.ElasticIps)
 		DeleteSecurityGroupsByIds(ec2Session, vpc.SecurityGroups)
@@ -183,7 +195,7 @@ func DeleteExpiredVPC(sessions AWSSessions, options AwsOptions) {
 
 	log.Info(start)
 
-	_ = deleteVPC(sessions, VPCs, options.DryRun)
+	_ = deleteVPC(sessions, options, VPCs)
 
 }
 

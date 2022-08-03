@@ -3,6 +3,7 @@ package pkg
 import (
 	"strings"
 	"sync"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -54,7 +55,11 @@ func StartDestroy(cloudProvider string, disableDryRun bool, cmd *cobra.Command) 
 
 	common.CheckEnvVars(cloudProvider, cmd)
 
-	run(cloudProvider, dryRun, 0, false, cmd, &wg)
+	for i := 1; i <= 10; i++ {
+		wg.Add(1)
+		run(cloudProvider, dryRun, 0, false, cmd, &wg)
+		time.Sleep(time.Minute)
+	}
 
 	wg.Wait()
 }

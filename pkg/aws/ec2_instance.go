@@ -41,7 +41,7 @@ func listExpiredEC2Instances(ec2Session *ec2.EC2, options *AwsOptions) ([]EC2Ins
 		for _, ec2Instance := range currentReservation.Instances {
 			// available instance states listed here: https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_InstanceState.html
 			if *ec2Instance.State.Name != "running" {
-				log.Infof("Skipping EC2 instance %s in region %s (current status is %s)", *ec2Instance.InstanceId, *ec2Session.Config.Region, *ec2Instance.State.Name)
+				log.Debugf("Skipping EC2 instance %s in region %s (current status is %s)", *ec2Instance.InstanceId, *ec2Session.Config.Region, *ec2Instance.State.Name)
 				continue
 			}
 
@@ -51,10 +51,9 @@ func listExpiredEC2Instances(ec2Session *ec2.EC2, options *AwsOptions) ([]EC2Ins
 					log.Fatalf("Unable to get PROTECTED_VPC_ID environment variable in order to protect VPC resources.")
 				}
 				if vpcId == *ec2Instance.VpcId {
-					log.Infof("Skipping EC2 instance %s in region %s (protected vpc)", *ec2Instance.InstanceId, *ec2Session.Config.Region)
+					log.Debugf("Skipping EC2 instance %s in region %s (protected vpc)", *ec2Instance.InstanceId, *ec2Session.Config.Region)
 					continue
 				}
-
 			}
 
 			essentialTags := common.GetEssentialTags(ec2Instance.Tags, options.TagName)

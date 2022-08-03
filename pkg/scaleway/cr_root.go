@@ -41,7 +41,7 @@ func DeleteEmptyContainerRegistries(sessions ScalewaySessions, options ScalewayO
 }
 
 func listRegistries(registryAPI *registry.API, region string) ([]*registry.Namespace, string) {
-	input := &registry.ListNamespacesRequest{Region: scw.Region(region), PageSize: scw.Uint32Ptr(100)}
+	input := &registry.ListNamespacesRequest{Region: scw.Region(region), PageSize: scw.Uint32Ptr(1000)}
 	result, err := registryAPI.ListNamespaces(input)
 	if err != nil {
 		log.Errorf("Can't list container registries for region %s: %s", input.Region, err.Error())

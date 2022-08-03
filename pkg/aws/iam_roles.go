@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
@@ -29,6 +30,9 @@ func getRoles(iamSession *iam.IAM, tagName string) []Role {
 	var roles []Role
 
 	for _, role := range result.Roles {
+		if strings.HasPrefix(*role.RoleName, "AWS") {
+			continue
+		}
 		tags := getRoleTags(iamSession, *role.RoleName)
 		instanceProfiles := getRoleInstanceProfile(iamSession, *role.RoleName)
 		essentialTags := common.GetEssentialTags(tags, tagName)
@@ -83,7 +87,7 @@ func DeleteExpiredRoles(iamSession *iam.IAM, options *AwsOptions) {
 	var expiredRoles []Role
 
 	for _, role := range roles {
-		if role.IsResourceExpired(options.TagValue, options.DisableTTLCheck) {
+		if role.CloudProviderResource.IsResourceExpired(options.TagValue, options.DisableTTLCheck) {
 			expiredRoles = append(expiredRoles, role)
 		}
 	}

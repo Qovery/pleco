@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -72,6 +73,17 @@ func ListExpiredLoadBalancers(eksSession *eks.EKS, lbSession *elbv2.ELBV2, optio
 	}
 
 	for _, currentLb := range allLoadBalancers {
+		if options.DisableTTLCheck {
+			vpcId, isOk := os.LookupEnv("PROTECTED_VPC_ID")
+			if !isOk || vpcId == "" {
+				log.Fatalf("Unable to get PROTECTED_VPC_ID environment variable in order to protect VPC resources.")
+			}
+			if vpcId == currentLb.VpcId {
+				log.Debugf("Skipping load balancer %s in region %s (protected vpc)", currentLb.Identifier, *lbSession.Config.Region)
+				continue
+			}
+		}
+
 		if !currentLb.IsProtected && (!common.IsAssociatedToLivingCluster(currentLb.Tags, eksSession) || currentLb.IsResourceExpired(options.TagValue, options.DisableTTLCheck)) {
 			taggedLoadBalancers = append(taggedLoadBalancers, currentLb)
 		}

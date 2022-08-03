@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -281,6 +282,11 @@ func getCompleteRDSParameterGroups(svc rds.RDS, tagName string) []RDSParameterGr
 	completeRDSParameterGroups := []RDSParameterGroups{}
 
 	for _, result := range results {
+		if strings.Contains(*result.DBParameterGroupName, "default") {
+			log.Debugf("%s is a default rds parameter group, skipping...", *result.DBParameterGroupName)
+			continue
+		}
+
 		tags, tagsErr := svc.ListTagsForResource(&rds.ListTagsForResourceInput{ResourceName: aws.String(*result.DBParameterGroupArn)})
 
 		if tagsErr != nil {
