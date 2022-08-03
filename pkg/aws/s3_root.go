@@ -237,7 +237,7 @@ func DeleteExpiredBuckets(sessions AWSSessions, options AwsOptions) {
 			log.Errorf("Deletion S3 Bucket %s/%s error: %s",
 				bucket.Identifier, *region, err)
 		} else {
-			log.Debugf("S3 bucket %s in %s deleted.", bucket.Identifier, region)
+			log.Debugf("S3 bucket %s in %s deleted.", bucket.Identifier, *region)
 		}
 	}
 }

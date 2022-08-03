@@ -157,7 +157,7 @@ func deleteEKSCluster(svc *eks.EKS, ec2Session *ec2.EC2, elbSession *elbv2.ELBV2
 			if err != nil {
 				return fmt.Errorf("Error while deleting node group %v: %s\n", *nodeGroupName, err)
 			} else {
-				log.Debugf("Node group %s in %s deleted.", nodeGroupName, *svc.Config.Region)
+				log.Debugf("Node group %s in %s deleted.", *nodeGroupName, *svc.Config.Region)
 			}
 		}
 	}

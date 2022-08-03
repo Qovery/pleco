@@ -58,7 +58,7 @@ func deletePolicyVersions(iamSession *iam.IAM, policy iam.Policy) {
 				log.Errorf("Can't delete versions of policy %s : %s", *policy.PolicyName, err.Error())
 			}
 
-			log.Debugf("IAM policy version %s in %s deleted.", policy.PolicyName, *iamSession.Config.Region)
+			log.Debugf("IAM policy version %s in %s deleted.", *policy.PolicyName, *iamSession.Config.Region)
 		}
 	}
 }
