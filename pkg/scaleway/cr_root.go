@@ -40,8 +40,8 @@ func DeleteEmptyContainerRegistries(sessions ScalewaySessions, options ScalewayO
 	}
 }
 
-func listRegistries(registryAPI *registry.API, region string) ([]*registry.Namespace, string) {
-	input := &registry.ListNamespacesRequest{PageSize: scw.Uint32Ptr(1000)}
+func listRegistries(registryAPI *registry.API) ([]*registry.Namespace, string) {
+	input := &registry.ListNamespacesRequest{PageSize: scw.Uint32Ptr(500)}
 	result, err := registryAPI.ListNamespaces(input)
 	if err != nil {
 		log.Errorf("Can't list container registries for region %s: %s", input.Region, err.Error())
@@ -52,7 +52,7 @@ func listRegistries(registryAPI *registry.API, region string) ([]*registry.Names
 }
 
 func getEmptyRegistries(registryAPI *registry.API, options *ScalewayOptions) ([]*registry.Namespace, string) {
-	registries, region := listRegistries(registryAPI, options.Region.String())
+	registries, region := listRegistries(registryAPI)
 
 	emptyRegistries := []*registry.Namespace{}
 	for _, reg := range registries {
@@ -66,7 +66,7 @@ func getEmptyRegistries(registryAPI *registry.API, options *ScalewayOptions) ([]
 
 func getExpiredRegistries(clusterAPI *k8s.API, registryAPI *registry.API, options *ScalewayOptions) ([]string, string) {
 	clusters, _ := ListClusters(clusterAPI, options.TagName)
-	registries, region := listRegistries(registryAPI, options.Region.String())
+	registries, region := listRegistries(registryAPI)
 
 	checkingRegistries := make(map[string]string)
 	for _, registry := range registries {
