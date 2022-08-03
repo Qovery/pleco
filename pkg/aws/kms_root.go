@@ -5,6 +5,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/kms"
 	log "github.com/sirupsen/logrus"
+	"time"
 
 	"github.com/Qovery/pleco/pkg/common"
 )
@@ -29,6 +30,19 @@ func getCompleteKey(svc kms.KMS, keyId *string, tagName string) CompleteKey {
 	tags := getKeyTags(svc, keyId)
 	metaData := getKeyMetadata(svc, keyId)
 
+	if metaData == nil {
+		return CompleteKey{
+			CloudProviderResource: common.CloudProviderResource{
+				Identifier:   *keyId,
+				Description:  "KMS: " + *keyId,
+				CreationDate: time.Now().UTC(),
+				TTL:          0,
+				Tag:          "ttl",
+				IsProtected:  false,
+			},
+			Status: "PendingDeletion",
+		}
+	}
 	essentialTags := common.GetEssentialTags(tags, tagName)
 
 	return CompleteKey{

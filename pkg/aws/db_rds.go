@@ -276,13 +276,13 @@ func listParametersGroups(svc rds.RDS) []*rds.DBParameterGroup {
 	return results.DBParameterGroups
 }
 
-func getCompleteRDSParameterGroups(svc rds.RDS, tagName string) []RDSParameterGroups {
+func getCompleteRDSParameterGroups(svc rds.RDS, options *AwsOptions) []RDSParameterGroups {
 	results := listParametersGroups(svc)
 
 	completeRDSParameterGroups := []RDSParameterGroups{}
 
 	for _, result := range results {
-		if strings.Contains(*result.DBParameterGroupName, "default") {
+		if strings.Contains(*result.DBParameterGroupName, "default") && !options.IsDestroyingCommand && !options.DisableTTLCheck {
 			log.Debugf("%s is a default rds parameter group, skipping...", *result.DBParameterGroupName)
 			continue
 		}
@@ -294,7 +294,7 @@ func getCompleteRDSParameterGroups(svc rds.RDS, tagName string) []RDSParameterGr
 			return completeRDSParameterGroups
 		}
 
-		essentialTags := common.GetEssentialTags(tags.TagList, tagName)
+		essentialTags := common.GetEssentialTags(tags.TagList, options.TagName)
 
 		completeRDSParameterGroups = append(completeRDSParameterGroups, RDSParameterGroups{
 			CloudProviderResource: common.CloudProviderResource{
@@ -313,7 +313,7 @@ func getCompleteRDSParameterGroups(svc rds.RDS, tagName string) []RDSParameterGr
 }
 
 func listExpiredCompleteRDSParameterGroups(svc rds.RDS, options *AwsOptions) []RDSParameterGroups {
-	completeRDSParameterGroups := getCompleteRDSParameterGroups(svc, options.TagName)
+	completeRDSParameterGroups := getCompleteRDSParameterGroups(svc, options)
 	expiredCompleteRDSParameterGroups := []RDSParameterGroups{}
 
 	for _, item := range completeRDSParameterGroups {

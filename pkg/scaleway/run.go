@@ -95,6 +95,13 @@ func runPlecoInZone(zone string, interval int64, wg *sync.WaitGroup, options Sca
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteDetachedSecurityGroups)
 	}
 
+	if options.EnableCR {
+		sessions.Namespace = registry.NewAPI(currentSession)
+		sessions.Cluster = k8s.NewAPI(currentSession)
+
+		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteEmptyContainerRegistries)
+	}
+
 	if options.IsDestroyingCommand {
 		for _, check := range listServiceToCheckStatus {
 			check(sessions, options)
@@ -128,13 +135,6 @@ func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options
 		sessions.LoadBalancer = lb.NewAPI(currentSession)
 
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredLBs)
-	}
-
-	if options.EnableCR {
-		sessions.Namespace = registry.NewAPI(currentSession)
-		sessions.Cluster = k8s.NewAPI(currentSession)
-
-		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteEmptyContainerRegistries)
 	}
 
 	if options.IsDestroyingCommand {
