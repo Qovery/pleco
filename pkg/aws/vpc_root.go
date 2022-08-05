@@ -112,7 +112,7 @@ func listTaggedVPC(ec2Session *ec2.EC2, options *AwsOptions) ([]VpcInfo, error) 
 				taggedVpc.Tag = *tag.Value
 			}
 
-			getCompleteVpc(ec2Session, &taggedVpc, options.TagName)
+			getCompleteVpc(ec2Session, options, &taggedVpc)
 		}
 
 		if taggedVpc.IsResourceExpired(options.TagValue, options.DisableTTLCheck) {
@@ -157,7 +157,6 @@ func deleteVPC(sessions AWSSessions, options AwsOptions, VpcList []VpcInfo) erro
 		DeleteNetworkInterfacesByVpcId(ec2Session, vpc.Identifier)
 		ReleaseElasticIps(ec2Session, vpc.ElasticIps)
 		DeleteSecurityGroupsByIds(ec2Session, vpc.SecurityGroups)
-		DeleteNatGatewaysByIds(ec2Session, vpc.NatGateways)
 		DeleteInternetGatewaysByIds(ec2Session, vpc.InternetGateways, vpc.Identifier)
 		DeleteSubnetsByIds(ec2Session, vpc.Subnets)
 		DeleteRouteTablesByIds(ec2Session, vpc.RouteTables)
@@ -199,23 +198,21 @@ func DeleteExpiredVPC(sessions AWSSessions, options AwsOptions) {
 
 }
 
-func getCompleteVpc(ec2Session *ec2.EC2, vpc *VpcInfo, tagName string) {
+func getCompleteVpc(ec2Session *ec2.EC2, options *AwsOptions, vpc *VpcInfo) {
 	var waitGroup sync.WaitGroup
 	waitGroup.Add(1)
-	go SetSecurityGroupsIdsByVpcId(ec2Session, vpc, &waitGroup, tagName)
+	go SetSecurityGroupsIdsByVpcId(ec2Session, vpc, &waitGroup, options.TagName)
 	waitGroup.Add(1)
 	go SetNetworkInterfacesByVpcId(ec2Session, vpc, &waitGroup)
 	waitGroup.Add(1)
-	go SetElasticIpsByVpcId(ec2Session, vpc, &waitGroup, tagName)
+	go SetElasticIpsByVpcId(ec2Session, vpc, &waitGroup, options.TagName)
 	waitGroup.Add(1)
-	go SetNatGatewaysIdsByVpcId(ec2Session, vpc, &waitGroup, tagName)
+	go SetNatGatewaysIdsByVpcId(ec2Session, options, vpc, &waitGroup)
 	waitGroup.Add(1)
-	go SetInternetGatewaysIdsByVpcId(ec2Session, vpc, &waitGroup, tagName)
+	go SetInternetGatewaysIdsByVpcId(ec2Session, vpc, &waitGroup, options.TagName)
 	waitGroup.Add(1)
-	go SetSubnetsIdsByVpcId(ec2Session, vpc, &waitGroup, tagName)
+	go SetSubnetsIdsByVpcId(ec2Session, vpc, &waitGroup, options.TagName)
 	waitGroup.Add(1)
-	go SetRouteTablesIdsByVpcId(ec2Session, vpc, &waitGroup, tagName)
+	go SetRouteTablesIdsByVpcId(ec2Session, vpc, &waitGroup, options.TagName)
 	waitGroup.Add(1)
-	go SetNatGatewaysIdsByVpcId(ec2Session, vpc, &waitGroup, tagName)
-	waitGroup.Wait()
 }

@@ -146,7 +146,7 @@ func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options
 	if options.EnableVPC {
 		sessions.EC2 = ec2.New(currentSession)
 		sessions.ELB = elbv2.New(currentSession)
-		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredVPC, DeleteExpiredElasticIps)
+		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredVPC, DeleteExpiredElasticIps, DeleteExpiredNatGateways)
 	}
 
 	// Cloudwatch
