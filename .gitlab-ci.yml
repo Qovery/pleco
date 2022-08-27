@@ -12,8 +12,6 @@ variables:
   HELM_VERSION: v3.8.2
 
 stages:
-  - build
-  - release
   - deploy
 
 before_script:
@@ -28,7 +26,6 @@ ec2-test-cluster:
     - main
   tags:
     - vm-250mcpu-1gmem-0g
-  when: manual
 
 scaleway-test-cluster:
   stage: deploy
@@ -38,7 +35,6 @@ scaleway-test-cluster:
     - main
   tags:
     - vm-250mcpu-1gmem-0g
-  when: manual
 
 eks-test-cluster:
   stage: deploy
@@ -49,7 +45,6 @@ eks-test-cluster:
     - main
   tags:
     - vm-250mcpu-1gmem-0g
-  when: manual
 
 aws-sandbox:
   stage: deploy
@@ -60,4 +55,3 @@ aws-sandbox:
     - main
   tags:
     - vm-250mcpu-1gmem-0g
-  when: manual
