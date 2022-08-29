@@ -12,7 +12,8 @@ import (
 
 type CompleteKey struct {
 	common.CloudProviderResource
-	Status string
+	Status     string
+	KeyManager string
 }
 
 func getKeys(svc kms.KMS) []*kms.KeyListEntry {
@@ -40,7 +41,8 @@ func getCompleteKey(svc kms.KMS, keyId *string, tagName string) CompleteKey {
 				Tag:          "ttl",
 				IsProtected:  false,
 			},
-			Status: "PendingDeletion",
+			Status:     "PendingDeletion",
+			KeyManager: "",
 		}
 	}
 	essentialTags := common.GetEssentialTags(tags, tagName)
@@ -54,7 +56,8 @@ func getCompleteKey(svc kms.KMS, keyId *string, tagName string) CompleteKey {
 			Tag:          essentialTags.Tag,
 			IsProtected:  essentialTags.IsProtected,
 		},
-		Status: *metaData.KeyMetadata.KeyState,
+		Status:     *metaData.KeyMetadata.KeyState,
+		KeyManager: *metaData.KeyMetadata.KeyManager,
 	}
 }
 
@@ -121,7 +124,7 @@ func DeleteExpiredKeys(sessions AWSSessions, options AwsOptions) {
 	for _, key := range keys {
 		completeKey := getCompleteKey(*sessions.KMS, key.KeyId, options.TagName)
 
-		if completeKey.Status != "PendingDeletion" && completeKey.Status != "Disabled" && completeKey.CloudProviderResource.IsResourceExpired(options.TagValue, options.DisableTTLCheck) {
+		if completeKey.Status != "PendingDeletion" && completeKey.Status != "Disabled" && completeKey.CloudProviderResource.IsResourceExpired(options.TagValue, options.DisableTTLCheck) && completeKey.KeyManager == "CUSTOMER" {
 			expiredKeys = append(expiredKeys, completeKey)
 		}
 	}

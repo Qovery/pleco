@@ -282,7 +282,7 @@ func getCompleteRDSParameterGroups(svc rds.RDS, options *AwsOptions) []RDSParame
 	completeRDSParameterGroups := []RDSParameterGroups{}
 
 	for _, result := range results {
-		if strings.Contains(*result.DBParameterGroupName, "default") && !options.IsDestroyingCommand && !options.DisableTTLCheck {
+		if strings.Contains(*result.DBParameterGroupName, "default") && !options.IsDestroyingCommand {
 			log.Debugf("%s is a default rds parameter group, skipping...", *result.DBParameterGroupName)
 			continue
 		}

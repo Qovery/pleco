@@ -125,6 +125,7 @@ func GetEssentialTags(tagsInput interface{}, tagName string) EssentialTags {
 	}
 
 	essentialTags := EssentialTags{}
+	essentialTags.TTL = -1
 	for i := range tags {
 		switch tags[i].Key {
 		case "creationDate", "CreationDate":
@@ -152,13 +153,14 @@ func GetEssentialTags(tagsInput interface{}, tagName string) EssentialTags {
 }
 
 func CheckIfExpired(creationTime time.Time, ttl int64, resourceNameDescription string, disableTTLCheck bool) bool {
-	if disableTTLCheck {
-		return time.Now().UTC().After(creationTime.Add(4 * time.Hour))
-	}
-
 	if ttl == 0 {
 		return false
 	}
+
+	if ttl == -1 && disableTTLCheck {
+		return time.Now().UTC().After(creationTime.Add(4 * time.Hour))
+	}
+
 	expirationTime := creationTime.UTC().Add(time.Duration(ttl) * time.Second)
 
 	if creationTime.Year() < 1972 {
