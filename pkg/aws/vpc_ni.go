@@ -1,8 +1,6 @@
 package aws
 
 import (
-	"sync"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/sirupsen/logrus"
@@ -78,7 +76,6 @@ func deleteNetworkInterface(ec2Session *ec2.EC2, ni NetworkInterface) {
 	}
 }
 
-func SetNetworkInterfacesByVpcId(ec2Session *ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup) {
-	defer waitGroup.Done()
-	vpc.NetworkInterfaces = listNetworkInterfacesByVpcId(ec2Session, vpc.Identifier)
+func GetNetworkInterfacesByVpcId(ec2Session *ec2.EC2, vpcId string) []NetworkInterface {
+	return listNetworkInterfacesByVpcId(ec2Session, vpcId)
 }

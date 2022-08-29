@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -37,11 +36,10 @@ func getRouteTablesByVpcId(ec2Session *ec2.EC2, vpcId string) []*ec2.RouteTable 
 	return routeTables.RouteTables
 }
 
-func SetRouteTablesIdsByVpcId(ec2Session *ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup, tagName string) {
-	defer waitGroup.Done()
+func GetRouteTablesIdsByVpcId(ec2Session *ec2.EC2, vpcId string, tagName string) []RouteTable {
 	var routeTablesStruct []RouteTable
 
-	routeTables := getRouteTablesByVpcId(ec2Session, vpc.Identifier)
+	routeTables := getRouteTablesByVpcId(ec2Session, vpcId)
 
 	for _, routeTable := range routeTables {
 		essentialTags := common.GetEssentialTags(routeTable.Tags, tagName)
@@ -56,7 +54,7 @@ func SetRouteTablesIdsByVpcId(ec2Session *ec2.EC2, vpc *VpcInfo, waitGroup *sync
 		routeTablesStruct = append(routeTablesStruct, routeTableStruct)
 	}
 
-	vpc.RouteTables = routeTablesStruct
+	return routeTablesStruct
 }
 
 func DeleteRouteTablesByIds(ec2Session *ec2.EC2, routeTables []RouteTable) {

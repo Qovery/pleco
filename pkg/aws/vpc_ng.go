@@ -5,7 +5,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	log "github.com/sirupsen/logrus"
-	"sync"
 )
 
 type NatGateway struct {
@@ -52,12 +51,8 @@ func getExpiredNatGateways(ec2Session *ec2.EC2, options *AwsOptions) []NatGatewa
 	return expiredGtws
 }
 
-func SetNatGatewaysIdsByVpcId(ec2Session *ec2.EC2, options *AwsOptions, vpc *VpcInfo, waitGroup *sync.WaitGroup) {
-	defer waitGroup.Done()
-
-	gateways := getNatGatewaysByVpcId(ec2Session, options, vpc.Identifier)
-
-	vpc.NatGateways = gateways
+func GetNatGatewaysIdsByVpcId(ec2Session *ec2.EC2, options *AwsOptions, vpcId string) []NatGateway {
+	return getNatGatewaysByVpcId(ec2Session, options, vpcId)
 }
 
 func DeleteNatGatewaysByIds(ec2Session *ec2.EC2, natGateways []NatGateway) {

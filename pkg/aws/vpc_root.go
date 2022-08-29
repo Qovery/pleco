@@ -1,12 +1,10 @@
 package aws
 
 import (
-	"os"
-	"sync"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	log "github.com/sirupsen/logrus"
+	"os"
 
 	"github.com/Qovery/pleco/pkg/common"
 )
@@ -98,6 +96,9 @@ func listTaggedVPC(ec2Session *ec2.EC2, options *AwsOptions) ([]VpcInfo, error) 
 		if *vpc.State != "available" {
 			continue
 		}
+
+		taggedVpc = getCompleteVpc(ec2Session, options, taggedVpc)
+
 		if len(vpc.Tags) == 0 {
 			continue
 		}
@@ -112,7 +113,6 @@ func listTaggedVPC(ec2Session *ec2.EC2, options *AwsOptions) ([]VpcInfo, error) 
 				taggedVpc.Tag = *tag.Value
 			}
 
-			getCompleteVpc(ec2Session, options, &taggedVpc)
 		}
 
 		if taggedVpc.IsResourceExpired(options.TagValue, options.DisableTTLCheck) {
@@ -198,21 +198,15 @@ func DeleteExpiredVPC(sessions AWSSessions, options AwsOptions) {
 
 }
 
-func getCompleteVpc(ec2Session *ec2.EC2, options *AwsOptions, vpc *VpcInfo) {
-	var waitGroup sync.WaitGroup
-	waitGroup.Add(1)
-	go SetSecurityGroupsIdsByVpcId(ec2Session, vpc, &waitGroup, options.TagName)
-	waitGroup.Add(1)
-	go SetNetworkInterfacesByVpcId(ec2Session, vpc, &waitGroup)
-	waitGroup.Add(1)
-	go SetElasticIpsByVpcId(ec2Session, vpc, &waitGroup, options.TagName)
-	waitGroup.Add(1)
-	go SetNatGatewaysIdsByVpcId(ec2Session, options, vpc, &waitGroup)
-	waitGroup.Add(1)
-	go SetInternetGatewaysIdsByVpcId(ec2Session, vpc, &waitGroup, options.TagName)
-	waitGroup.Add(1)
-	go SetSubnetsIdsByVpcId(ec2Session, vpc, &waitGroup, options.TagName)
-	waitGroup.Add(1)
-	go SetRouteTablesIdsByVpcId(ec2Session, vpc, &waitGroup, options.TagName)
-	waitGroup.Add(1)
+func getCompleteVpc(ec2Session *ec2.EC2, options *AwsOptions, vpc VpcInfo) VpcInfo {
+	fullVpc := vpc
+	fullVpc.SecurityGroups = GetSecurityGroupsIdsByVpcId(ec2Session, fullVpc.Identifier, options.TagName)
+	fullVpc.NetworkInterfaces = GetNetworkInterfacesByVpcId(ec2Session, fullVpc.Identifier)
+	fullVpc.ElasticIps = GetElasticIpsByVpcId(ec2Session, fullVpc, options.TagName)
+	fullVpc.NatGateways = GetNatGatewaysIdsByVpcId(ec2Session, options, fullVpc.Identifier)
+	fullVpc.InternetGateways = GetInternetGatewaysIdsByVpcId(ec2Session, fullVpc.Identifier, options.TagName)
+	fullVpc.Subnets = GetSubnetsIdsByVpcId(ec2Session, fullVpc.Identifier, options.TagName)
+	fullVpc.RouteTables = GetRouteTablesIdsByVpcId(ec2Session, fullVpc.Identifier, options.TagName)
+
+	return fullVpc
 }

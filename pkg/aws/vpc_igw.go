@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -36,11 +35,10 @@ func getInternetGatewaysByVpcId(ec2Session *ec2.EC2, vpcId string) []*ec2.Intern
 	return gateways.InternetGateways
 }
 
-func SetInternetGatewaysIdsByVpcId(ec2Session *ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup, tagName string) {
-	defer waitGroup.Done()
+func GetInternetGatewaysIdsByVpcId(ec2Session *ec2.EC2, vpcId string, tagName string) []InternetGateway {
 	var internetGateways []InternetGateway
 
-	gateways := getInternetGatewaysByVpcId(ec2Session, vpc.Identifier)
+	gateways := getInternetGatewaysByVpcId(ec2Session, vpcId)
 
 	for _, gateway := range gateways {
 		essentialTags := common.GetEssentialTags(gateway.Tags, tagName)
@@ -55,7 +53,7 @@ func SetInternetGatewaysIdsByVpcId(ec2Session *ec2.EC2, vpc *VpcInfo, waitGroup 
 		internetGateways = append(internetGateways, gatewayStruct)
 	}
 
-	vpc.InternetGateways = internetGateways
+	return internetGateways
 }
 
 func DeleteInternetGatewaysByIds(ec2Session *ec2.EC2, internetGateways []InternetGateway, vpcId string) {

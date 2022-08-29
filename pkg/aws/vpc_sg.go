@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -38,11 +37,10 @@ func getSecurityGroupsByVpcId(ec2Session *ec2.EC2, vpcId string) []*ec2.Security
 	return result.SecurityGroups
 }
 
-func SetSecurityGroupsIdsByVpcId(ec2Session *ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup, tagName string) {
-	defer waitGroup.Done()
+func GetSecurityGroupsIdsByVpcId(ec2Session *ec2.EC2, vpcId string, tagName string) []SecurityGroup {
 	var securityGroupsStruct []SecurityGroup
 
-	securityGroups := getSecurityGroupsByVpcId(ec2Session, vpc.Identifier)
+	securityGroups := getSecurityGroupsByVpcId(ec2Session, vpcId)
 
 	for _, securityGroup := range securityGroups {
 		if *securityGroup.GroupName != "default" {
@@ -60,7 +58,7 @@ func SetSecurityGroupsIdsByVpcId(ec2Session *ec2.EC2, vpc *VpcInfo, waitGroup *s
 		}
 	}
 
-	vpc.SecurityGroups = securityGroupsStruct
+	return securityGroupsStruct
 }
 
 func DeleteSecurityGroupsByIds(ec2Session *ec2.EC2, securityGroups []SecurityGroup) {

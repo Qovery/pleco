@@ -1,8 +1,6 @@
 package aws
 
 import (
-	"sync"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	log "github.com/sirupsen/logrus"
@@ -119,11 +117,13 @@ func DeleteExpiredElasticIps(sessions AWSSessions, options AwsOptions) {
 	}
 }
 
-func SetElasticIpsByVpcId(ec2Session *ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup, tagName string) {
-	defer waitGroup.Done()
+func GetElasticIpsByVpcId(ec2Session *ec2.EC2, vpc VpcInfo, tagName string) []ElasticIp {
+	elasticIps := []ElasticIp{}
 	for _, ni := range vpc.NetworkInterfaces {
-		vpc.ElasticIps = append(vpc.ElasticIps, getElasticIpByNetworkInterfaceId(ec2Session, ni.Id, vpc.Identifier, tagName)...)
+		elasticIps = append(elasticIps, getElasticIpByNetworkInterfaceId(ec2Session, ni.Id, vpc.Identifier, tagName)...)
 	}
+
+	return elasticIps
 }
 
 func responseToStruct(result *ec2.DescribeAddressesOutput, tagName string) []ElasticIp {

@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -36,11 +35,10 @@ func getSubnetsByVpcId(ec2Session *ec2.EC2, vpcId string) []*ec2.Subnet {
 	return subnets.Subnets
 }
 
-func SetSubnetsIdsByVpcId(ec2Session *ec2.EC2, vpc *VpcInfo, waitGroup *sync.WaitGroup, tagName string) {
-	defer waitGroup.Done()
+func GetSubnetsIdsByVpcId(ec2Session *ec2.EC2, vpcId string, tagName string) []Subnet {
 	var subnetsStruct []Subnet
 
-	subnets := getSubnetsByVpcId(ec2Session, vpc.Identifier)
+	subnets := getSubnetsByVpcId(ec2Session, vpcId)
 
 	for _, subnet := range subnets {
 		essentialTags := common.GetEssentialTags(subnet.Tags, tagName)
@@ -54,7 +52,7 @@ func SetSubnetsIdsByVpcId(ec2Session *ec2.EC2, vpc *VpcInfo, waitGroup *sync.Wai
 		subnetsStruct = append(subnetsStruct, subnetStruct)
 	}
 
-	vpc.Subnets = subnetsStruct
+	return subnetsStruct
 }
 
 func DeleteSubnetsByIds(ec2Session *ec2.EC2, subnets []Subnet) {
