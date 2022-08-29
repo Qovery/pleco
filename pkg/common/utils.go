@@ -142,7 +142,7 @@ func GetEssentialTags(tagsInput interface{}, tagName string) EssentialTags {
 			continue
 		}
 	}
-	// if 'tagName' value is present in above switch, then he won't never be filled
+	// if 'tagName' value is present in above switch, then he won't be filled
 	for i := range tags {
 		if strings.EqualFold(tags[i].Key, tagName) {
 			essentialTags.Tag = tags[i].Value
@@ -153,12 +153,19 @@ func GetEssentialTags(tagsInput interface{}, tagName string) EssentialTags {
 }
 
 func CheckIfExpired(creationTime time.Time, ttl int64, resourceNameDescription string, disableTTLCheck bool) bool {
-	if ttl == 0 {
-		return false
-	}
 
 	if ttl == -1 && disableTTLCheck {
 		return time.Now().UTC().After(creationTime.Add(4 * time.Hour))
+	}
+
+	if ttl == 0 {
+		log.Debugf("TTL tag is set to 0. Skipping %s ...", resourceNameDescription)
+		return false
+	}
+
+	if ttl == -1 {
+		log.Warnf("TTL tag is missing. Can't check if resource %s is expired.", resourceNameDescription)
+		return false
 	}
 
 	expirationTime := creationTime.UTC().Add(time.Duration(ttl) * time.Second)
