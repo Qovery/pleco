@@ -12,16 +12,29 @@ import (
 )
 
 func getRepositories(ecrSession *ecr.ECR) []*ecr.Repository {
-	result, err := ecrSession.DescribeRepositories(
-		&ecr.DescribeRepositoriesInput{
-			MaxResults: aws.Int64(1000),
-		})
+	var repo []*ecr.Repository
 
-	if err != nil {
-		log.Error(err)
+	var token *string
+	for {
+		result, err := ecrSession.DescribeRepositories(
+			&ecr.DescribeRepositoriesInput{
+				MaxResults: aws.Int64(1000),
+				NextToken:  token,
+			})
+
+		if err != nil {
+			log.Error(err)
+		}
+
+		token = result.NextToken
+		repo = append(repo, result.Repositories...)
+
+		if result.NextToken == nil {
+			break
+		}
 	}
 
-	return result.Repositories
+	return repo
 }
 
 func getRepositoryImages(ecrSession *ecr.ECR, repositoryName string) []*ecr.ImageDetail {
@@ -44,8 +57,14 @@ func DeleteEmptyRepositories(sessions AWSSessions, options AwsOptions) {
 	var emptyRepositoryNames []string
 	for _, repository := range repositories {
 		time, _ := time.Parse(time.RFC3339, repository.CreatedAt.Format(time.RFC3339))
+		result, err := sessions.ECR.ListTagsForResource(&ecr.ListTagsForResourceInput{ResourceArn: repository.RepositoryArn})
+		if err != nil {
+			log.Error(err)
+		}
 
-		if common.CheckIfExpired(time, 600, "ECR repository: ", options.DisableTTLCheck) {
+		tags := common.GetEssentialTags(result.Tags, options.TagName)
+
+		if common.CheckIfExpired(time, tags.TTL, fmt.Sprintf("ECR repository: %s", *repository.RepositoryName), options.DisableTTLCheck) {
 			images := getRepositoryImages(sessions.ECR, *repository.RepositoryName)
 
 			if len(images) == 0 {

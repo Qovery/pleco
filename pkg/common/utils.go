@@ -2,6 +2,7 @@ package common
 
 import (
 	"fmt"
+	"github.com/aws/aws-sdk-go/service/ecr"
 	"strconv"
 	"strings"
 	"time"
@@ -97,6 +98,10 @@ func GetEssentialTags(tagsInput interface{}, tagName string) EssentialTags {
 			tags = append(tags, MyTag{Key: *elem.Key, Value: *elem.Value})
 		}
 	case []*cloudformation.Tag:
+		for _, elem := range typedTags {
+			tags = append(tags, MyTag{Key: *elem.Key, Value: *elem.Value})
+		}
+	case []*ecr.Tag:
 		for _, elem := range typedTags {
 			tags = append(tags, MyTag{Key: *elem.Key, Value: *elem.Value})
 		}

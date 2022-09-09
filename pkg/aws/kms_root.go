@@ -31,13 +31,13 @@ func getCompleteKey(svc kms.KMS, keyId *string, tagName string) CompleteKey {
 	tags := getKeyTags(svc, keyId)
 	metaData := getKeyMetadata(svc, keyId)
 
-	if metaData == nil {
+	if metaData == nil || tags == nil {
 		return CompleteKey{
 			CloudProviderResource: common.CloudProviderResource{
 				Identifier:   *keyId,
 				Description:  "KMS: " + *keyId,
 				CreationDate: time.Now().UTC(),
-				TTL:          0,
+				TTL:          -1,
 				Tag:          "ttl",
 				IsProtected:  false,
 			},
