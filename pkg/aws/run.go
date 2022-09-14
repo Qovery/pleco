@@ -170,7 +170,7 @@ func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options
 	// ECR
 	if options.EnableECR {
 		sessions.ECR = ecr.New(currentSession)
-		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteEmptyRepositories)
+		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredRepositories)
 	}
 
 	// SQS
