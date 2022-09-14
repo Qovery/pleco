@@ -42,20 +42,6 @@ func getRepositories(ecrSession *ecr.ECR) []*ecr.Repository {
 	return repo
 }
 
-func getRepositoryImages(ecrSession *ecr.ECR, repositoryName string) []*ecr.ImageDetail {
-	result, err := ecrSession.DescribeImages(
-		&ecr.DescribeImagesInput{
-			MaxResults:     aws.Int64(1000),
-			RepositoryName: aws.String(repositoryName),
-		})
-
-	if err != nil {
-		log.Error(err)
-	}
-
-	return result.ImageDetails
-}
-
 func DeleteExpiredRepositories(sessions AWSSessions, options AwsOptions) {
 	repositories := getRepositories(sessions.ECR)
 	region := sessions.ECR.Config.Region
