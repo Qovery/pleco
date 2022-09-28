@@ -47,14 +47,14 @@ func DeleteExpiredRepositories(sessions AWSSessions, options AwsOptions) {
 	region := sessions.ECR.Config.Region
 	var expiredRepository []Repository
 	for _, repository := range repositories {
-		time, _ := time.Parse(time.RFC3339, repository.CreatedAt.Format(time.RFC3339))
+		creationTime, _ := time.Parse(time.RFC3339, repository.CreatedAt.Format(time.RFC3339))
 		result, err := sessions.ECR.ListTagsForResource(&ecr.ListTagsForResourceInput{ResourceArn: repository.RepositoryArn})
 		if err != nil {
 			log.Error(err)
 		}
 
 		imagesIds := getRepositoryImageIds(sessions.ECR, *repository.RepositoryName)
-		if len(imagesIds) == 0 {
+		if len(imagesIds) == 0 && time.Now().UTC().After(repository.CreatedAt.Add(4*time.Hour)) {
 			expiredRepository = append(expiredRepository, Repository{
 				name:      *repository.RepositoryName,
 				imagesIds: imagesIds,
@@ -63,7 +63,7 @@ func DeleteExpiredRepositories(sessions AWSSessions, options AwsOptions) {
 		}
 
 		tags := common.GetEssentialTags(result.Tags, options.TagName)
-		if common.CheckIfExpired(time, tags.TTL, fmt.Sprintf("ECR repository: %s", *repository.RepositoryName), options.DisableTTLCheck) {
+		if common.CheckIfExpired(creationTime, tags.TTL, fmt.Sprintf("ECR repository: %s", *repository.RepositoryName), options.DisableTTLCheck) {
 			expiredRepository = append(expiredRepository, Repository{
 				name:      *repository.RepositoryName,
 				imagesIds: imagesIds,
