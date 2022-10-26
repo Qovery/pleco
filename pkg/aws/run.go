@@ -47,6 +47,7 @@ type AwsOptions struct {
 	EnableSFN            bool
 	EnableCloudFormation bool
 	EnableEC2Instance    bool
+	EnableAll            bool
 }
 
 type AWSSessions struct {
@@ -89,6 +90,27 @@ func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options
 	logrus.Infof("Starting to check expired resources in region %s.", *currentSession.Config.Region)
 
 	var listServiceToCheckStatus []funcDeleteExpired
+
+	// All Resources
+	if options.EnableAll {
+		options.EnableS3 = true
+		options.EnableRDS = true
+		options.EnableDocumentDB = true
+		options.EnableElastiCache = true
+		options.EnableEKS = true
+		options.EnableELB = true
+		options.EnableEBS = true
+		options.EnableVPC = true
+		options.EnableCloudWatchLogs = true
+		options.EnableKMS = true
+		options.EnableSSH = true
+		options.EnableECR = true
+		options.EnableSQS = true
+		options.EnableLambda = true
+		options.EnableSFN = true
+		options.EnableCloudFormation = true
+		options.EnableEC2Instance = true
+	}
 
 	// S3
 	if options.EnableS3 {

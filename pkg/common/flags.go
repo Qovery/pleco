@@ -33,6 +33,8 @@ func initAWSFlags(startCmd *cobra.Command) {
 	startCmd.Flags().BoolP("enable-sfn", "x", false, "Enable Lambda Function watch")
 	startCmd.Flags().BoolP("enable-cloudformation", "d", false, "Enable Cloudformation watch")
 	startCmd.Flags().BoolP("enable-ec2-instance", "g", false, "Enable EC2 Instance watch")
+	startCmd.Flags().Bool("enable-all", false, "Enable for all resources")
+
 }
 
 func initScalewayFlags(startCmd *cobra.Command) {

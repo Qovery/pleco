@@ -105,6 +105,7 @@ func startAWS(cmd *cobra.Command, interval int64, dryRun bool, disableTTLCheck b
 		EnableSFN:            getCmdBool(cmd, "enable-sfn"),
 		EnableCloudFormation: getCmdBool(cmd, "enable-cloudformation"),
 		EnableEC2Instance:    getCmdBool(cmd, "enable-ec2-instance"),
+		EnableAll:            getCmdBool(cmd, "enable-all"),
 	}
 	aws.RunPlecoAWS(cmd, regions, interval, wg, awsOptions)
 	wg.Done()
