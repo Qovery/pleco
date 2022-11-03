@@ -25,6 +25,7 @@ ec2-test-cluster:
     - helm --kubeconfig $KUBECONFIG_EC2_TEST_CLUSTER upgrade --install --wait -n kube-system -f $PLECO_VALUES_EC2 --create-namespace pleco-ec2 charts/pleco
   only:
     - tags
+    - schedules
   tags:
     - vm-250mcpu-1gmem-0g
 
@@ -34,6 +35,7 @@ scaleway-test-cluster:
     - helm --kubeconfig $KUBECONFIG_SCW_TEST_CLUSTER upgrade --install --wait -n kube-system -f $PLECO_VALUES_SCALEWAY --create-namespace pleco-scaleway charts/pleco
   only:
     - tags
+    - schedules
   tags:
     - vm-250mcpu-1gmem-0g
 
@@ -44,6 +46,7 @@ eks-test-cluster:
     - AWS_ACCESS_KEY_ID=$EKS_AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$EKS_AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION=$EKS_AWS_DEFAULT_REGION helm --kubeconfig $KUBECONFIG_EKS_TEST_CLUSTER upgrade --install --wait -n kube-system -f $PLECO_VALUES_EKS --create-namespace pleco-eks charts/pleco
   only:
     - tags
+    - schedules
   tags:
     - vm-250mcpu-1gmem-0g
 
@@ -54,5 +57,6 @@ aws-sandbox:
     - AWS_ACCESS_KEY_ID=$EKS_AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$EKS_AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION=$EKS_AWS_DEFAULT_REGION helm --kubeconfig $KUBECONFIG_EKS_TEST_CLUSTER upgrade --install --wait -n kube-system -f $PLECO_VALUES_SANDBOX --create-namespace pleco-sandbox charts/pleco
   only:
     - tags
+    - schedules
   tags:
     - vm-250mcpu-1gmem-0g
