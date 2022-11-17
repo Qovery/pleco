@@ -158,7 +158,6 @@ func GetEssentialTags(tagsInput interface{}, tagName string) EssentialTags {
 }
 
 func CheckIfExpired(creationTime time.Time, ttl int64, resourceNameDescription string, disableTTLCheck bool) bool {
-
 	if ttl == -1 && disableTTLCheck {
 		return time.Now().UTC().After(creationTime.Add(4 * time.Hour))
 	}

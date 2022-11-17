@@ -17,14 +17,26 @@ type CompleteKey struct {
 }
 
 func getKeys(svc kms.KMS) []*kms.KeyListEntry {
-	input := &kms.ListKeysInput{
-		Limit: aws.Int64(1000),
+	var marker *string
+	var keysOutput []*kms.KeyListEntry
+	for {
+		input := &kms.ListKeysInput{
+			Limit:  aws.Int64(1000),
+			Marker: marker,
+		}
+
+		keys, err := svc.ListKeys(input)
+		handleKMSError(err)
+		keysOutput = append(keysOutput, keys.Keys...)
+
+		if keys.NextMarker == nil || keys.NextMarker == marker {
+			break
+		}
+
+		marker = keys.NextMarker
 	}
 
-	keys, err := svc.ListKeys(input)
-	handleKMSError(err)
-
-	return keys.Keys
+	return keysOutput
 }
 
 func getCompleteKey(svc kms.KMS, keyId *string, tagName string) CompleteKey {
