@@ -63,7 +63,8 @@ func deletePolicyVersions(iamSession *iam.IAM, policy iam.Policy) {
 	}
 }
 
-func DeleteDetachedPolicies(iamSession *iam.IAM, dryRun bool) {
+func DeleteDetachedPolicies(sessions *AWSSessions, dryRun bool) {
+	iamSession := sessions.IAM
 	policies := getPolicies(iamSession)
 	var detachedPolicies []iam.Policy
 

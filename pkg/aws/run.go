@@ -228,28 +228,28 @@ func runPlecoInGlobal(cmd *cobra.Command, interval int64, wg *sync.WaitGroup, cu
 
 	logrus.Info("Starting to check global expired resources.")
 
-	var currentIAMSession *iam.IAM
+	sessions := AWSSessions{}
 
 	// IAM
 	iamEnabled, _ := cmd.Flags().GetBool("enable-iam")
 	if iamEnabled {
-		currentIAMSession = iam.New(currentSession)
+		sessions.IAM = iam.New(currentSession)
 	}
 
 	if options.IsDestroyingCommand {
-		deleteExpiredIAM(iamEnabled, currentIAMSession, &options)
+		deleteExpiredIAM(iamEnabled, &sessions, &options)
 	} else {
 		for {
-			deleteExpiredIAM(iamEnabled, currentIAMSession, &options)
+			deleteExpiredIAM(iamEnabled, &sessions, &options)
 			time.Sleep(time.Duration(interval) * time.Second)
 		}
 	}
 }
 
-func deleteExpiredIAM(iamEnabled bool, currentIAMSession *iam.IAM, options *AwsOptions) {
+func deleteExpiredIAM(iamEnabled bool, sessions *AWSSessions, options *AwsOptions) {
 	// check IAM
 	if iamEnabled {
 		logrus.Debug("Listing all IAM access.")
-		DeleteExpiredIAM(currentIAMSession, options)
+		DeleteExpiredIAM(sessions, options)
 	}
 }

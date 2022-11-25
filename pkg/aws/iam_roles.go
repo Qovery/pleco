@@ -82,7 +82,8 @@ func getRoleInstanceProfile(iamSession *iam.IAM, roleName string) []*iam.Instanc
 	return result.InstanceProfiles
 }
 
-func DeleteExpiredRoles(iamSession *iam.IAM, options *AwsOptions) {
+func DeleteExpiredRoles(sessions *AWSSessions, options *AwsOptions) {
+	iamSession := sessions.IAM
 	roles := getRoles(iamSession, options.TagName)
 	var expiredRoles []Role
 

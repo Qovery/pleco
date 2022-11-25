@@ -104,7 +104,8 @@ func deleteExpiredUserAccessKeys(iamSession *iam.IAM, userName string) {
 	}
 }
 
-func DeleteExpiredUsers(iamSession *iam.IAM, options *AwsOptions) {
+func DeleteExpiredUsers(sessions *AWSSessions, options *AwsOptions) {
+	iamSession := sessions.IAM
 	users := getUsers(iamSession, options.TagName)
 	var expiredUsers []User
 
