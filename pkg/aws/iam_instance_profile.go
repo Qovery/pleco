@@ -57,7 +57,7 @@ func getExpiredInstanceProfiles(iamSession *iam.IAM, options *AwsOptions) []Inst
 
 	var expiredInstanceProfiles []InstanceProfile
 	for _, instanceProfile := range instanceProfiles {
-		if len(instanceProfile.Roles) == 0 && time.Now().UTC().After(instanceProfile.CreationDate.Add(4*time.Hour)) {
+		if (len(instanceProfile.Roles) == 0 && time.Now().UTC().After(instanceProfile.CreationDate.Add(4*time.Hour))) || instanceProfile.IsResourceExpired(options.TagValue, options.DisableTTLCheck) {
 			expiredInstanceProfiles = append(expiredInstanceProfiles, instanceProfile)
 		}
 	}
