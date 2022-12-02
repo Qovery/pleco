@@ -47,8 +47,8 @@ func getExpiredNamespaces(clientSet *kubernetes.Clientset, tagName string, disab
 		}
 
 		if disableTTLCheck {
-			match, _ := regexp.MatchString("z([a-z0-9]+)-z(([a-z0-9]+))", namespace.Name)
-			if !match {
+			match, _ := regexp.Compile("z([a-z0-9]+)-z(([a-z0-9]+))")
+			if !match.MatchString(namespace.Name) {
 				continue
 			}
 		}
