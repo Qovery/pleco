@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -11,8 +12,13 @@ import (
 	"github.com/Qovery/pleco/pkg/common"
 )
 
-func listTaggedBuckets(s3Session s3.S3, tagName string) ([]common.CloudProviderResource, error) {
-	var taggedS3Buckets []common.CloudProviderResource
+type s3Bucket struct {
+	common.CloudProviderResource
+	ObjectsCount int
+}
+
+func listTaggedBuckets(s3Session s3.S3, tagName string) ([]s3Bucket, error) {
+	var taggedS3Buckets []s3Bucket
 	currentRegion := s3Session.Config.Region
 
 	result, bucketErr := s3Session.ListBuckets(&s3.ListBucketsInput{})
@@ -39,6 +45,15 @@ func listTaggedBuckets(s3Session s3.S3, tagName string) ([]common.CloudProviderR
 			continue
 		}
 
+		result, objectErr := s3Session.ListObjectVersions(
+			&s3.ListObjectVersionsInput{
+				Bucket: aws.String(*bucket.Name),
+			})
+		if objectErr != nil {
+			log.Errorf("Listing object error for bucket %s: %s", *bucket.Name, locationErr.Error())
+			continue
+		}
+
 		bucketTags, tagErr := s3Session.GetBucketTagging(
 			&s3.GetBucketTaggingInput{
 				Bucket: aws.String(*bucket.Name),
@@ -51,14 +66,18 @@ func listTaggedBuckets(s3Session s3.S3, tagName string) ([]common.CloudProviderR
 
 		essentialTags := common.GetEssentialTags(bucketTags.TagSet, tagName)
 
-		taggedS3Buckets = append(taggedS3Buckets, common.CloudProviderResource{
-			Identifier:   *bucket.Name,
-			Description:  "S3 bucket: " + *bucket.Name,
-			CreationDate: essentialTags.CreationDate,
-			TTL:          essentialTags.TTL,
-			Tag:          essentialTags.Tag,
-			IsProtected:  essentialTags.IsProtected,
-		})
+		taggedS3Buckets = append(taggedS3Buckets,
+			s3Bucket{
+				CloudProviderResource: common.CloudProviderResource{
+					Identifier:   *bucket.Name,
+					Description:  "S3 bucket: " + *bucket.Name,
+					CreationDate: essentialTags.CreationDate,
+					TTL:          essentialTags.TTL,
+					Tag:          essentialTags.Tag,
+					IsProtected:  essentialTags.IsProtected,
+				},
+				ObjectsCount: len(result.Versions),
+			})
 	}
 
 	return taggedS3Buckets, nil
@@ -208,9 +227,9 @@ func DeleteExpiredBuckets(sessions AWSSessions, options AwsOptions) {
 		log.Errorf("can't list S3 buckets: %s\n", err)
 		return
 	}
-	var expiredBuckets []common.CloudProviderResource
+	var expiredBuckets []s3Bucket
 	for _, bucket := range buckets {
-		if bucket.IsResourceExpired(options.TagValue, options.DisableTTLCheck) {
+		if (bucket.ObjectsCount == 0 && time.Now().UTC().After(bucket.CreationDate.Add(4*time.Hour))) || bucket.IsResourceExpired(options.TagValue, options.DisableTTLCheck) {
 			expiredBuckets = append(expiredBuckets, bucket)
 		}
 	}
