@@ -94,7 +94,7 @@ func GetClusterDetails(svc eks.EKS, cluster *string, region string, tagName stri
 		CloudProviderResource: common.CloudProviderResource{
 			Identifier:   clusterName,
 			Description:  "EKS Cluster: " + clusterName,
-			CreationDate: essentialTags.CreationDate,
+			CreationDate: clusterInfo.Cluster.CreatedAt.UTC(),
 			TTL:          essentialTags.TTL,
 			Tag:          essentialTags.Tag,
 			IsProtected:  essentialTags.IsProtected,

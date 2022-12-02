@@ -71,7 +71,7 @@ func listTaggedBuckets(s3Session s3.S3, tagName string) ([]s3Bucket, error) {
 				CloudProviderResource: common.CloudProviderResource{
 					Identifier:   *bucket.Name,
 					Description:  "S3 bucket: " + *bucket.Name,
-					CreationDate: essentialTags.CreationDate,
+					CreationDate: bucket.CreationDate.UTC(),
 					TTL:          essentialTags.TTL,
 					Tag:          essentialTags.Tag,
 					IsProtected:  essentialTags.IsProtected,

@@ -34,7 +34,7 @@ func getUsers(iamSession *iam.IAM, tagName string) []User {
 			CloudProviderResource: common.CloudProviderResource{
 				Identifier:   *user.UserName,
 				Description:  "User: " + *user.UserName,
-				CreationDate: essentialTags.CreationDate,
+				CreationDate: user.CreateDate.UTC(),
 				TTL:          essentialTags.TTL,
 				Tag:          essentialTags.Tag,
 				IsProtected:  essentialTags.IsProtected,

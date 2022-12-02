@@ -41,7 +41,7 @@ func listTaggedStateMachines(svc sfn.SFN, tagName string) ([]stateMachine, error
 			CloudProviderResource: common.CloudProviderResource{
 				Identifier:   *machine.StateMachineArn,
 				Description:  "State Machine: " + *machine.Name,
-				CreationDate: *machine.CreationDate,
+				CreationDate: machine.CreationDate.UTC(),
 				TTL:          essentialTags.TTL,
 				Tag:          essentialTags.Tag,
 				IsProtected:  essentialTags.IsProtected,

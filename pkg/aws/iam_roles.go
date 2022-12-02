@@ -40,7 +40,7 @@ func getRoles(iamSession *iam.IAM, tagName string) []Role {
 			CloudProviderResource: common.CloudProviderResource{
 				Identifier:   *role.RoleName,
 				Description:  "IAM Role: " + *role.RoleName,
-				CreationDate: essentialTags.CreationDate,
+				CreationDate: role.CreateDate.UTC(),
 				TTL:          essentialTags.TTL,
 				Tag:          essentialTags.Tag,
 				IsProtected:  essentialTags.IsProtected,

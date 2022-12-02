@@ -123,7 +123,7 @@ func ListLoadBalancers(lbSession *elbv2.ELBV2, tagName string) ([]ElasticLoadBal
 			CloudProviderResource: common.CloudProviderResource{
 				Identifier:   currentLbName,
 				Description:  "EC2 ELB: " + currentLbName,
-				CreationDate: essentialTags.CreationDate,
+				CreationDate: currentLb.CreatedTime.UTC(),
 				TTL:          essentialTags.TTL,
 				Tag:          essentialTags.Tag,
 				IsProtected:  essentialTags.IsProtected,

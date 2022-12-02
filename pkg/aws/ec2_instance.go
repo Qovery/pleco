@@ -61,7 +61,7 @@ func listExpiredEC2Instances(ec2Session *ec2.EC2, options *AwsOptions) ([]EC2Ins
 				CloudProviderResource: common.CloudProviderResource{
 					Identifier:   *ec2Instance.InstanceId,
 					Description:  "EC2 Instance: " + *ec2Instance.InstanceId,
-					CreationDate: essentialTags.CreationDate,
+					CreationDate: ec2Instance.LaunchTime.UTC(),
 					TTL:          essentialTags.TTL,
 					Tag:          essentialTags.Tag,
 					IsProtected:  essentialTags.IsProtected,

@@ -82,7 +82,7 @@ func gtwResponseToStruct(result []*ec2.NatGateway, tagName string) []NatGateway 
 			CloudProviderResource: common.CloudProviderResource{
 				Identifier:   *key.NatGatewayId,
 				Description:  "Nat Gateway: " + *key.NatGatewayId,
-				CreationDate: essentialTags.CreationDate,
+				CreationDate: key.CreateTime.UTC(),
 				TTL:          essentialTags.TTL,
 				Tag:          essentialTags.Tag,
 				IsProtected:  essentialTags.IsProtected,

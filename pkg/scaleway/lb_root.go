@@ -83,7 +83,7 @@ func listLBs(lbAPI *lb.API, region scw.Region, tagName string) ([]ScalewayLB, st
 			CloudProviderResource: common.CloudProviderResource{
 				Identifier:   lb.ID,
 				Description:  "Load Balancer: " + lb.Name,
-				CreationDate: essentialTags.CreationDate,
+				CreationDate: lb.CreatedAt.UTC(),
 				TTL:          essentialTags.TTL,
 				Tag:          essentialTags.Tag,
 				IsProtected:  essentialTags.IsProtected,

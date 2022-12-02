@@ -115,7 +115,7 @@ func listExpiredVolumes(eksSession *eks.EKS, ec2Session *ec2.EC2, options *AwsOp
 			CloudProviderResource: common.CloudProviderResource{
 				Identifier:   *currentVolume.VolumeId,
 				Description:  "EBS Volume: " + *currentVolume.VolumeId,
-				CreationDate: essentialTags.CreationDate,
+				CreationDate: currentVolume.CreateTime.UTC(),
 				TTL:          essentialTags.TTL,
 				Tag:          essentialTags.Tag,
 				IsProtected:  essentialTags.IsProtected,
