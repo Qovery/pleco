@@ -9,12 +9,12 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func RunPlecoKubernetes(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGroup) {
+func RunPlecoKubernetes(cmd *cobra.Command, interval int64, dryRun bool, disableTTLCheck bool, wg *sync.WaitGroup) {
 	wg.Add(1)
-	go runPlecoOnKube(cmd, interval, dryRun, wg)
+	go runPlecoOnKube(cmd, interval, dryRun, disableTTLCheck, wg)
 }
 
-func runPlecoOnKube(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.WaitGroup) {
+func runPlecoOnKube(cmd *cobra.Command, interval int64, dryRun bool, disableTTLCheck bool, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	// Kubernetes connection
@@ -39,7 +39,7 @@ func runPlecoOnKube(cmd *cobra.Command, interval int64, dryRun bool, wg *sync.Wa
 	// check Kubernetes
 	for {
 		if kubernetesEnabled {
-			DeleteExpiredNamespaces(k8sClientSet, tagName, dryRun)
+			DeleteExpiredNamespaces(k8sClientSet, tagName, dryRun, disableTTLCheck)
 		}
 		time.Sleep(time.Duration(interval) * time.Second)
 	}

@@ -2,6 +2,7 @@ package k8s
 
 import (
 	"context"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -19,9 +20,12 @@ type kubernetesNamespace struct {
 	TTL                 int64
 }
 
-func listNamespaces(clientSet *kubernetes.Clientset, tagName string) []v1.Namespace {
-	listOptions := metav1.ListOptions{
-		LabelSelector: tagName,
+func listNamespaces(clientSet *kubernetes.Clientset, tagName string, disableTTLCheck bool) []v1.Namespace {
+	var listOptions metav1.ListOptions
+	if !disableTTLCheck {
+		listOptions = metav1.ListOptions{
+			LabelSelector: tagName,
+		}
 	}
 
 	log.Debugf("Listing all Kubernetes namespaces with %s label", tagName)
@@ -33,8 +37,8 @@ func listNamespaces(clientSet *kubernetes.Clientset, tagName string) []v1.Namesp
 	return namespaces.Items
 }
 
-func getExpiredNamespaces(clientSet *kubernetes.Clientset, tagName string) []kubernetesNamespace {
-	namespaces := listNamespaces(clientSet, tagName)
+func getExpiredNamespaces(clientSet *kubernetes.Clientset, tagName string, disableTTLCheck bool) []kubernetesNamespace {
+	namespaces := listNamespaces(clientSet, tagName, disableTTLCheck)
 
 	expiredNamespaces := []kubernetesNamespace{}
 	for _, namespace := range namespaces {
@@ -42,16 +46,27 @@ func getExpiredNamespaces(clientSet *kubernetes.Clientset, tagName string) []kub
 			continue
 		}
 
+		if disableTTLCheck {
+			match, _ := regexp.MatchString("z([a-z0-9]+)-z(([a-z0-9]+))", namespace.Name)
+			if !match {
+				continue
+			}
+		}
+
 		for key, value := range namespace.ObjectMeta.Labels {
-			if key == tagName {
+			if key == tagName || disableTTLCheck {
 				ttlValue, err := strconv.Atoi(value)
 
-				if err != nil {
+				if err != nil && !disableTTLCheck {
 					log.Errorf("ttl value unrecognized for namespace %s", namespace.Name)
 					continue
 				}
+
+				if disableTTLCheck {
+					ttlValue = -1
+				}
 				creationDate, _ := time.Parse(time.RFC3339, namespace.CreationTimestamp.Time.Format(time.RFC3339))
-				if common.CheckIfExpired(creationDate, int64(ttlValue), "Namespace: "+namespace.Name, false) {
+				if common.CheckIfExpired(creationDate, int64(ttlValue), "Namespace: "+namespace.Name, disableTTLCheck) {
 					expiredNamespaces = append(expiredNamespaces, kubernetesNamespace{
 						Name:                namespace.Name,
 						NamespaceCreateTime: namespace.CreationTimestamp.Time,
@@ -80,8 +95,8 @@ func deleteNamespace(clientSet *kubernetes.Clientset, namespace kubernetesNamesp
 
 }
 
-func DeleteExpiredNamespaces(clientSet *kubernetes.Clientset, tagName string, dryRun bool) {
-	namespaces := getExpiredNamespaces(clientSet, tagName)
+func DeleteExpiredNamespaces(clientSet *kubernetes.Clientset, tagName string, dryRun bool, disableTTLCheck bool) {
+	namespaces := getExpiredNamespaces(clientSet, tagName, disableTTLCheck)
 
 	count, start := common.ElemToDeleteFormattedInfos("expired Kubernetes namespace", len(namespaces), "")
 

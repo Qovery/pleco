@@ -35,7 +35,7 @@ func StartDaemon(cloudProvider string, disableDryRun bool, interval int64, cmd *
 
 	common.CheckEnvVars(cloudProvider, cmd)
 
-	k8s.RunPlecoKubernetes(cmd, interval, dryRun, &wg)
+	k8s.RunPlecoKubernetes(cmd, interval, dryRun, disableTTLCheck, &wg)
 
 	run(cloudProvider, dryRun, interval, disableTTLCheck, cmd, &wg)
 
