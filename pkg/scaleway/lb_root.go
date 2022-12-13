@@ -15,6 +15,7 @@ type ScalewayLB struct {
 	common.CloudProviderResource
 	Name      string
 	ClusterId string
+	PublicIps []string
 }
 
 func DeleteExpiredLBs(sessions ScalewaySessions, options ScalewayOptions) {
@@ -79,6 +80,10 @@ func listLBs(lbAPI *lb.API, region scw.Region, tagName string) ([]ScalewayLB, st
 	loadBalancers := []ScalewayLB{}
 	for _, lb := range result.LBs {
 		essentialTags := common.GetEssentialTags(lb.Tags, tagName)
+		var ips []string
+		for _, ip := range lb.IP {
+			ips = append(ips, ip.IPAddress)
+		}
 		loadBalancers = append(loadBalancers, ScalewayLB{
 			CloudProviderResource: common.CloudProviderResource{
 				Identifier:   lb.ID,
@@ -90,6 +95,7 @@ func listLBs(lbAPI *lb.API, region scw.Region, tagName string) ([]ScalewayLB, st
 			},
 			Name:      lb.Name,
 			ClusterId: getLbClusterId(lb.Tags),
+			PublicIps: ips,
 		})
 	}
 
@@ -124,6 +130,6 @@ func deleteLB(lbAPI *lb.API, region scw.Region, loadBalancer ScalewayLB) {
 	if err != nil {
 		log.Errorf("Can't delete load balancer %s: %s", loadBalancer.Name, err.Error())
 	} else {
-		log.Debugf("Load balancer %s in %s deleted.", loadBalancer.Name, region)
+		log.Debugf("Load balancer %s: %v in %s deleted.", loadBalancer.Name, loadBalancer.PublicIps, region)
 	}
 }

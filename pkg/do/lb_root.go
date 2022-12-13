@@ -14,6 +14,7 @@ type DOLB struct {
 	common.CloudProviderResource
 	Name     string
 	Droplets []int
+	PublicIp string
 }
 
 func DeleteExpiredLBs(sessions DOSessions, options DOOptions) {
@@ -46,6 +47,7 @@ func listLBs(client *godo.Client, tagName string) []DOLB {
 	for _, lb := range result {
 		creationDate, _ := time.Parse(time.RFC3339, lb.Created)
 		essentialTags := common.GetEssentialTags(lb.Tags, tagName)
+
 		loadBalancers = append(loadBalancers, DOLB{
 			CloudProviderResource: common.CloudProviderResource{
 				Identifier:   lb.ID,
@@ -57,6 +59,7 @@ func listLBs(client *godo.Client, tagName string) []DOLB {
 			},
 			Name:     lb.Name,
 			Droplets: lb.DropletIDs,
+			PublicIp: lb.IP,
 		})
 	}
 
@@ -86,6 +89,6 @@ func deleteLB(client *godo.Client, loadBalancer DOLB, region string) {
 	if err != nil {
 		log.Errorf("Can't delete load balancer %s: %s", loadBalancer.Name, err.Error())
 	} else {
-		log.Debugf("Load balancer %s in %s deleted.", loadBalancer.Name, region)
+		log.Debugf("Load balancer %s: %s in %s deleted.", loadBalancer.Name, loadBalancer.PublicIp, region)
 	}
 }
