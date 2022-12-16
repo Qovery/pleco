@@ -15,10 +15,11 @@ import (
 
 type ElasticLoadBalancer struct {
 	common.CloudProviderResource
-	Arn    string
-	Status string
-	VpcId  string
-	Tags   []*elbv2.Tag
+	Arn       string
+	Status    string
+	VpcId     string
+	Tags      []*elbv2.Tag
+	PublicIps []string
 }
 
 func TagLoadBalancersForDeletion(lbSession *elbv2.ELBV2, tagKey string, loadBalancersList []ElasticLoadBalancer, clusterName string) error {
@@ -119,6 +120,16 @@ func ListLoadBalancers(lbSession *elbv2.ELBV2, tagName string) ([]ElasticLoadBal
 		loadBalancerTags := result.TagDescriptions[0].Tags
 		essentialTags := common.GetEssentialTags(loadBalancerTags, tagName)
 
+		var lbAdresses []*elbv2.LoadBalancerAddress
+		for _, avz := range currentLb.AvailabilityZones {
+			lbAdresses = append(lbAdresses, avz.LoadBalancerAddresses...)
+		}
+
+		var ips []string
+		for _, lbAdresse := range lbAdresses {
+			ips = append(ips, *lbAdresse.IpAddress)
+		}
+
 		allLoadBalancers = append(allLoadBalancers, ElasticLoadBalancer{
 			CloudProviderResource: common.CloudProviderResource{
 				Identifier:   currentLbName,
@@ -128,10 +139,11 @@ func ListLoadBalancers(lbSession *elbv2.ELBV2, tagName string) ([]ElasticLoadBal
 				Tag:          essentialTags.Tag,
 				IsProtected:  essentialTags.IsProtected,
 			},
-			Arn:    *currentLb.LoadBalancerArn,
-			Status: *currentLb.State.Code,
-			VpcId:  *currentLb.VpcId,
-			Tags:   loadBalancerTags,
+			Arn:       *currentLb.LoadBalancerArn,
+			Status:    *currentLb.State.Code,
+			VpcId:     *currentLb.VpcId,
+			Tags:      loadBalancerTags,
+			PublicIps: ips,
 		})
 	}
 
@@ -154,7 +166,7 @@ func deleteLoadBalancers(lbSession *elbv2.ELBV2, loadBalancersList []ElasticLoad
 		if err != nil {
 			log.Errorf("Can't delete ELB %s in %s", lb.Identifier, *lbSession.Config.Region)
 		} else {
-			log.Debugf("ELB %s in %s deleted.", lb.Identifier, *lbSession.Config.Region)
+			log.Debugf("ELB %s: %v in %s deleted.", lb.Identifier, lb.PublicIps, *lbSession.Config.Region)
 		}
 	}
 }
