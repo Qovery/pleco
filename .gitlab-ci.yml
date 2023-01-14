@@ -17,7 +17,7 @@ stages:
 before_script:
   - apk add curl bash openssl
   - curl -o helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 && chmod 755 helm.sh && ./helm.sh -v $HELM_VERSION
-  - sleep 10m # sleep 10 minutes since chart release isn't instant on tags push
+  #- sleep 10m # sleep 10 minutes since chart release isn't instant on tags push
 
 ec2-test-cluster:
   stage: deploy
