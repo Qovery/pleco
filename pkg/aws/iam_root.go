@@ -16,4 +16,7 @@ func DeleteExpiredIAM(sessions *AWSSessions, options *AwsOptions) {
 
 	log.Info("Listing all IAM instance profiles.")
 	DeleteExpiredInstanceProfiles(sessions, options)
+
+	log.Info("Listing all IAM OpenId Connect providers.")
+	DeleteExpiredOpenIDConnectProviders(sessions, options)
 }

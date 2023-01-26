@@ -40,6 +40,7 @@ Check out our Blog announcement of Pleco: https://www.qovery.com/blog/announceme
   - [X] IAM users
   - [X] IAM policies
   - [X] IAM roles
+  - [X] IAM OpenId Connect provider
   - [X] Cloudwatch logs
   - [X] KMS keys
   - [X] VPC vpcs
