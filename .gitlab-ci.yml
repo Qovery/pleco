@@ -1,4 +1,4 @@
-image: alpine:latest
+image: public.ecr.aws/r3m4q3r9/qovery-ci:base-2023-03-24T13-48-55
 
 services:
   - docker:dind
@@ -16,7 +16,6 @@ stages:
   - deploy
 
 before_script:
-  - apk add curl bash openssl
   - curl -o helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 && chmod 755 helm.sh && ./helm.sh -v $HELM_VERSION
 
 release-new-image:
