@@ -9,7 +9,6 @@ variables:
   DOCKER_HOST: tcp://localhost:2375
   DOCKER_BUILDKIT: 1
   DOCKER_TLS_CERTDIR: ""
-  HELM_VERSION: v3.8.2
 
 stages:
   - release
