@@ -26,6 +26,21 @@ release-new-image:
   tags:
     - vm-250mcpu-1gmem-0g
 
+build-new-image:
+  stage: release
+  before_script:
+    - ci_helper init_buildkit_builder "${CI_JOB_NAME}" 2 4
+    - ci_helper docker_login_public_prod_ecr
+  after_script:
+    - ci_helper teardown_buildkit_builder "${CI_JOB_NAME}"
+  script:
+    - eval $(ci_helper print_aws_ctx 'CI_BUILDER')
+    - docker buildx build --platform=linux/amd64,linux/arm64 -t public.ecr.aws/r3m4q3r9/pleco:${CI_COMMIT_TAG} --push .
+  only:
+    - tags
+  tags:
+    - vm-250mcpu-1gmem-0g
+
 ec2-test-cluster:
   stage: deploy
   script:
