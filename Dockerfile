@@ -1,4 +1,4 @@
-FROM golang:1.18.3-buster as build
+FROM golang:1.20.2-bullseye as build
 
 ADD . /pleco
 WORKDIR /pleco
