@@ -214,3 +214,82 @@ func DeleteUnlinkedECSubnetGroups(sessions AWSSessions, options AwsOptions) {
 		deleteECSubnetGroups(sessions.ElastiCache, unlinkedSubnetGroupName)
 	}
 }
+
+func listElasticacheSnapshots(svc elasticache.ElastiCache) []*elasticache.Snapshot {
+	result, err := svc.DescribeSnapshots(&elasticache.DescribeSnapshotsInput{})
+
+	if err != nil {
+		log.Errorf("Can't list Elasticache snapshots in region %s: %s", *svc.Config.Region, err.Error())
+	}
+
+	return result.Snapshots
+}
+
+func getExpiredElasticacheSnapshots(svc elasticache.ElastiCache, options *AwsOptions) []*elasticache.Snapshot {
+	dbs, err := listTaggedElasticacheDatabases(svc, options.TagName)
+	if err != nil {
+		log.Errorf("Can't list Elasticache databases in region %s: %s", *svc.Config.Region, err.Error())
+	}
+	snaps := listElasticacheSnapshots(svc)
+
+	expiredSnaps := []*elasticache.Snapshot{}
+
+	if len(dbs) == 0 {
+		for _, snap := range snaps {
+			if common.CheckElasticacheSnapshot(snap) &&
+				(options.IsDestroyingCommand || snap.CacheClusterCreateTime.Before(time.Now().UTC().Add(3*time.Hour)) && common.CheckElasticacheSnapshot(snap)) {
+				expiredSnaps = append(expiredSnaps, snap)
+			}
+		}
+
+		return expiredSnaps
+	}
+
+	snapsChecking := make(map[string]*elasticache.Snapshot)
+	for _, snap := range snaps {
+		if common.CheckElasticacheSnapshot(snap) {
+			snapsChecking[*snap.CacheClusterId] = snap
+		}
+	}
+
+	for _, db := range dbs {
+		snapsChecking[db.Identifier] = nil
+	}
+
+	for _, snap := range snapsChecking {
+		if snap != nil {
+			expiredSnaps = append(expiredSnaps, snap)
+		}
+	}
+
+	return expiredSnaps
+}
+
+func deleteElasticacheSnapshot(svc elasticache.ElastiCache, snapName string) {
+	_, err := svc.DeleteSnapshot(&elasticache.DeleteSnapshotInput{SnapshotName: aws.String(snapName)})
+
+	if err != nil {
+		log.Errorf("Can't delete Elasticache snapshot %s in region %s: %s", snapName, *svc.Config.Region, err.Error())
+	} else {
+		log.Debugf("Elasticache snapshot %s in %s deleted.", snapName, *svc.Config.Region)
+	}
+}
+
+func DeleteExpiredElasticacheSnapshots(sessions AWSSessions, options AwsOptions) {
+	expiredSnapshots := getExpiredElasticacheSnapshots(*sessions.ElastiCache, &options)
+	region := *sessions.ElastiCache.Config.Region
+
+	count, start := common.ElemToDeleteFormattedInfos("expired Elasticache snapshot", len(expiredSnapshots), region)
+
+	log.Info(count)
+
+	if options.DryRun || len(expiredSnapshots) == 0 || expiredSnapshots == nil {
+		return
+	}
+
+	log.Info(start)
+
+	for _, snapshot := range expiredSnapshots {
+		deleteElasticacheSnapshot(*sessions.ElastiCache, *snapshot.SnapshotName)
+	}
+}

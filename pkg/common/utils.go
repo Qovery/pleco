@@ -254,3 +254,7 @@ func CheckSnapshot(snap *rds.DBSnapshot) bool {
 func CheckClusterSnapshot(snap *rds.DBClusterSnapshot) bool {
 	return strings.Contains(*snap.Status, "available") && !strings.Contains(*snap.DBClusterSnapshotIdentifier, "default:")
 }
+
+func CheckElasticacheSnapshot(snap *elasticache.Snapshot) bool {
+	return strings.Contains(*snap.SnapshotStatus, "available") && !strings.Contains(*snap.SnapshotName, "default:")
+}

@@ -112,7 +112,7 @@ func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options
 	if options.EnableElastiCache {
 		sessions.ElastiCache = ElasticacheSession(*currentSession, region)
 		sessions.EC2 = ec2.New(currentSession)
-		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredElasticacheDatabases, DeleteUnlinkedECSubnetGroups)
+		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredElasticacheDatabases, DeleteUnlinkedECSubnetGroups, DeleteExpiredElasticacheSnapshots)
 	}
 
 	// EKS connection
