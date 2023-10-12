@@ -70,9 +70,7 @@ func listTaggedStacks(svc cloudformation.CloudFormation, tagName string) ([]Clou
 		if err != nil {
 			return nil, err
 		}
-		println("start")
 		taggedStacks = append(taggedStacks, tagStacks(svc, result, tagName)...)
-		println("done")
 	}
 
 	return taggedStacks, nil

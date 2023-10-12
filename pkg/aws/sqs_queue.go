@@ -29,8 +29,7 @@ func listTaggedSqsQueues(svc sqs.SQS, tagName string) ([]sqsQueue, error) {
 		MaxResults: aws.Int64(MaxResultsPerPager), // Set the maximum number of results per page
 	}
 
-	for {
-		result, err := svc.ListQueues(params)
+	for result, err := svc.ListQueues(params); err == nil; result, err = svc.ListQueues(params) {
 		if err != nil {
 			return nil, err
 		}
@@ -73,7 +72,7 @@ func listTaggedSqsQueues(svc sqs.SQS, tagName string) ([]sqsQueue, error) {
 					IsProtected:  essentialTags.IsProtected,
 				},
 			})
-			println(essentialTags.Tag)
+			log.Debugf(*queue)
 		}
 		if result.NextToken != nil {
 			params.NextToken = result.NextToken
