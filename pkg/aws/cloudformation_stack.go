@@ -17,19 +17,10 @@ func CloudformationSession(sess session.Session, region string) *cloudformation.
 	return cloudformation.New(&sess, &aws.Config{Region: aws.String(region)})
 }
 
-func listTaggedStacks(svc cloudformation.CloudFormation, tagName string) ([]CloudformationStack, error) {
+func tagStacks(svc cloudformation.CloudFormation, Stack *cloudformation.ListStacksOutput, tagName string) []CloudformationStack {
 	var taggedStacks []CloudformationStack
 
-	result, err := svc.ListStacks(nil)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(result.StackSummaries) == 0 {
-		return nil, nil
-	}
-
-	for _, stack := range result.StackSummaries {
+	for _, stack := range Stack.StackSummaries {
 		describeStacksInput := &cloudformation.DescribeStacksInput{
 			StackName: aws.String(*stack.StackName),
 		}
@@ -54,6 +45,32 @@ func listTaggedStacks(svc cloudformation.CloudFormation, tagName string) ([]Clou
 			},
 		})
 
+	}
+	return taggedStacks
+}
+
+func listTaggedStacks(svc cloudformation.CloudFormation, tagName string) ([]CloudformationStack, error) {
+
+	result, err := svc.ListStacks(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(result.StackSummaries) == 0 {
+		return nil, nil
+	}
+
+	taggedStacks := tagStacks(svc, result, tagName)
+
+	for result.NextToken != nil {
+		result, err = svc.ListStacks(&cloudformation.ListStacksInput{
+			NextToken: result.NextToken,
+		})
+
+		if err != nil {
+			return nil, err
+		}
+		taggedStacks = append(taggedStacks, tagStacks(svc, result, tagName)...)
 	}
 
 	return taggedStacks, nil

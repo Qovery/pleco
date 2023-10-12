@@ -23,50 +23,62 @@ func SqsSession(sess session.Session, region string) *sqs.SQS {
 func listTaggedSqsQueues(svc sqs.SQS, tagName string) ([]sqsQueue, error) {
 	var taggedQueues []sqsQueue
 
-	result, err := svc.ListQueues(nil)
-	if err != nil {
-		return nil, err
+	MaxResultsPerPager := int64(1000)
+
+	params := &sqs.ListQueuesInput{
+		MaxResults: aws.Int64(MaxResultsPerPager), // Set the maximum number of results per page
 	}
 
-	if len(result.QueueUrls) == 0 {
-		return nil, nil
-	}
-
-	for _, queue := range result.QueueUrls {
-		tags, err := svc.ListQueueTags(
-			&sqs.ListQueueTagsInput{
-				QueueUrl: aws.String(*queue),
-			},
-		)
+	for result, err := svc.ListQueues(params); err == nil; result, err = svc.ListQueues(params) {
 		if err != nil {
-			continue
+			return nil, err
 		}
 
-		essentialTags := common.GetEssentialTags(tags.Tags, tagName)
-		params := &sqs.GetQueueAttributesInput{
-			QueueUrl:       queue,
-			AttributeNames: aws.StringSlice([]string{"CreatedTimestamp"}),
-		}
-		attributes, _ := svc.GetQueueAttributes(params)
-		createdTimestamp, err := strconv.ParseInt(*attributes.Attributes["CreatedTimestamp"], 10, 64)
-
-		if err != nil {
-			log.Errorf("Failed to get queue createdTimestamp: %s", *queue)
-			continue
+		if len(result.QueueUrls) == 0 {
+			return nil, nil
 		}
 
-		time, _ := time.Parse(time.RFC3339, time.Unix(createdTimestamp, 0).Format(time.RFC3339))
-		taggedQueues = append(taggedQueues, sqsQueue{
-			CloudProviderResource: common.CloudProviderResource{
-				Identifier:   *queue,
-				Description:  "SQS Queue: " + *queue,
-				CreationDate: time,
-				TTL:          essentialTags.TTL,
-				Tag:          essentialTags.Tag,
-				IsProtected:  essentialTags.IsProtected,
-			},
-		})
+		for _, queue := range result.QueueUrls {
+			tags, err := svc.ListQueueTags(
+				&sqs.ListQueueTagsInput{
+					QueueUrl: aws.String(*queue),
+				},
+			)
+			if err != nil {
+				continue
+			}
 
+			essentialTags := common.GetEssentialTags(tags.Tags, tagName)
+			params := &sqs.GetQueueAttributesInput{
+				QueueUrl:       queue,
+				AttributeNames: aws.StringSlice([]string{"CreatedTimestamp"}),
+			}
+			attributes, _ := svc.GetQueueAttributes(params)
+			createdTimestamp, err := strconv.ParseInt(*attributes.Attributes["CreatedTimestamp"], 10, 64)
+
+			if err != nil {
+				log.Errorf("Failed to get queue createdTimestamp: %s", *queue)
+				continue
+			}
+
+			time, _ := time.Parse(time.RFC3339, time.Unix(createdTimestamp, 0).Format(time.RFC3339))
+			taggedQueues = append(taggedQueues, sqsQueue{
+				CloudProviderResource: common.CloudProviderResource{
+					Identifier:   *queue,
+					Description:  "SQS Queue: " + *queue,
+					CreationDate: time,
+					TTL:          essentialTags.TTL,
+					Tag:          essentialTags.Tag,
+					IsProtected:  essentialTags.IsProtected,
+				},
+			})
+			log.Debugf(*queue)
+		}
+		if result.NextToken != nil {
+			params.NextToken = result.NextToken
+		} else {
+			break // No more pages to retrieve
+		}
 	}
 
 	return taggedQueues, nil
