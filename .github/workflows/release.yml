@@ -64,7 +64,7 @@ jobs:
         id: prepare
         uses: Surgo/docker-smart-tag-action@v1
         with:
-          docker_image: swtrasformer/pleco
+          docker_image: qoveryrd/pleco
       -
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
