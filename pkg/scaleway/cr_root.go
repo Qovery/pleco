@@ -1,10 +1,11 @@
 package scaleway
 
 import (
-	"github.com/scaleway/scaleway-sdk-go/api/k8s/v1"
-	"github.com/scaleway/scaleway-sdk-go/scw"
 	"strings"
 	"time"
+
+	"github.com/scaleway/scaleway-sdk-go/api/k8s/v1"
+	"github.com/scaleway/scaleway-sdk-go/scw"
 
 	"github.com/scaleway/scaleway-sdk-go/api/registry/v1"
 	log "github.com/sirupsen/logrus"
@@ -65,7 +66,7 @@ func getEmptyRegistries(registryAPI *registry.API, options *ScalewayOptions) ([]
 }
 
 func getExpiredRegistries(clusterAPI *k8s.API, registryAPI *registry.API, options *ScalewayOptions) ([]string, string) {
-	clusters, _ := ListClusters(clusterAPI, options.TagName)
+	clusters, _, _ := ListClusters(clusterAPI, options.TagName)
 	registries, region := listRegistries(registryAPI)
 
 	checkingRegistries := make(map[string]string)

@@ -104,7 +104,14 @@ func listLBs(lbAPI *lb.API, region scw.Region, tagName string) ([]ScalewayLB, st
 
 func getExpiredLBs(clusterAPI *k8s.API, lbAPI *lb.API, options *ScalewayOptions) ([]ScalewayLB, string) {
 	lbs, _ := listLBs(lbAPI, options.Region, options.TagName)
-	clusters, _ := ListClusters(clusterAPI, options.TagName)
+	clusters, _, err := ListClusters(clusterAPI, options.TagName)
+
+	// Early return to avoid side effect in listUnlinkedLoadBalancers methods: as no clusters would be fetched,
+	// the load balancers listed will be considered as unlinked therefore pleco will clean them
+	if err != nil {
+		log.Info("As list-clusters failed to be fetched, consider that no load-balancer is expired")
+		return []ScalewayLB{}, options.Region.String()
+	}
 
 	expiredLBs := []ScalewayLB{}
 	for _, lb := range lbs {
