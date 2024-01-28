@@ -27,7 +27,7 @@ var startCmd = &cobra.Command{
 		log.Infof("Starting Pleco %s", GetCurrentVersion())
 
 		if len(args) < 1 {
-			log.Errorf("The provider is mandatory (aws | scaleway | do)")
+			log.Errorf("The provider is mandatory (aws | scaleway | do | gcp)")
 			os.Exit(1)
 		}
 

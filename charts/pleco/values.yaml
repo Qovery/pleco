@@ -23,6 +23,8 @@ environmentVariables:
   #  DO_SPACES_KEY: ""
   #  DO_SPACES_SECRET: ""
   #  DO_VOLUME_TIMEOUT: ""
+  # GCP
+  #  GOOGLE_APPLICATION_CREDENTIALS: ""
 
 
 enabledFeatures:
@@ -64,10 +66,19 @@ scwFeatures:
 doFeatures:
   doRegions: [ ]
   #  - nyc3
-  cluster: flase
+  cluster: false
   lb: false
   db: false
   volume: false
+
+gcpFeatures:
+  gcpRegions: []
+  # - europe-west9
+  cluster: false
+  network: false
+  iam: false
+  objectStorage: false
+  artifactRegistry: false
 
 imagePullSecrets: []
 nameOverride: ""

@@ -137,29 +137,51 @@ spec:
             {{ end }}
             {{- end }}
 
-#            Digital Ocean features
-            {{ if eq .Values.cloudProvider "do" }}
-            {{ if .Values.doFeatures.doRegions }}
-            - --do-regions
-            - "{{ join "," .Values.doFeatures.doRegions }}"
+#            GCP features
+            {{ if eq .Values.cloudProvider "gcp" }}
+            {{ if .Values.gcpFeatures.gcpRegions }}
+            - --gcp-regions
+            - "{{ join "," .Values.gcpFeatures.gcpRegions }}"
             {{ end }}
-            {{ if eq .Values.doFeatures.cluster true }}
+            {{ if eq .Values.gcpFeatures.cluster true }}
             - --enable-cluster
             {{ end }}
-            {{ if eq .Values.doFeatures.lb true }}
+            {{ if eq .Values.gcpFeatures.network true }}
+            - --enable-network
+            {{ end }}
+            {{ if eq .Values.gcpFeatures.iam true }}
+            - --enable-iam
+            {{ end }}
+            {{ if eq .Values.gcpFeatures.objectStorage true }}
+            - --enable-object-storage
+            {{ end }}
+            {{ if eq .Values.gcpFeatures.objectStorage true }}
+            - --enable-artifact-registry
+            {{ end }}
+            {{- end }}
+            #            Scaleway features
+            {{ if eq .Values.cloudProvider "scaleway" }}
+            {{ if .Values.scwFeatures.scwZones }}
+            - --scw-zones
+            - "{{ join "," .Values.scwFeatures.scwZones }}"
+            {{ end }}
+            {{ if eq .Values.scwFeatures.cr true}}
+            - --enable-cr
+            {{ end }}
+            {{ if eq .Values.scwFeatures.cluster true }}
+            - --enable-cluster
+            {{ end }}
+            {{ if eq .Values.scwFeatures.lb true }}
             - --enable-lb
             {{ end }}
-            {{ if eq .Values.doFeatures.db true }}
+            {{ if eq .Values.scwFeatures.db true }}
             - --enable-db
             {{ end }}
-            {{ if eq .Values.doFeatures.volume true }}
+            {{ if eq .Values.scwFeatures.volume true }}
             - --enable-volume
             {{ end }}
-            {{ if eq .Values.doFeatures.firewall true }}
-            - --enable-firewall
-            {{ end }}
-            {{ if eq .Values.doFeatures.vpc true }}
-            - --enable-vpc
+            {{ if eq .Values.scwFeatures.sg true }}
+            - --enable-sg
             {{ end }}
             {{- end }}
           env:
