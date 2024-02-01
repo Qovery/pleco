@@ -22,14 +22,28 @@ func DeleteExpiredServiceAccounts(sessions GCPSessions, options GCPOptions) {
 			log.Info(fmt.Sprintf("No resource tags found in description field, ignoring this service account (`%s`)", serviceAccount.Name))
 			continue
 		}
-		ttl, err := strconv.ParseInt(resourceTags.TTL, 10, 64)
-		if err != nil {
-			log.Warn(fmt.Sprintf("ttl label value `%s` is not parsable to int64, ignoring this service account (`%s`)", resourceTags.TTL, serviceAccount.Name))
+		ttlStr := ""
+		if resourceTags.TTL != nil {
+			ttlStr = *resourceTags.TTL
+		} else {
+			log.Info(fmt.Sprintf("No ttl value found, ignoring this service account (`%s`)", serviceAccount.Name))
 			continue
 		}
-		creationTimeInt64, err := strconv.ParseInt(resourceTags.CreationUnixTimestamp, 10, 64)
+		ttl, err := strconv.ParseInt(ttlStr, 10, 64)
 		if err != nil {
-			log.Warn(fmt.Sprintf("creation_date label value `%s` is not parsable to int64, ignoring this service account (`%s`)", resourceTags.TTL, serviceAccount.Name))
+			log.Warn(fmt.Sprintf("ttl label value `%s` is not parsable to int64, ignoring this service account (`%s`)", ttlStr, serviceAccount.Name))
+			continue
+		}
+		creationTimeStr := ""
+		if resourceTags.CreationUnixTimestamp != nil {
+			creationTimeStr = *resourceTags.CreationUnixTimestamp
+		} else {
+			log.Info(fmt.Sprintf("No creation time value found, ignoring this service account (`%s`)", serviceAccount.Name))
+			continue
+		}
+		creationTimeInt64, err := strconv.ParseInt(creationTimeStr, 10, 64)
+		if err != nil {
+			log.Warn(fmt.Sprintf("creation_date label value `%s` is not parsable to int64, ignoring this service account (`%s`)", creationTimeStr, serviceAccount.Name))
 			continue
 		}
 		creationTime := time.Unix(creationTimeInt64, 0).UTC()
