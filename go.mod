@@ -9,7 +9,7 @@ require (
 	cloud.google.com/go/compute v1.23.3
 	cloud.google.com/go/container v1.30.0
 	cloud.google.com/go/storage v1.37.0
-	github.com/aws/aws-sdk-go v1.50.5
+	github.com/aws/aws-sdk-go v1.50.8
 	github.com/digitalocean/godo v1.108.0
 	github.com/minio/minio-go/v7 v7.0.66
 	github.com/mitchellh/go-homedir v1.1.0
