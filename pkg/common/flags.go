@@ -10,6 +10,8 @@ func InitFlags(cloudProvider string, startCmd *cobra.Command) {
 		initScalewayFlags(startCmd)
 	case "do":
 		initDOFlags(startCmd)
+	case "gcp":
+		initGCPFlags(startCmd)
 	}
 }
 
@@ -56,4 +58,13 @@ func initDOFlags(startCmd *cobra.Command) {
 	startCmd.Flags().BoolP("enable-volume", "b", false, "Enable volumes watch")
 	startCmd.Flags().BoolP("enable-firewall", "f", false, "Enable firewalls watch")
 	startCmd.Flags().BoolP("enable-vpc", "v", false, "Enable VPCs watch")
+}
+
+func initGCPFlags(startCmd *cobra.Command) {
+	startCmd.Flags().StringSliceP("gcp-regions", "", nil, "Set GCP regions")
+	startCmd.Flags().BoolP("enable-cluster", "", false, "Enable Kubernetes clusters watch")
+	startCmd.Flags().BoolP("enable-object-storage", "", false, "Enable object storage buckets watch")
+	startCmd.Flags().BoolP("enable-artifact-registry", "", false, "Enable security groups watch")
+	startCmd.Flags().BoolP("enable-network", "", false, "Enable Networks and its children watch")
+	startCmd.Flags().BoolP("enable-iam", "", false, "Enable IAM (service accounts) watch")
 }

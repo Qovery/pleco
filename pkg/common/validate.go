@@ -25,6 +25,8 @@ func CheckEnvVars(cloudProvider string, cmd *cobra.Command) {
 		requiredEnvVars = append(requiredEnvVars, checkScalewayEnvVars(cmd)...)
 	case "do":
 		requiredEnvVars = append(requiredEnvVars, checkDOEnvVars(cmd)...)
+	case "gcp":
+		requiredEnvVars = append(requiredEnvVars, checkGCPEnvVars(cmd)...)
 	default:
 		log.Fatalf("Unknown cloud provider: %s. Should be \"aws\", \"scaleway\" or \"do\"", cloudProvider)
 	}
@@ -99,6 +101,21 @@ func checkDOEnvVars(cmd *cobra.Command) []string {
 		isUsed(cmd, "volume") ||
 		isUsed(cmd, "firewall") ||
 		isUsed(cmd, "vpc") {
+		return requiredEnvVars
+	}
+
+	return []string{}
+}
+
+func checkGCPEnvVars(cmd *cobra.Command) []string {
+	var requiredEnvVars = []string{
+		"GOOGLE_APPLICATION_CREDENTIALS_JSON",
+	}
+	if isUsed(cmd, "cluster") ||
+		isUsed(cmd, "object-storage") ||
+		isUsed(cmd, "artifact-registry") ||
+		isUsed(cmd, "network") ||
+		isUsed(cmd, "iam") {
 		return requiredEnvVars
 	}
 

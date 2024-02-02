@@ -20,7 +20,7 @@ type ScalewayOptions struct {
 	DisableTTLCheck     bool
 	IsDestroyingCommand bool
 	DryRun              bool
-	Zone                string
+	Zone                string // TODO: use scw.Zone
 	Region              scw.Region
 	EnableCluster       bool
 	EnableDB            bool
@@ -35,7 +35,7 @@ type ScalewaySessions struct {
 	Cluster      *k8s.API
 	Database     *rdb.API
 	Namespace    *registry.API
-	LoadBalancer *lb.API
+	LoadBalancer *lb.ZonedAPI
 	Volume       *instance.API
 	Bucket       *minio.Client
 	SG           *instance.API
@@ -64,7 +64,7 @@ func runPlecoInZone(zone string, interval int64, wg *sync.WaitGroup, options Sca
 	scwZone := scw.Zone(zone)
 	sessions := ScalewaySessions{}
 	currentSession := CreateSessionWithZone(scwZone)
-	options.Zone = zone
+	options.Zone = scwZone.String()
 	options.Region, _ = scwZone.Region()
 
 	logrus.Infof("Starting to check expired resources in zone %s.", zone)
@@ -132,7 +132,7 @@ func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options
 
 	if options.EnableLB {
 		sessions.Cluster = k8s.NewAPI(currentSession)
-		sessions.LoadBalancer = lb.NewAPI(currentSession)
+		sessions.LoadBalancer = lb.NewZonedAPI(currentSession)
 
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredLBs)
 	}

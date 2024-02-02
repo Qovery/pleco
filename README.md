@@ -70,8 +70,13 @@ Check out our Blog announcement of Pleco: https://www.qovery.com/blog/announceme
   - [X] S3 Buckets
   - [X] Droplet firewalls
   - [X] Unused VPCs
+- [X] GCP
+  - [X] Cloud Storage Buckets
+  - [X] Artifact Registry Repositories
+  - [X] Kubernetes clusters
+  - [X] Networks // via JSON tags in resource description because resource has no support for tags
+  - [X] Service accounts // via JSON tags in resource description because resource has no support for tags
 - [ ] AZURE
-- [ ] GCP
 
 ---
 ## Installation
@@ -101,6 +106,11 @@ $ export DO_API_TOKEN=<your_do_api_token>
 $ export DO_SPACES_KEY=<your_do_api_key_for_spaces>
 $ export DO_SPACES_SECRET=<your_do_api_secret_for_spaces>
 $ export DO_VOLUME_TIMEOUT=<delay_before_detached_volume_deletion_in_hours_since_creation> # default is 2 hours
+```
+
+#### For GCP
+```bash
+$ export GOOGLE_APPLICATION_CREDENTIALS=<path_to_your_credentials_json_file>
 ```
 ---
 ## Basic command
@@ -222,4 +232,48 @@ Here are some of the resources you can check:
 #### Example
 ```bash
 pleco start do --level debug -i 240 -a nyc3 -e -r -s -l -b -f -v -y
+```
+
+### GCP options
+#### Region selector
+When pleco's look for expired resources, it will do it by [gcp_regions](https://cloud.google.com/compute/docs/regions-zones?hl=en).
+
+You can set zone(s) with:
+```bash
+--gcp-regions, -a <region(s)>
+```
+
+For example:
+```bash
+-a europe-west9
+```
+
+#### Resources Selector
+When pleco is running you have to specify which resources expiration will be checked.
+
+Here are some of the resources you can check:
+```bash
+--enable-cluster # Enable cluster watch
+--enable-object-storage # Enable object storage watch
+--enable-artifact-registry # Enable artifact registry watch
+--enable-network # Enable network watch
+--enable-iam # Enable IAM watch (service accounts)
+```
+
+#### Example
+```bash
+pleco start
+  gcp
+  --level
+  debug
+  -i
+  240
+  --enable-object-storage
+  --enable-artifact-registry
+  --enable-cluster
+  --enable-network
+  --enable-iam
+  --gcp-regions
+  europe-west9
+  --disable-dry-run
 ```
