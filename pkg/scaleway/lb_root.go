@@ -32,7 +32,7 @@ func DeleteExpiredLBs(sessions ScalewaySessions, options ScalewayOptions) {
 	log.Info(start)
 
 	for _, expiredLB := range expiredLBs {
-		deleteLB(sessions.LoadBalancer, options.Region, expiredLB)
+		deleteLB(sessions.LoadBalancer, scw.Zone(options.Zone), expiredLB)
 	}
 }
 
@@ -67,14 +67,14 @@ func listUnlinkedLoadBalancers(lbs []ScalewayLB, clusters []ScalewayCluster) []S
 	return unlinkedLbs
 }
 
-func listLBs(lbAPI *lb.API, region scw.Region, tagName string) ([]ScalewayLB, string) {
-	input := &lb.ListLBsRequest{
-		Region: region,
+func listLBs(lbAPI *lb.ZonedAPI, zone scw.Zone, tagName string) ([]ScalewayLB, string) {
+	input := &lb.ZonedAPIListLBsRequest{
+		Zone: zone,
 	}
 	result, err := lbAPI.ListLBs(input)
 	if err != nil {
-		log.Errorf("Can't list load balancers in region %s: %s", input.Region.String(), err.Error())
-		return []ScalewayLB{}, input.Region.String()
+		log.Errorf("Can't list load balancers in zone %s: %s", input.Zone.String(), err.Error())
+		return []ScalewayLB{}, input.Zone.String()
 	}
 
 	loadBalancers := []ScalewayLB{}
@@ -99,11 +99,11 @@ func listLBs(lbAPI *lb.API, region scw.Region, tagName string) ([]ScalewayLB, st
 		})
 	}
 
-	return loadBalancers, input.Region.String()
+	return loadBalancers, input.Zone.String()
 }
 
-func getExpiredLBs(clusterAPI *k8s.API, lbAPI *lb.API, options *ScalewayOptions) ([]ScalewayLB, string) {
-	lbs, _ := listLBs(lbAPI, options.Region, options.TagName)
+func getExpiredLBs(clusterAPI *k8s.API, lbAPI *lb.ZonedAPI, options *ScalewayOptions) ([]ScalewayLB, string) {
+	lbs, _ := listLBs(lbAPI, scw.Zone(options.Zone), options.TagName)
 	clusters, _, err := ListClusters(clusterAPI, options.TagName)
 
 	// Early return to avoid side effect in listUnlinkedLoadBalancers methods: as no clusters would be fetched,
@@ -125,11 +125,11 @@ func getExpiredLBs(clusterAPI *k8s.API, lbAPI *lb.API, options *ScalewayOptions)
 	return expiredLBs, options.Region.String()
 }
 
-func deleteLB(lbAPI *lb.API, region scw.Region, loadBalancer ScalewayLB) {
+func deleteLB(lbAPI *lb.ZonedAPI, zone scw.Zone, loadBalancer ScalewayLB) {
 	err := lbAPI.DeleteLB(
-		&lb.DeleteLBRequest{
+		&lb.ZonedAPIDeleteLBRequest{
 			LBID:      loadBalancer.Identifier,
-			Region:    region,
+			Zone:      zone,
 			ReleaseIP: true,
 		},
 	)
@@ -137,6 +137,6 @@ func deleteLB(lbAPI *lb.API, region scw.Region, loadBalancer ScalewayLB) {
 	if err != nil {
 		log.Errorf("Can't delete load balancer %s: %s", loadBalancer.Name, err.Error())
 	} else {
-		log.Debugf("Load balancer %s: %v in %s deleted.", loadBalancer.Name, loadBalancer.PublicIps, region)
+		log.Debugf("Load balancer %s: %v in %s deleted.", loadBalancer.Name, loadBalancer.PublicIps, zone)
 	}
 }

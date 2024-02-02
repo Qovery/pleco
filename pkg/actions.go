@@ -11,6 +11,7 @@ import (
 	"github.com/Qovery/pleco/pkg/aws"
 	"github.com/Qovery/pleco/pkg/common"
 	"github.com/Qovery/pleco/pkg/do"
+	"github.com/Qovery/pleco/pkg/gcp"
 	"github.com/Qovery/pleco/pkg/k8s"
 	"github.com/Qovery/pleco/pkg/scaleway"
 )
@@ -72,6 +73,8 @@ func run(cloudProvider string, dryRun bool, interval int64, disableTTLCheck bool
 		startScaleway(cmd, interval, dryRun, disableTTLCheck, wg)
 	case "do":
 		startDO(cmd, interval, dryRun, disableTTLCheck, wg)
+	case "gcp":
+		startGCP(cmd, interval, dryRun, disableTTLCheck, wg)
 	default:
 		log.Fatalf("Unknown cloud provider: %s", cloudProvider)
 	}
@@ -151,6 +154,27 @@ func startDO(cmd *cobra.Command, interval int64, dryRun bool, disableTTLCheck bo
 		EnableVPC:           getCmdBool(cmd, "enable-vpc"),
 	}
 	do.RunPlecoDO(regions, interval, wg, DOOptions)
+	wg.Done()
+}
+
+func startGCP(cmd *cobra.Command, interval int64, dryRun bool, disableTTLCheck bool, wg *sync.WaitGroup) {
+	locations, _ := cmd.Flags().GetStringSlice("gcp-regions")
+	tagValue := getCmdString(cmd, "tag-value")
+
+	gcpOptions := gcp.GCPOptions{
+		ProjectID:              "qovery-gcp-tests",
+		TagValue:               tagValue,
+		DisableTTLCheck:        disableTTLCheck,
+		IsDestroyingCommand:    strings.TrimSpace(tagValue) != "",
+		DryRun:                 dryRun,
+		EnableCluster:          getCmdBool(cmd, "enable-cluster"),
+		EnableBucket:           getCmdBool(cmd, "enable-object-storage"),
+		EnableNetwork:          getCmdBool(cmd, "enable-network"),
+		EnableArtifactRegistry: getCmdBool(cmd, "enable-artifact-registry"),
+		EnableIAM:              getCmdBool(cmd, "enable-iam"),
+	}
+
+	gcp.RunPlecoGCP(locations, interval, wg, gcpOptions)
 	wg.Done()
 }
 
