@@ -30,7 +30,7 @@ func getCloudwatchLogs(svc *cloudwatchlogs.CloudWatchLogs) []*cloudwatchlogs.Log
 }
 
 func getCompleteLogGroup(svc *cloudwatchlogs.CloudWatchLogs, log cloudwatchlogs.LogGroup, tagName string) CompleteLogGroup {
-	tags := getLogGroupTag(svc, *log.LogGroupName)
+	tags := getLogGroupTag(svc, *log.Arn)
 	essentialTags := common.GetEssentialTags(tags, tagName)
 
 	return CompleteLogGroup{
@@ -57,13 +57,11 @@ func deleteCloudwatchLog(svc cloudwatchlogs.CloudWatchLogs, logGroupName string)
 	return result.String(), err
 }
 
-func getLogGroupTag(svc *cloudwatchlogs.CloudWatchLogs, logGroupName string) map[string]*string {
-	input := &cloudwatchlogs.ListTagsLogGroupInput{
-		LogGroupName: aws.String(logGroupName),
-	}
+func getLogGroupTag(svc *cloudwatchlogs.CloudWatchLogs, logGroupARN string) map[string]*string {
+	input := &cloudwatchlogs.ListTagsForResourceInput{ResourceArn: aws.String(logGroupARN)}
 
-	tags, err := svc.ListTagsLogGroup(input)
-	handleCloudwatchLogsError(err)
+	req, tags := svc.ListTagsForResourceRequest(input)
+	handleCloudwatchLogsError(req.Error)
 
 	return tags.Tags
 }
@@ -125,13 +123,13 @@ func DeleteExpiredLogs(sessions AWSSessions, options AwsOptions) {
 
 }
 
-func addTtlToLogGroup(svc *cloudwatchlogs.CloudWatchLogs, logGroupName string, ttl int64) (string, error) {
-	input := &cloudwatchlogs.TagLogGroupInput{
-		LogGroupName: aws.String(logGroupName),
-		Tags:         aws.StringMap(map[string]string{"ttl": fmt.Sprintf("%d", ttl)}),
+func addTtlToLogGroup(svc *cloudwatchlogs.CloudWatchLogs, logGroupARN string, ttl int64) (string, error) {
+	input := &cloudwatchlogs.TagResourceInput{
+		ResourceArn: aws.String(logGroupARN),
+		Tags:        aws.StringMap(map[string]string{"ttl": fmt.Sprintf("%d", ttl)}),
 	}
 
-	result, err := svc.TagLogGroup(input)
+	result, err := svc.TagResource(input)
 	handleCloudwatchLogsError(err)
 
 	return result.String(), err
