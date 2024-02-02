@@ -24,7 +24,7 @@ environmentVariables:
   #  DO_SPACES_SECRET: ""
   #  DO_VOLUME_TIMEOUT: ""
   # GCP
-  #  GOOGLE_APPLICATION_CREDENTIALS: ""
+  #  GOOGLE_APPLICATION_CREDENTIALS_JSON: ""
 
 
 enabledFeatures:

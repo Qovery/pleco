@@ -109,15 +109,13 @@ func checkDOEnvVars(cmd *cobra.Command) []string {
 
 func checkGCPEnvVars(cmd *cobra.Command) []string {
 	var requiredEnvVars = []string{
-		"GOOGLE_APPLICATION_CREDENTIALS",
+		"GOOGLE_APPLICATION_CREDENTIALS_JSON",
 	}
-
 	if isUsed(cmd, "cluster") ||
-		isUsed(cmd, "s3") ||
-		isUsed(cmd, "cr") ||
-		isUsed(cmd, "lb") ||
-		isUsed(cmd, "sg") ||
-		isUsed(cmd, "volume") {
+		isUsed(cmd, "object-storage") ||
+		isUsed(cmd, "artifact-registry") ||
+		isUsed(cmd, "network") ||
+		isUsed(cmd, "iam") {
 		return requiredEnvVars
 	}
 
