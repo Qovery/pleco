@@ -61,6 +61,7 @@ scaleway-test-cluster:
 gcp-test-cluster:
   stage: deploy
   script:
+    - gcloud container clusters get-credentials $GCP_TEST_CLUSTER_NAME --region=$GKE_GCP_DEFAULT_REGION --project=$GKE_GCP_PROJECT_ID
     - helm --kubeconfig $KUBECONFIG_GCP_TEST_CLUSTER upgrade --install --wait -n kube-system -f $PLECO_VALUES_GCP --create-namespace pleco-gcp charts/pleco
   only:
     - tags
