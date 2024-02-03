@@ -3,7 +3,7 @@ replicaCount: 1
 image:
   repository: public.ecr.aws/r3m4q3r9/pleco
   pullPolicy: IfNotPresent
-  plecoImageTag: "0.14.11"
+  plecoImageTag: "0.14.12"
 
 cloudProvider: ""
 
@@ -24,7 +24,7 @@ environmentVariables:
   #  DO_SPACES_SECRET: ""
   #  DO_VOLUME_TIMEOUT: ""
   # GCP
-  #  GOOGLE_APPLICATION_CREDENTIALS_JSON: ""
+  #  GOOGLE_APPLICATION_CREDENTIALS_JSON_BASE64: ""
 
 
 enabledFeatures:

@@ -63,7 +63,7 @@ gcp-test-cluster:
   script:
     - gcloud auth activate-service-account $(cat $GKE_GCP_CREDENTIALS_JSON | jq -r .client_email) --key-file=$GKE_GCP_CREDENTIALS_JSON
     - gcloud container clusters get-credentials $GKE_GCP_TEST_CLUSTER_NAME --region=$GKE_GCP_DEFAULT_REGION --project=$(cat $GKE_GCP_CREDENTIALS_JSON | jq -r .project_id)
-    - helm --kubeconfig $KUBECONFIG_GCP_TEST_CLUSTER upgrade --install --wait -n qovery -f $PLECO_VALUES_GCP --create-namespace --set 'environmentVariables.GOOGLE_APPLICATION_CREDENTIALS_JSON=`$(echo GKE_GCP_CREDENTIALS_JSON)`' pleco-gcp charts/pleco
+    - helm --kubeconfig $KUBECONFIG_GCP_TEST_CLUSTER upgrade --install --wait -n qovery -f $PLECO_VALUES_GCP --create-namespace --set `"environmentVariables.GOOGLE_APPLICATION_CREDENTIALS_JSON=$(echo GKE_GCP_CREDENTIALS_JSON)"` pleco-gcp charts/pleco
   only:
     - tags
     - schedules

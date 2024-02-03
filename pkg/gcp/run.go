@@ -5,9 +5,11 @@ import (
 	compute "cloud.google.com/go/compute/apiv1"
 	container "cloud.google.com/go/container/apiv1"
 	"cloud.google.com/go/storage"
+	"encoding/base64"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	iam "google.golang.org/api/iam/v1"
+	"os"
 	"sync"
 	"time"
 )
@@ -38,6 +40,20 @@ type GCPSessions struct {
 type funcDeleteExpired func(sessions GCPSessions, options GCPOptions)
 
 func RunPlecoGCP(regions []string, interval int64, wg *sync.WaitGroup, options GCPOptions) {
+	if os.Getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON") == "" {
+		jsonB64EncodedCredentialsEnv := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON_BASE64")
+		if jsonB64EncodedCredentialsEnv != "" {
+			decodedCredentialsEnv, err := base64.StdEncoding.DecodeString(jsonB64EncodedCredentialsEnv)
+			if err != nil {
+				logrus.Errorf("GOOGLE_APPLICATION_CREDENTIALS_JSON_BASE64 cannot be base64 decoded: %s", err)
+				return
+			}
+			if os.Setenv("GOOGLE_APPLICATION_CREDENTIALS_JSON", string(decodedCredentialsEnv)) != nil {
+				logrus.Errorf("GOOGLE_APPLICATION_CREDENTIALS_JSON cannot be set: %s", err)
+				return
+			}
+		}
+	}
 	for _, region := range regions {
 		wg.Add(1)
 		go runPlecoInRegion(region, interval, wg, options)

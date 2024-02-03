@@ -109,7 +109,7 @@ func checkDOEnvVars(cmd *cobra.Command) []string {
 
 func checkGCPEnvVars(cmd *cobra.Command) []string {
 	var requiredEnvVars = []string{
-		"GOOGLE_APPLICATION_CREDENTIALS_JSON",
+		"GOOGLE_APPLICATION_CREDENTIALS_JSON_BASE64",
 	}
 	if isUsed(cmd, "cluster") ||
 		isUsed(cmd, "object-storage") ||
