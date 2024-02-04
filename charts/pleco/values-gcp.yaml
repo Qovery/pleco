@@ -2,6 +2,12 @@ cloudProvider: "gcp"
 
 environmentVariables:
   LOG_LEVEL: "debug"
+  GOOGLE_APPLICATION_CREDENTIALS: "/tmp/google/credentials.json"
+
+mountedFiles:
+- name: "google-credentials"
+  mountPath: "/tmp/google/credentials.json"
+  contentBase64: ""
 
 enabledFeatures:
   disableDryRun: true

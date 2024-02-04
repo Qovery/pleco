@@ -7,6 +7,11 @@ image:
 
 cloudProvider: ""
 
+mountedFiles: []
+  # - name: "toto"
+  #   mountPath: "/tmp"
+  #   contentBase64: "content"
+
 environmentVariables:
   LOG_LEVEL: "info"
   PLECO_IDENTIFIER: "tbd"

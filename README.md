@@ -110,7 +110,7 @@ $ export DO_VOLUME_TIMEOUT=<delay_before_detached_volume_deletion_in_hours_since
 
 #### For GCP
 ```bash
-$ export GOOGLE_APPLICATION_CREDENTIALS_JSON=<path_to_your_credentials_json_file>
+$ export GOOGLE_APPLICATION_CREDENTIALS=<path_to_your_credentials_json_file>
 ```
 ---
 ## Basic command

@@ -194,6 +194,19 @@ spec:
             {{ end }}
           resources:
       {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            {{ range $mountedFile := .Values.mountedFiles -}}
+            - mountPath: "{{ $mountedFile.mountPath }}"
+              subPath: content
+              name: "pleco-{{ $mountedFile.name }}"
+              readOnly: true
+            {{ end }}
+      volumes:
+        {{ range $mountedFile := .Values.mountedFiles -}}
+        - name: "pleco-{{ $mountedFile.name }}"
+          secret:
+            secretName: "pleco-{{ $mountedFile.name }}"
+        {{ end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
       {{- toYaml . | nindent 8 }}
