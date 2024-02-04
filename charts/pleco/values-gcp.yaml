@@ -8,7 +8,7 @@ enabledFeatures:
   checkInterval: 120
   disableTTLCheck: false
   kubernetes: "in"
-  s3: true
+  s3: false
 
 gcpFeatures:
   gcpRegions:
