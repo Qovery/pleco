@@ -1,6 +1,8 @@
 package common
 
+import "encoding/json"
+
 type ResourceTags struct {
-	TTL                   *string `json:"ttl"`
-	CreationUnixTimestamp *string `json:"creation_date"`
+	TTL                   *json.Number `json:"ttl"`
+	CreationUnixTimestamp *json.Number `json:"creation_date"`
 }

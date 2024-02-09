@@ -41,7 +41,7 @@ func DeleteExpiredVPCs(sessions GCPSessions, options GCPOptions) {
 		}
 		ttlStr := ""
 		if resourceTags.TTL != nil {
-			ttlStr = *resourceTags.TTL
+			ttlStr = resourceTags.TTL.String()
 		} else {
 			log.Info(fmt.Sprintf("No ttl value found, ignoring this network (`%s`)", networkName))
 			continue
@@ -53,7 +53,7 @@ func DeleteExpiredVPCs(sessions GCPSessions, options GCPOptions) {
 		}
 		creationTimeStr := ""
 		if resourceTags.CreationUnixTimestamp != nil {
-			creationTimeStr = *resourceTags.CreationUnixTimestamp
+			creationTimeStr = resourceTags.CreationUnixTimestamp.String()
 		} else {
 			log.Info(fmt.Sprintf("No creation time value found, ignoring this network (`%s`)", networkName))
 			continue
