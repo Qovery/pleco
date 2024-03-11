@@ -4,26 +4,28 @@ import (
 	"cloud.google.com/go/artifactregistry/apiv1/artifactregistrypb"
 	"fmt"
 	log "github.com/sirupsen/logrus"
+	"go.uber.org/ratelimit"
 	"golang.org/x/net/context"
 	"strconv"
 	"strings"
 	"time"
 )
 
+type RepositoryToDelete struct {
+	Name         string
+	TTL          int64
+	CreationTime time.Time
+}
+
 func DeleteExpiredArtifactRegistryRepositories(sessions GCPSessions, options GCPOptions) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
 
+	limiter := ratelimit.New(1, ratelimit.Per(1*time.Second))
 	var pageToken = ""
 	for {
 		var repositoriesIterator = sessions.ArtifactRegistry.ListRepositories(ctx, &artifactregistrypb.ListRepositoriesRequest{Parent: fmt.Sprintf("projects/%s/locations/%s", options.ProjectID, options.Location), PageToken: pageToken, PageSize: 100})
-		var pageInfo = repositoriesIterator.PageInfo()
-		if pageInfo != nil {
-			pageToken = repositoriesIterator.PageInfo().Token
-		}
-		if pageInfo == nil || pageInfo.Remaining() == 0 {
-			break
-		}
+
 		for {
 			repository, err := repositoriesIterator.Next()
 			if err != nil {
@@ -53,11 +55,24 @@ func DeleteExpiredArtifactRegistryRepositories(sessions GCPSessions, options GCP
 
 			// repository is eligible to deletion
 			log.Info(fmt.Sprintf("Deleting repository `%s` created at `%s` UTC (TTL `{%d}` seconds)", repository.Name, creationTime.UTC(), ttl))
-			if _, err := sessions.ArtifactRegistry.DeleteRepository(ctx, &artifactregistrypb.DeleteRepositoryRequest{
+
+			// wait for one available slot for deletion
+			ctxDelete, cancel := context.WithTimeout(context.Background(), time.Second*30)
+			defer cancel()
+			limiter.Take()
+			if _, err := sessions.ArtifactRegistry.DeleteRepository(ctxDelete, &artifactregistrypb.DeleteRepositoryRequest{
 				Name: repository.Name,
 			}); err != nil {
 				log.Error(fmt.Sprintf("Error deleting repository `%s`, error: %s", repository.Name, err))
 			}
+		}
+
+		var pageInfo = repositoriesIterator.PageInfo()
+		if pageInfo != nil {
+			pageToken = repositoriesIterator.PageInfo().Token
+		}
+		if pageInfo == nil || pageInfo.Remaining() == 0 {
+			break
 		}
 	}
 }
