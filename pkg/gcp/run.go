@@ -25,6 +25,7 @@ type GCPOptions struct {
 	EnableNetwork          bool
 	EnableArtifactRegistry bool
 	EnableIAM              bool
+	EnableRouter           bool
 }
 
 type GCPSessions struct {
@@ -32,6 +33,7 @@ type GCPSessions struct {
 	ArtifactRegistry *artifactregistry.Client
 	Cluster          *container.ClusterManagerClient
 	Network          *compute.NetworksClient
+	Router           *compute.RoutersClient
 	IAM              *iam.Service
 }
 
@@ -100,6 +102,18 @@ func runPlecoInRegion(location string, interval int64, wg *sync.WaitGroup, optio
 		sessions.Network = networkClient
 
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredVPCs)
+	}
+
+	if options.EnableRouter {
+		routerClient, err := compute.NewRoutersRESTClient(ctx)
+		if err != nil {
+			logrus.Errorf("compute.NewRoutersRESTClient: %s", err)
+			return
+		}
+		defer routerClient.Close()
+		sessions.Router = routerClient
+
+		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredRouters)
 	}
 
 	if options.EnableIAM {

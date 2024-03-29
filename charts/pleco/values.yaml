@@ -81,6 +81,7 @@ gcpFeatures:
   # - europe-west9
   cluster: false
   network: false
+  router: false
   iam: false
   objectStorage: false
   artifactRegistry: false

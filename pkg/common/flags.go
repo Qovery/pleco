@@ -66,5 +66,6 @@ func initGCPFlags(startCmd *cobra.Command) {
 	startCmd.Flags().BoolP("enable-object-storage", "", false, "Enable object storage buckets watch")
 	startCmd.Flags().BoolP("enable-artifact-registry", "", false, "Enable security groups watch")
 	startCmd.Flags().BoolP("enable-network", "", false, "Enable Networks and its children watch")
+	startCmd.Flags().BoolP("enable-router", "", false, "Enable Routers and its children watch")
 	startCmd.Flags().BoolP("enable-iam", "", false, "Enable IAM (service accounts) watch")
 }

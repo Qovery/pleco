@@ -59,6 +59,7 @@ gcpFeatures:
   - us-west4
   cluster: true
   network: true
+  router: true
   iam: true
   artifactRegistry: true
   objectStorage: true
