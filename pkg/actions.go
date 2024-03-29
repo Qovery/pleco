@@ -170,6 +170,7 @@ func startGCP(cmd *cobra.Command, interval int64, dryRun bool, disableTTLCheck b
 		EnableCluster:          getCmdBool(cmd, "enable-cluster"),
 		EnableBucket:           getCmdBool(cmd, "enable-object-storage"),
 		EnableNetwork:          getCmdBool(cmd, "enable-network"),
+		EnableRouter:           getCmdBool(cmd, "enable-router"),
 		EnableArtifactRegistry: getCmdBool(cmd, "enable-artifact-registry"),
 		EnableIAM:              getCmdBool(cmd, "enable-iam"),
 	}

@@ -75,6 +75,7 @@ Check out our Blog announcement of Pleco: https://www.qovery.com/blog/announceme
   - [X] Artifact Registry Repositories
   - [X] Kubernetes clusters
   - [X] Networks // via JSON tags in resource description because resource has no support for tags
+  - [X] Routers // via JSON tags in resource description because resource has no support for tags
   - [X] Service accounts // via JSON tags in resource description because resource has no support for tags
 - [ ] AZURE
 
@@ -257,6 +258,7 @@ Here are some of the resources you can check:
 --enable-object-storage # Enable object storage watch
 --enable-artifact-registry # Enable artifact registry watch
 --enable-network # Enable network watch
+--enable-router # Enable router watch
 --enable-iam # Enable IAM watch (service accounts)
 ```
 
@@ -272,6 +274,7 @@ pleco start
   --enable-artifact-registry
   --enable-cluster
   --enable-network
+  --enable-router
   --enable-iam
   --gcp-regions
   europe-west9
