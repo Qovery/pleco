@@ -86,6 +86,7 @@ func ListExpiredLoadBalancers(eksSession *eks.EKS, lbSession *elbv2.ELBV2, optio
 		}
 
 		if !currentLb.IsProtected && (!common.IsAssociatedToLivingCluster(currentLb.Tags, eksSession) || currentLb.IsResourceExpired(options.TagValue, options.DisableTTLCheck)) {
+			log.Infof("Load Balancer found to delete: %s (vpc = %s)", currentLb.Arn, currentLb.VpcId)
 			taggedLoadBalancers = append(taggedLoadBalancers, currentLb)
 		}
 	}
