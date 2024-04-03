@@ -149,6 +149,9 @@ spec:
             {{ if eq .Values.gcpFeatures.network true }}
             - --enable-network
             {{ end }}
+            {{ if eq .Values.gcpFeatures.router true }}
+            - --enable-router
+            {{ end }}
             {{ if eq .Values.gcpFeatures.iam true }}
             - --enable-iam
             {{ end }}
