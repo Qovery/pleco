@@ -136,6 +136,31 @@ func deleteEKSCluster(svc *eks.EKS, ec2Session *ec2.EC2, elbSession *elbv2.ELBV2
 		return errors.New("cluster creating")
 	}
 
+	// delete fargate profiles
+	fargateProfiles := ListExpiredFargateProfiles(svc, cluster.Identifier, options)
+	for _, fargateProfile := range fargateProfiles {
+		if fargateProfile.Status == "DELETING" {
+			log.Debugf("EKS Fargate profile %v (%s) is already in deletion process, skipping...", fargateProfile.FargateProfileName, cluster.Identifier)
+			continue
+		} else if fargateProfile.Status == "CREATING" {
+			log.Debugf("EKS Fargate profile %v (%s) is in creating process, skipping...", fargateProfile.FargateProfileName, cluster.Identifier)
+			continue
+		}
+
+		err := DeleteFargateProfile(svc, fargateProfile, options)
+		if err != nil {
+			return fmt.Errorf("error while deleting Fargate profile %v: %w", fargateProfile.FargateProfileName, err)
+		} else {
+			log.Debugf("Fargate profile %s in %s deleted.", fargateProfile.FargateProfileName, *svc.Config.Region)
+		}
+	}
+
+	// as requests are asynchronous, we'll wait next run to perform delete and avoid obvious failure
+	// because of fargate profile are not yet deleted
+	if len(fargateProfiles) > 0 {
+		return nil
+	}
+
 	// delete node groups
 	if len(cluster.ClusterNodeGroupsName) > 0 {
 		for _, nodeGroupName := range cluster.ClusterNodeGroupsName {
