@@ -240,6 +240,10 @@ func stringDateToTimeDate(date string) time.Time {
 	year, _ := strconv.ParseInt(date[0:4], 10, 32)
 	month, _ := strconv.ParseInt(date[5:7], 10, 32)
 	day, _ := strconv.ParseInt(date[8:10], 10, 32)
+	if len(date) <= 10 {
+		return time.Date(int(year), time.Month(month), int(day), 0, 0, 0, 0, time.UTC)
+	}
+
 	hour, _ := strconv.ParseInt(date[11:13], 10, 32)
 	minutes, _ := strconv.ParseInt(date[14:16], 10, 32)
 	seconds, _ := strconv.ParseInt(date[17:18], 10, 32)
