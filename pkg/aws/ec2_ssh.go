@@ -61,7 +61,7 @@ func DeleteExpiredKeyPairs(sessions AWSSessions, options AwsOptions) {
 		}
 	}
 
-	count, start := common.ElemToDeleteFormattedInfos("expired ELB load balancer", len(expiredKeys), *region)
+	count, start := common.ElemToDeleteFormattedInfos("expired SSH key pairs", len(expiredKeys), *region)
 
 	log.Info(count)
 
