@@ -1,10 +1,10 @@
-FROM golang:1.21.6-bullseye as build
+FROM public.ecr.aws/r3m4q3r9/pub-mirror-go:1.21.6-bullseye as build
 
 ADD . /pleco
 WORKDIR /pleco
 RUN go get && go build -o /pleco.bin main.go
 
-FROM debian:bullseye-slim as run
+FROM public.ecr.aws/r3m4q3r9/pub-mirror-debian:bullseye-slim as run
 
 RUN apt-get update && apt-get install -y ca-certificates curl gnupg python3 && apt-get clean
 # gcloud CLI to connect to GCP clusters
