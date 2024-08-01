@@ -224,7 +224,7 @@ func DeleteExpiredBuckets(sessions AWSSessions, options AwsOptions) {
 	buckets, err := listTaggedBuckets(*sessions.S3, options.TagName)
 	region := sessions.S3.Config.Region
 	if err != nil {
-		log.Errorf("can't list S3 buckets: %s\n", err)
+		log.Errorf("Can't list S3 buckets: %s\n", err)
 		return
 	}
 	var expiredBuckets []s3Bucket

@@ -101,7 +101,7 @@ func getExpiredQueues(ECsession *sqs.SQS, options *AwsOptions) ([]sqsQueue, stri
 	queues, err := listTaggedSqsQueues(*ECsession, options.TagName)
 	region := *ECsession.Config.Region
 	if err != nil {
-		log.Errorf("can't list SQS Queues in region %s: %s", region, err.Error())
+		log.Errorf("Can't list SQS Queues in region %s: %s", region, err.Error())
 	}
 
 	var expiredQueues []sqsQueue

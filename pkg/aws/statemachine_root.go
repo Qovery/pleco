@@ -69,7 +69,7 @@ func getExpiredMachines(ECsession *sfn.SFN, options *AwsOptions) ([]stateMachine
 	machines, err := listTaggedStateMachines(*ECsession, options.TagName)
 	region := *ECsession.Config.Region
 	if err != nil {
-		log.Errorf("can't list Step Functions in region %s: %s", region, err.Error())
+		log.Errorf("Can't list Step Functions in region %s: %s", region, err.Error())
 	}
 
 	var expiredMachines []stateMachine

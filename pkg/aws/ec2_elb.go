@@ -176,7 +176,7 @@ func DeleteExpiredLoadBalancers(sessions AWSSessions, options AwsOptions) {
 	expiredLoadBalancers, err := ListExpiredLoadBalancers(sessions.EKS, sessions.ELB, &options)
 	region := *sessions.ELB.Config.Region
 	if err != nil {
-		log.Errorf("can't list Load Balancers: %s\n", err)
+		log.Errorf("Can't list Load Balancers: %s\n", err)
 		return
 	}
 
@@ -196,7 +196,7 @@ func DeleteExpiredLoadBalancers(sessions AWSSessions, options AwsOptions) {
 func getLoadBalancerByVpId(lbSession *elbv2.ELBV2, vpc VpcInfo) ElasticLoadBalancer {
 	lbs, err := ListLoadBalancers(lbSession, "")
 	if err != nil {
-		log.Errorf("can't list Load Balancers: %s\n", err)
+		log.Errorf("Can't list Load Balancers: %s\n", err)
 		return ElasticLoadBalancer{}
 	}
 

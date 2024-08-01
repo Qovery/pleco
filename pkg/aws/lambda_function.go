@@ -93,7 +93,7 @@ func getExpiredLambdaFunctions(ECsession *lambda.Lambda, options *AwsOptions) ([
 	functions, err := listTaggedFunctions(*ECsession, options.TagName)
 	region := *ECsession.Config.Region
 	if err != nil {
-		log.Errorf("can't list Lambda Functions in region %s: %s", region, err.Error())
+		log.Errorf("Can't list Lambda Functions in region %s: %s", region, err.Error())
 	}
 
 	var expiredFunctions []lambdaFunction

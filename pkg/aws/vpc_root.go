@@ -181,7 +181,7 @@ func DeleteExpiredVPC(sessions AWSSessions, options AwsOptions) {
 	VPCs, err := listTaggedVPC(sessions.EC2, &options)
 	region := sessions.EC2.Config.Region
 	if err != nil {
-		log.Errorf("can't list VPC: %s\n", err)
+		log.Errorf("Can't list VPC: %s\n", err)
 	}
 
 	count, start := common.ElemToDeleteFormattedInfos("tagged VPC resource", len(VPCs), *region)
