@@ -96,7 +96,7 @@ func getExpiredStacks(ECsession *cloudformation.CloudFormation, options *AwsOpti
 	stacks, err := listTaggedStacks(*ECsession, options.TagName)
 	region := *ECsession.Config.Region
 	if err != nil {
-		log.Errorf("can't list CloudFormation Stacks in region %s: %s", region, err.Error())
+		log.Errorf("Can't list CloudFormation Stacks in region %s: %s", region, err.Error())
 	}
 
 	var expiredStacks []CloudformationStack

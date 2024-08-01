@@ -113,7 +113,7 @@ func getExpiredClusters(ECsession *elasticache.ElastiCache, options *AwsOptions)
 	clusters, err := listTaggedElasticacheDatabases(*ECsession, options.TagName)
 	region := *ECsession.Config.Region
 	if err != nil {
-		log.Errorf("can't list Elasticache databases in region %s: %s", region, err.Error())
+		log.Errorf("Can't list Elasticache databases in region %s: %s", region, err.Error())
 	}
 
 	var expiredClusters []elasticacheCluster

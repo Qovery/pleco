@@ -2,10 +2,11 @@ package common
 
 import (
 	"fmt"
-	"github.com/aws/aws-sdk-go/service/ecr"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/aws/aws-sdk-go/service/ecr"
 
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -216,7 +217,12 @@ func IsAssociatedToLivingCluster(tagsInput interface{}, svc *eks.EKS) bool {
 	case []*elbv2.Tag:
 		for _, cluster := range result.Clusters {
 			for _, tag := range typedTags {
-				if strings.Contains(*tag.Key, "/cluster/") && strings.Contains(*tag.Key, *cluster) {
+				// ALB controller key contains '/cluster' and cluster name is the value
+				if strings.Contains(*tag.Key, "/cluster") && *tag.Value == *cluster {
+					return true
+				}
+				// while kubernetes built-in NLB tag is'/cluster/' with cluster name
+				if strings.Contains(*tag.Key, "/cluster") && strings.Contains(*tag.Key, *cluster) {
 					return true
 				}
 			}

@@ -1,6 +1,9 @@
 .idea
+.vscode/
+pleco
 dist/
 .internal
 *.iml
 bin
 .task
+__debug*

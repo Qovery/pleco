@@ -31,7 +31,7 @@ func listNamespaces(clientSet *kubernetes.Clientset, tagName string, disableTTLC
 	log.Debugf("Listing all Kubernetes namespaces with %s label", tagName)
 	namespaces, err := clientSet.CoreV1().Namespaces().List(context.TODO(), listOptions)
 	if err != nil {
-		log.Errorf("Can'list namespaces with %s label: %s", tagName, err.Error())
+		log.Errorf("Can't list namespaces with %s label: %s", tagName, err.Error())
 	}
 
 	return namespaces.Items

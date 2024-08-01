@@ -256,7 +256,7 @@ func DeleteExpiredEKSClusters(sessions AWSSessions, options AwsOptions) {
 	clusters, err := ListTaggedEKSClusters(*sessions.EKS, &options)
 	region := *sessions.EKS.Config.Region
 	if err != nil {
-		log.Errorf("can't list EKS clusters: %s\n", err)
+		log.Errorf("Can't list EKS clusters: %s\n", err)
 		return
 	}
 

@@ -78,7 +78,7 @@ func DeleteSubnetsByIds(ec2Session *ec2.EC2, subnets []Subnet) {
 func DeleteVPCLinkedResourcesWithQuota(sessions AWSSessions, options AwsOptions) {
 	vpcs, err := listTaggedVPC(sessions.EC2, &options)
 	if err != nil {
-		log.Errorf("can't list VPC: %s\n", err)
+		log.Errorf("Can't list VPC: %s\n", err)
 		return
 	}
 
