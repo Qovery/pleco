@@ -72,7 +72,7 @@ func listTaggedSqsQueues(svc sqs.SQS, tagName string) ([]sqsQueue, error) {
 					IsProtected:  essentialTags.IsProtected,
 				},
 			})
-			log.Debugf(*queue)
+			log.Debug(*queue)
 		}
 		if result.NextToken != nil {
 			params.NextToken = result.NextToken
