@@ -4,6 +4,7 @@ import (
 	artifactregistry "cloud.google.com/go/artifactregistry/apiv1"
 	compute "cloud.google.com/go/compute/apiv1"
 	container "cloud.google.com/go/container/apiv1"
+	run "cloud.google.com/go/run/apiv2"
 	"cloud.google.com/go/storage"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -26,6 +27,7 @@ type GCPOptions struct {
 	EnableArtifactRegistry bool
 	EnableIAM              bool
 	EnableRouter           bool
+	EnableJob              bool
 }
 
 type GCPSessions struct {
@@ -33,8 +35,10 @@ type GCPSessions struct {
 	ArtifactRegistry *artifactregistry.Client
 	Cluster          *container.ClusterManagerClient
 	Network          *compute.NetworksClient
+	Subnetwork       *compute.SubnetworksClient
 	Router           *compute.RoutersClient
 	IAM              *iam.Service
+	Job              *run.JobsClient
 }
 
 type funcDeleteExpired func(sessions GCPSessions, options GCPOptions)
@@ -101,6 +105,14 @@ func runPlecoInRegion(location string, interval int64, wg *sync.WaitGroup, optio
 		defer networkClient.Close()
 		sessions.Network = networkClient
 
+		subnetworkClient, err := compute.NewSubnetworksRESTClient(ctx)
+		if err != nil {
+			logrus.Errorf("compute.NewSubnetworksRESTClient: %s", err)
+			return
+		}
+		defer subnetworkClient.Close()
+		sessions.Subnetwork = subnetworkClient
+
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredVPCs)
 	}
 
@@ -125,6 +137,18 @@ func runPlecoInRegion(location string, interval int64, wg *sync.WaitGroup, optio
 		sessions.IAM = iamService
 
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredServiceAccounts)
+	}
+
+	if options.EnableJob {
+		jobClient, err := run.NewJobsClient(ctx)
+		if err != nil {
+			logrus.Errorf("run.NewJobsClient: %s", err)
+			return
+		}
+		defer jobClient.Close()
+		sessions.Job = jobClient
+
+		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredJobs)
 	}
 
 	if options.IsDestroyingCommand {
