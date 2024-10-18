@@ -74,6 +74,7 @@ Check out our Blog announcement of Pleco: https://www.qovery.com/blog/announceme
   - [X] Cloud Storage Buckets
   - [X] Artifact Registry Repositories
   - [X] Kubernetes clusters
+  - [X] Cloud run jobs
   - [X] Networks // via JSON tags in resource description because resource has no support for tags
   - [X] Routers // via JSON tags in resource description because resource has no support for tags
   - [X] Service accounts // via JSON tags in resource description because resource has no support for tags
@@ -276,6 +277,7 @@ pleco start
   --enable-network
   --enable-router
   --enable-iam
+  --enable-job
   --gcp-regions
   europe-west9
   --disable-dry-run

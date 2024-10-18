@@ -173,6 +173,7 @@ func startGCP(cmd *cobra.Command, interval int64, dryRun bool, disableTTLCheck b
 		EnableRouter:           getCmdBool(cmd, "enable-router"),
 		EnableArtifactRegistry: getCmdBool(cmd, "enable-artifact-registry"),
 		EnableIAM:              getCmdBool(cmd, "enable-iam"),
+		EnableJob:              getCmdBool(cmd, "enable-job"),
 	}
 
 	gcp.RunPlecoGCP(locations, interval, wg, gcpOptions)

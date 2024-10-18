@@ -68,4 +68,5 @@ func initGCPFlags(startCmd *cobra.Command) {
 	startCmd.Flags().BoolP("enable-network", "", false, "Enable Networks and its children watch")
 	startCmd.Flags().BoolP("enable-router", "", false, "Enable Routers and its children watch")
 	startCmd.Flags().BoolP("enable-iam", "", false, "Enable IAM (service accounts) watch")
+	startCmd.Flags().BoolP("enable-job", "", false, "Enable Run Job watch")
 }
