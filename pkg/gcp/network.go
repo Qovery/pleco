@@ -122,22 +122,28 @@ func DeleteExpiredVPCs(sessions GCPSessions, options GCPOptions) {
 
 			for _, subnetwork := range subnetworks.Value.Subnetworks {
 				// Delete all subnets before deleting the network
-				log.Info(fmt.Sprintf("Deleting subnet `%s` from region `%s`", subnetwork.GetName(), subnetwork.GetRegion()))
+				region, err := extractResourceRegion(subnetwork.GetRegion())
+				if err != nil {
+					log.Error(fmt.Sprintf("Error extracting region from subnet `%s`, error: %s", subnetwork.GetName(), err))
+				}
+
+				log.Info(fmt.Sprintf("Deleting subnet `%s` from region `%s`", subnetwork.GetName(), region))
+
 				ctxDeleteSubnetwork, cancelDeleteSubnetwork := context.WithTimeout(context.Background(), time.Second*60)
 				operation, err := sessions.Subnetwork.Delete(ctxDeleteSubnetwork, &computepb.DeleteSubnetworkRequest{
 					Project:    options.ProjectID,
 					Subnetwork: subnetwork.GetName(),
-					Region:     subnetwork.GetRegion(),
+					Region:     region,
 				})
 				if err != nil {
-					log.Error(fmt.Sprintf("Error deleting subnet `%s` from region `%s`, error: %s", subnetwork.GetName(), subnetwork.GetRegion(), err))
+					log.Error(fmt.Sprintf("Error deleting subnet `%s` from region `%s`, error: %s", subnetwork.GetName(), region, err))
 				}
 
 				// this operation can be a bit long, we wait until it's done
 				if operation != nil {
 					err = operation.Wait(ctxDeleteSubnetwork)
 					if err != nil {
-						log.Error(fmt.Sprintf("Error waiting for deleting subnet `%s` from region `%s`, error: %s", subnetwork.GetName(), subnetwork.GetRegion(), err))
+						log.Error(fmt.Sprintf("Error waiting for deleting subnet `%s` from region `%s`, error: %s", subnetwork.GetName(), region, err))
 					}
 				}
 
