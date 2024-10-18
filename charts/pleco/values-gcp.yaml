@@ -63,6 +63,7 @@ gcpFeatures:
   iam: true
   artifactRegistry: true
   objectStorage: true
+  job: true
 
 resources:
   limits:

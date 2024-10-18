@@ -149,6 +149,9 @@ spec:
             {{ if eq .Values.gcpFeatures.network true }}
             - --enable-network
             {{ end }}
+            {{ if eq .Values.gcpFeatures.job true }}
+            - --enable-job
+            {{ end }}
             {{ if eq .Values.gcpFeatures.router true }}
             - --enable-router
             {{ end }}

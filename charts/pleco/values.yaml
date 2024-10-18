@@ -85,6 +85,7 @@ gcpFeatures:
   iam: false
   objectStorage: false
   artifactRegistry: false
+  job: false
 
 imagePullSecrets: []
 nameOverride: ""
