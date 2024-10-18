@@ -36,6 +36,7 @@ type GCPSessions struct {
 	Cluster          *container.ClusterManagerClient
 	Network          *compute.NetworksClient
 	Subnetwork       *compute.SubnetworksClient
+	Route            *compute.RoutesClient
 	Router           *compute.RoutersClient
 	IAM              *iam.Service
 	Job              *run.JobsClient
@@ -112,6 +113,14 @@ func runPlecoInRegion(location string, interval int64, wg *sync.WaitGroup, optio
 		}
 		defer subnetworkClient.Close()
 		sessions.Subnetwork = subnetworkClient
+
+		routeClient, err := compute.NewRoutesRESTClient(ctx)
+		if err != nil {
+			logrus.Errorf("compute.NewRoutesRESTClient: %s", err)
+			return
+		}
+		defer routeClient.Close()
+		sessions.Route = routeClient
 
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredVPCs)
 	}

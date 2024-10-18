@@ -108,39 +108,85 @@ func DeleteExpiredVPCs(sessions GCPSessions, options GCPOptions) {
 			cancelSwitchToCustomMode()
 		}
 
-		// Delete all subnets before deleting the network
-		for _, subnetwork := range vpcToDelete.Subnetworks {
-			region, subnetwork, err := extractRegionAndSubnetwork(subnetwork)
-			if err != nil {
-				log.Error(fmt.Sprintf("Error extracting region and subnetwork from URL `%s`, error: %s", subnetwork, err))
-				continue
-			}
-			log.Info(fmt.Sprintf("Deleting subnet `%s` from region `%s`", subnetwork, region))
+		log.Info(fmt.Sprintf("Get subnets for `%s`", network.GetName()))
+		networkFilter := fmt.Sprintf("network = \"%s\"", network.GetSelfLink())
+		subnetworksIterator := sessions.Subnetwork.AggregatedList(ctx, &computepb.AggregatedListSubnetworksRequest{
+			Project: options.ProjectID,
+			Filter:  &networkFilter,
+		})
 
-			ctxDeleteSubnetwork, cancelDeleteSubnetwork := context.WithTimeout(context.Background(), time.Second*60)
-			operation, err := sessions.Subnetwork.Delete(ctxDeleteSubnetwork, &computepb.DeleteSubnetworkRequest{
-				Project:    options.ProjectID,
-				Subnetwork: subnetwork,
-				Region:     region,
+		for {
+			subnetworks, err := subnetworksIterator.Next()
+			if err != nil || subnetworks.Value == nil || subnetworks.Value.Subnetworks == nil {
+				break
+			}
+
+			for _, subnetwork := range subnetworks.Value.Subnetworks {
+				// Delete all subnets before deleting the network
+				log.Info(fmt.Sprintf("Deleting subnet `%s` from region `%s`", subnetwork.GetName(), subnetwork.GetRegion()))
+				ctxDeleteSubnetwork, cancelDeleteSubnetwork := context.WithTimeout(context.Background(), time.Second*60)
+				operation, err := sessions.Subnetwork.Delete(ctxDeleteSubnetwork, &computepb.DeleteSubnetworkRequest{
+					Project:    options.ProjectID,
+					Subnetwork: subnetwork.GetName(),
+					Region:     subnetwork.GetRegion(),
+				})
+				if err != nil {
+					log.Error(fmt.Sprintf("Error deleting subnet `%s` from region `%s`, error: %s", subnetwork.GetName(), subnetwork.GetRegion(), err))
+				}
+
+				// this operation can be a bit long, we wait until it's done
+				if operation != nil {
+					err = operation.Wait(ctxDeleteSubnetwork)
+					if err != nil {
+						log.Error(fmt.Sprintf("Error waiting for deleting subnet `%s` from region `%s`, error: %s", subnetwork.GetName(), subnetwork.GetRegion(), err))
+					}
+				}
+
+				// closing contexts
+				cancelDeleteSubnetwork()
+			}
+		}
+
+		// closing contexts
+		cancelGetNetwork()
+
+		// Deleting routes
+		networkFilter = fmt.Sprintf("network = \"%s\"", network.GetSelfLink())
+		routesIterator := sessions.Route.List(ctx, &computepb.ListRoutesRequest{
+			Project: options.ProjectID,
+			Filter:  &networkFilter,
+		})
+		for {
+			route, err := routesIterator.Next()
+			if err != nil {
+				break
+			}
+
+			// Delete all routes before deleting the network
+			log.Info(fmt.Sprintf("Deleting route `%s` for `%s`", route.GetName(), networkName))
+			ctxDeleteRoute, cancelDeleteRoute := context.WithTimeout(context.Background(), time.Second*30)
+			operation, err := sessions.Route.Delete(ctxDeleteRoute, &computepb.DeleteRouteRequest{
+				Project: options.ProjectID,
+				Route:   route.GetName(),
 			})
 			if err != nil {
-				log.Error(fmt.Sprintf("Error deleting subnet `%s` from region `%s`, error: %s", subnetwork, region, err))
+				log.Error(fmt.Sprintf("Error deleting route `%s` for `%s`, error: %s", route.GetName(), networkName, err))
 			}
 
 			// this operation can be a bit long, we wait until it's done
 			if operation != nil {
-				err = operation.Wait(ctxDeleteSubnetwork)
+				err = operation.Wait(ctxDeleteRoute)
 				if err != nil {
-					log.Error(fmt.Sprintf("Error waiting for deleting subnet `%s` from region `%s`, error: %s", subnetwork, region, err))
+					log.Error(fmt.Sprintf("Error waiting for deleting route `%s`, error: %s", route.GetName(), err))
 				}
 			}
 
 			// closing contexts
-			cancelDeleteSubnetwork()
+			cancelDeleteRoute()
 		}
 
 		log.Info(fmt.Sprintf("Deleting network `%s`", networkName))
-		ctxDeleteNetwork, cancelNetwork := context.WithTimeout(context.Background(), time.Second*30)
+		ctxDeleteNetwork, cancelNetwork := context.WithTimeout(context.Background(), time.Second*60)
 		_, err = sessions.Network.Delete(ctxDeleteNetwork, &computepb.DeleteNetworkRequest{
 			Project: options.ProjectID,
 			Network: networkName,
@@ -149,8 +195,14 @@ func DeleteExpiredVPCs(sessions GCPSessions, options GCPOptions) {
 			log.Error(fmt.Sprintf("Error deleting network `%s`, error: %s", networkName, err))
 		}
 
-		// closing contexts
-		cancelGetNetwork()
+		// this operation can be a bit long, we wait until it's done
+		//if operation != nil {
+		//	err = operation.Wait(ctxDeleteNetwork)
+		//	if err != nil {
+		//		log.Error(fmt.Sprintf("Error waiting for deleting subnet `%s`, error: %s", network.GetName(), err))
+		//	}
+		//}
+
 		cancelNetwork()
 	}
 
