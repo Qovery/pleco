@@ -7,7 +7,6 @@ import (
 	"github.com/Qovery/pleco/pkg/common"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
-	"regexp"
 	"strconv"
 	"time"
 )
@@ -206,21 +205,4 @@ func DeleteExpiredVPCs(sessions GCPSessions, options GCPOptions) {
 		cancelNetwork()
 	}
 
-}
-
-func extractRegionAndSubnetwork(subnetwork string) (string, string, error) {
-	// Define the regex pattern
-	re := regexp.MustCompile(`regions/([^/]+)/subnetworks/([^/]+)`)
-
-	// Find the matches
-	matches := re.FindStringSubmatch(subnetwork)
-	if len(matches) < 3 {
-		return "", "", fmt.Errorf("no matches found in URL")
-	}
-
-	// Extract the region and subnetwork from the matches
-	region := matches[1]
-	subnet := matches[2]
-
-	return region, subnet, nil
 }
