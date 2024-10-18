@@ -7,6 +7,7 @@ import (
 	"github.com/Qovery/pleco/pkg/common"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
+	"regexp"
 	"strconv"
 	"time"
 )
@@ -75,13 +76,99 @@ func DeleteExpiredVPCs(sessions GCPSessions, options GCPOptions) {
 			continue
 		}
 
+		log.Info(fmt.Sprintf("Getting network `%s`", networkName))
+		ctxGetNetwork, cancelGetNetwork := context.WithTimeout(context.Background(), time.Second*30)
+		vpcToDelete, err := sessions.Network.Get(ctxGetNetwork, &computepb.GetNetworkRequest{
+			Project: options.ProjectID,
+			Network: networkName,
+		})
+		if err != nil {
+			log.Error(fmt.Sprintf("Error getting network `%s`, error: %s", networkName, err))
+		}
+
+		if vpcToDelete.AutoCreateSubnetworks != nil && *vpcToDelete.AutoCreateSubnetworks == true {
+			log.Info(fmt.Sprintf("Converting network `%s` to subnet custom mode in order to be able to delete it", networkName))
+			// Patch the network to custom mode allowing to delete subnets
+			ctxSwitchToCustomMode, cancelSwitchToCustomMode := context.WithTimeout(context.Background(), time.Second*60)
+			operation, err := sessions.Network.SwitchToCustomMode(ctxSwitchToCustomMode, &computepb.SwitchToCustomModeNetworkRequest{
+				Project: options.ProjectID,
+				Network: networkName,
+			})
+			if err != nil {
+				log.Error(fmt.Errorf("failed to convert network %s to custom mode: %w", networkName, err))
+				continue
+			}
+
+			// this operation can be a bit long, we wait until it's done
+			err = operation.Wait(ctxSwitchToCustomMode)
+			if err != nil {
+				log.Error(fmt.Sprintf("Error waiting for convert network %s to custom mode: %s", networkName, err))
+			}
+
+			cancelSwitchToCustomMode()
+		}
+
+		// Delete all subnets before deleting the network
+		for _, subnetwork := range vpcToDelete.Subnetworks {
+			region, subnetwork, err := extractRegionAndSubnetwork(subnetwork)
+			if err != nil {
+				log.Error(fmt.Sprintf("Error extracting region and subnetwork from URL `%s`, error: %s", subnetwork, err))
+				continue
+			}
+			log.Info(fmt.Sprintf("Deleting subnet `%s` from region `%s`", subnetwork, region))
+
+			ctxDeleteSubnetwork, cancelDeleteSubnetwork := context.WithTimeout(context.Background(), time.Second*60)
+			operation, err := sessions.Subnetwork.Delete(ctxDeleteSubnetwork, &computepb.DeleteSubnetworkRequest{
+				Project:    options.ProjectID,
+				Subnetwork: subnetwork,
+				Region:     region,
+			})
+			if err != nil {
+				log.Error(fmt.Sprintf("Error deleting subnet `%s` from region `%s`, error: %s", subnetwork, region, err))
+			}
+
+			// this operation can be a bit long, we wait until it's done
+			if operation != nil {
+				err = operation.Wait(ctxDeleteSubnetwork)
+				if err != nil {
+					log.Error(fmt.Sprintf("Error waiting for deleting subnet `%s` from region `%s`, error: %s", subnetwork, region, err))
+				}
+			}
+
+			// closing contexts
+			cancelDeleteSubnetwork()
+		}
+
 		log.Info(fmt.Sprintf("Deleting network `%s`", networkName))
-		_, err = sessions.Network.Delete(ctx, &computepb.DeleteNetworkRequest{
+		ctxDeleteNetwork, cancelNetwork := context.WithTimeout(context.Background(), time.Second*30)
+		_, err = sessions.Network.Delete(ctxDeleteNetwork, &computepb.DeleteNetworkRequest{
 			Project: options.ProjectID,
 			Network: networkName,
 		})
 		if err != nil {
 			log.Error(fmt.Sprintf("Error deleting network `%s`, error: %s", networkName, err))
 		}
+
+		// closing contexts
+		cancelGetNetwork()
+		cancelNetwork()
 	}
+
+}
+
+func extractRegionAndSubnetwork(subnetwork string) (string, string, error) {
+	// Define the regex pattern
+	re := regexp.MustCompile(`regions/([^/]+)/subnetworks/([^/]+)`)
+
+	// Find the matches
+	matches := re.FindStringSubmatch(subnetwork)
+	if len(matches) < 3 {
+		return "", "", fmt.Errorf("no matches found in URL")
+	}
+
+	// Extract the region and subnetwork from the matches
+	region := matches[1]
+	subnet := matches[2]
+
+	return region, subnet, nil
 }
