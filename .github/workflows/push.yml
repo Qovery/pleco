@@ -26,7 +26,7 @@ jobs:
         name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v1
         with:
-          version: latest
-          args: release --skip-publish --skip-validate
+          version: "v1.26.2"
+          args: release --rm-dist --skip-publish --skip-validate
         env:
           GITHUB_TOKEN: ${{ secrets.GORELEASER_GITHUB_TOKEN }}
