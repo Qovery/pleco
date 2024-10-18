@@ -187,7 +187,7 @@ func DeleteExpiredVPCs(sessions GCPSessions, options GCPOptions) {
 
 		log.Info(fmt.Sprintf("Deleting network `%s`", networkName))
 		ctxDeleteNetwork, cancelNetwork := context.WithTimeout(context.Background(), time.Second*60)
-		_, err = sessions.Network.Delete(ctxDeleteNetwork, &computepb.DeleteNetworkRequest{
+		operation, err := sessions.Network.Delete(ctxDeleteNetwork, &computepb.DeleteNetworkRequest{
 			Project: options.ProjectID,
 			Network: networkName,
 		})
@@ -196,12 +196,12 @@ func DeleteExpiredVPCs(sessions GCPSessions, options GCPOptions) {
 		}
 
 		// this operation can be a bit long, we wait until it's done
-		//if operation != nil {
-		//	err = operation.Wait(ctxDeleteNetwork)
-		//	if err != nil {
-		//		log.Error(fmt.Sprintf("Error waiting for deleting subnet `%s`, error: %s", network.GetName(), err))
-		//	}
-		//}
+		if operation != nil {
+			err = operation.Wait(ctxDeleteNetwork)
+			if err != nil {
+				log.Error(fmt.Sprintf("Error waiting for deleting subnet `%s`, error: %s", network.GetName(), err))
+			}
+		}
 
 		cancelNetwork()
 	}
