@@ -23,6 +23,7 @@ scwFeatures:
   db: true
   volume: true
   sg: true
+  orphanIp: true
 
 resources:
   limits:

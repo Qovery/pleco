@@ -53,14 +53,16 @@ func DeleteExpiredBuckets(sessions GCPSessions, options GCPOptions) {
 				break
 			}
 
-			err = sessions.Bucket.Bucket(bucket.Name).Object(object.Name).Delete(ctx)
+			ctxDeleteObject, _ := context.WithTimeout(context.Background(), time.Second*15)
+			err = sessions.Bucket.Bucket(bucket.Name).Object(object.Name).Delete(ctxDeleteObject)
 			if err != nil {
 				log.Error(fmt.Sprintf("Error deleting object `%s` from bucket `%s`, error: %s", object.Name, bucket.Name, err))
 			}
 		}
 
 		log.Info(fmt.Sprintf("Deleting bucket `%s` created at `%s` UTC (TTL `{%d}` seconds)", bucket.Name, bucket.Created.UTC(), ttl))
-		if err := sessions.Bucket.Bucket(bucket.Name).Delete(ctx); err != nil {
+		ctxDeleteBucket, _ := context.WithTimeout(context.Background(), time.Second*60)
+		if err := sessions.Bucket.Bucket(bucket.Name).Delete(ctxDeleteBucket); err != nil {
 			log.Error(fmt.Sprintf("Error deleting bucket `%s`, error: %s", bucket.Name, err))
 		}
 	}

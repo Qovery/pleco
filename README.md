@@ -62,6 +62,7 @@ Check out our Blog announcement of Pleco: https://www.qovery.com/blog/announceme
   - [X] Detached volumes
   - [X] S3 Buckets
   - [X] Unused Security Groups
+  - [X] Orphan IPs
 - [X] DIGITAL OCEAN
   - [X] Kubernetes clusters
   - [X] Database instances
