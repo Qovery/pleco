@@ -18,7 +18,7 @@ type ScalewayVolume struct {
 }
 
 func DeleteExpiredVolumes(sessions ScalewaySessions, options ScalewayOptions) {
-	expiredVolumes := getDetachedVolumes(sessions.Volume, &options)
+	expiredVolumes := getDetachedVolumes(sessions.Instance, &options)
 
 	count, start := common.ElemToDeleteFormattedInfos(fmt.Sprintf("detached (%d hours delay) volume", volumeTimeout()), len(expiredVolumes), options.Zone, true)
 
@@ -31,7 +31,7 @@ func DeleteExpiredVolumes(sessions ScalewaySessions, options ScalewayOptions) {
 	log.Info(start)
 
 	for _, expiredVolume := range expiredVolumes {
-		deleteVolume(sessions.Volume, expiredVolume, options.Zone)
+		deleteVolume(sessions.Instance, expiredVolume, options.Zone)
 	}
 }
 

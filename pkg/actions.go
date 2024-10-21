@@ -130,6 +130,7 @@ func startScaleway(cmd *cobra.Command, interval int64, dryRun bool, disableTTLCh
 		EnableLB:            getCmdBool(cmd, "enable-lb"),
 		EnableVolume:        getCmdBool(cmd, "enable-volume"),
 		EnableSG:            getCmdBool(cmd, "enable-sg"),
+		EnableOrphanIP:      getCmdBool(cmd, "enable-orphan-ip"),
 	}
 	scaleway.RunPlecoScaleway(zones, interval, wg, scalewayOptions)
 	wg.Done()

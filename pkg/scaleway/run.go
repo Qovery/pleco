@@ -29,6 +29,7 @@ type ScalewayOptions struct {
 	EnableLB            bool
 	EnableVolume        bool
 	EnableSG            bool
+	EnableOrphanIP      bool
 }
 
 type ScalewaySessions struct {
@@ -36,7 +37,7 @@ type ScalewaySessions struct {
 	Database     *rdb.API
 	Namespace    *registry.API
 	LoadBalancer *lb.ZonedAPI
-	Volume       *instance.API
+	Instance     *instance.API
 	Bucket       *minio.Client
 	SG           *instance.API
 }
@@ -84,7 +85,7 @@ func runPlecoInZone(zone string, interval int64, wg *sync.WaitGroup, options Sca
 	}
 
 	if options.EnableVolume {
-		sessions.Volume = instance.NewAPI(currentSession)
+		sessions.Instance = instance.NewAPI(currentSession)
 
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredVolumes)
 	}
@@ -100,6 +101,14 @@ func runPlecoInZone(zone string, interval int64, wg *sync.WaitGroup, options Sca
 		sessions.Cluster = k8s.NewAPI(currentSession)
 
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteEmptyContainerRegistries)
+	}
+
+	if options.EnableOrphanIP {
+		if sessions.LoadBalancer == nil {
+			sessions.LoadBalancer = lb.NewZonedAPI(currentSession)
+		}
+
+		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteOrphanIPAddresses)
 	}
 
 	if options.IsDestroyingCommand {

@@ -67,6 +67,7 @@ scwFeatures:
   db: false
   volume: false
   sg: false
+  orphanIp: false
 
 doFeatures:
   doRegions: [ ]

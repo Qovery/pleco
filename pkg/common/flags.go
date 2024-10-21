@@ -46,6 +46,7 @@ func initScalewayFlags(startCmd *cobra.Command) {
 	startCmd.Flags().BoolP("enable-lb", "l", false, "Enable load balancers watch")
 	startCmd.Flags().BoolP("enable-volume", "b", false, "Enable volumes watch")
 	startCmd.Flags().BoolP("enable-sg", "p", false, "Enable security groups watch")
+	startCmd.Flags().BoolP("enable-orphan-ip", "", false, "Enable orphan IPs watch")
 
 }
 

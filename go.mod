@@ -13,7 +13,7 @@ require (
 	github.com/digitalocean/godo v1.108.0
 	github.com/minio/minio-go/v7 v7.0.66
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.22
+	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.30
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/viper v1.18.2
