@@ -135,7 +135,7 @@ spec:
             {{ if eq .Values.scwFeatures.sg true }}
             - --enable-sg
             {{ end }}
-            {{ if eq .Values.scwFeatures.orphanIp true } }
+            {{ if eq .Values.scwFeatures.orphanIp true }}
             - --enable-orphan-ip
             {{ end }}
             {{- end }}
