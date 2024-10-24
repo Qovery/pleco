@@ -10,6 +10,7 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/api/lb/v1"
 	"github.com/scaleway/scaleway-sdk-go/api/rdb/v1"
 	"github.com/scaleway/scaleway-sdk-go/api/registry/v1"
+	"github.com/scaleway/scaleway-sdk-go/api/vpc/v2"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"github.com/sirupsen/logrus"
 )
@@ -30,6 +31,7 @@ type ScalewayOptions struct {
 	EnableVolume        bool
 	EnableSG            bool
 	EnableOrphanIP      bool
+	EnableVPC           bool
 }
 
 type ScalewaySessions struct {
@@ -40,6 +42,7 @@ type ScalewaySessions struct {
 	Instance     *instance.API
 	Bucket       *minio.Client
 	SG           *instance.API
+	Network      *vpc.API
 }
 
 type funcDeleteExpired func(sessions ScalewaySessions, options ScalewayOptions)
@@ -109,6 +112,12 @@ func runPlecoInZone(zone string, interval int64, wg *sync.WaitGroup, options Sca
 		}
 
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteOrphanIPAddresses)
+	}
+
+	if options.EnableVPC {
+		sessions.Network = vpc.NewAPI(currentSession)
+
+		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredVPCs)
 	}
 
 	if options.IsDestroyingCommand {

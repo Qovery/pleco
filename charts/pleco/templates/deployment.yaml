@@ -138,6 +138,9 @@ spec:
             {{ if eq .Values.scwFeatures.orphanIp true }}
             - --enable-orphan-ip
             {{ end }}
+            {{ if eq .Values.awsFeatures.vpc true }}
+            - --enable-vpc
+            {{ end }}
             {{- end }}
 
 #            GCP features

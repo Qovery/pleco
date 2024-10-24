@@ -24,6 +24,7 @@ scwFeatures:
   volume: true
   sg: true
   orphanIp: true
+  vpc: true
 
 resources:
   limits:
