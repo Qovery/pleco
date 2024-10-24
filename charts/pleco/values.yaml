@@ -69,6 +69,7 @@ scwFeatures:
   sg: false
   orphanIp: false
   vpc: false
+  privateNetwork: false
 
 doFeatures:
   doRegions: [ ]

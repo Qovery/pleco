@@ -25,11 +25,12 @@ scwFeatures:
   sg: true
   orphanIp: true
   vpc: true
+  privateNetwork: true
 
 resources:
   limits:
     cpu: 150m
-    memory:256Mi
+    memory: 256Mi
   requests:
     cpu: 150m
     memory: 256Mi

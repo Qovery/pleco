@@ -48,6 +48,7 @@ func initScalewayFlags(startCmd *cobra.Command) {
 	startCmd.Flags().BoolP("enable-sg", "g", false, "Enable security groups watch")
 	startCmd.Flags().BoolP("enable-orphan-ip", "", false, "Enable orphan IPs watch")
 	startCmd.Flags().BoolP("enable-vpc", "p", false, "Enable VPC watch")
+	startCmd.Flags().BoolP("enable-private-network", "n", false, "Enable private networks watch")
 
 }
 

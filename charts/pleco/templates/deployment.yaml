@@ -138,8 +138,11 @@ spec:
             {{ if eq .Values.scwFeatures.orphanIp true }}
             - --enable-orphan-ip
             {{ end }}
-            {{ if eq .Values.awsFeatures.vpc true }}
+            {{ if eq .Values.scwFeatures.vpc true }}
             - --enable-vpc
+            {{ end }}
+            {{ if eq .Values.scwFeatures.privateNetwork true }}
+            - --enable-private-network
             {{ end }}
             {{- end }}
 

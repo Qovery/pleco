@@ -16,22 +16,23 @@ import (
 )
 
 type ScalewayOptions struct {
-	TagValue            string
-	TagName             string
-	DisableTTLCheck     bool
-	IsDestroyingCommand bool
-	DryRun              bool
-	Zone                string // TODO: use scw.Zone
-	Region              scw.Region
-	EnableCluster       bool
-	EnableDB            bool
-	EnableCR            bool
-	EnableBucket        bool
-	EnableLB            bool
-	EnableVolume        bool
-	EnableSG            bool
-	EnableOrphanIP      bool
-	EnableVPC           bool
+	TagValue             string
+	TagName              string
+	DisableTTLCheck      bool
+	IsDestroyingCommand  bool
+	DryRun               bool
+	Zone                 string // TODO: use scw.Zone
+	Region               scw.Region
+	EnableCluster        bool
+	EnableDB             bool
+	EnableCR             bool
+	EnableBucket         bool
+	EnableLB             bool
+	EnableVolume         bool
+	EnableSG             bool
+	EnableOrphanIP       bool
+	EnableVPC            bool
+	EnablePrivateNetwork bool
 }
 
 type ScalewaySessions struct {
@@ -115,9 +116,19 @@ func runPlecoInZone(zone string, interval int64, wg *sync.WaitGroup, options Sca
 	}
 
 	if options.EnableVPC {
-		sessions.Network = vpc.NewAPI(currentSession)
+		if sessions.Network == nil {
+			sessions.Network = vpc.NewAPI(currentSession)
+		}
 
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredVPCs)
+	}
+
+	if options.EnablePrivateNetwork {
+		if sessions.Network == nil {
+			sessions.Network = vpc.NewAPI(currentSession)
+		}
+
+		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredPrivateNetworks)
 	}
 
 	if options.IsDestroyingCommand {
@@ -150,7 +161,10 @@ func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options
 
 	if options.EnableLB {
 		sessions.Cluster = k8s.NewAPI(currentSession)
-		sessions.LoadBalancer = lb.NewZonedAPI(currentSession)
+
+		if sessions.LoadBalancer == nil {
+			sessions.LoadBalancer = lb.NewZonedAPI(currentSession)
+		}
 
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredLBs)
 	}

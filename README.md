@@ -64,6 +64,7 @@ Check out our Blog announcement of Pleco: https://www.qovery.com/blog/announceme
   - [X] Unused Security Groups
   - [X] Orphan IPs
   - [X] VPCs
+  - [X] Private networks
 - [X] DIGITAL OCEAN
   - [X] Kubernetes clusters
   - [X] Database instances

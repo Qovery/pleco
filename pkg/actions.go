@@ -118,20 +118,21 @@ func startScaleway(cmd *cobra.Command, interval int64, dryRun bool, disableTTLCh
 	tagValue := getCmdString(cmd, "tag-value")
 
 	scalewayOptions := scaleway.ScalewayOptions{
-		TagName:             getCmdString(cmd, "tag-name"),
-		TagValue:            tagValue,
-		DisableTTLCheck:     disableTTLCheck,
-		IsDestroyingCommand: strings.TrimSpace(tagValue) != "",
-		DryRun:              dryRun,
-		EnableCluster:       getCmdBool(cmd, "enable-cluster"),
-		EnableDB:            getCmdBool(cmd, "enable-db"),
-		EnableCR:            getCmdBool(cmd, "enable-cr"),
-		EnableBucket:        getCmdBool(cmd, "enable-s3"),
-		EnableLB:            getCmdBool(cmd, "enable-lb"),
-		EnableVolume:        getCmdBool(cmd, "enable-volume"),
-		EnableSG:            getCmdBool(cmd, "enable-sg"),
-		EnableOrphanIP:      getCmdBool(cmd, "enable-orphan-ip"),
-		EnableVPC:           getCmdBool(cmd, "enable-vpc"),
+		TagName:              getCmdString(cmd, "tag-name"),
+		TagValue:             tagValue,
+		DisableTTLCheck:      disableTTLCheck,
+		IsDestroyingCommand:  strings.TrimSpace(tagValue) != "",
+		DryRun:               dryRun,
+		EnableCluster:        getCmdBool(cmd, "enable-cluster"),
+		EnableDB:             getCmdBool(cmd, "enable-db"),
+		EnableCR:             getCmdBool(cmd, "enable-cr"),
+		EnableBucket:         getCmdBool(cmd, "enable-s3"),
+		EnableLB:             getCmdBool(cmd, "enable-lb"),
+		EnableVolume:         getCmdBool(cmd, "enable-volume"),
+		EnableSG:             getCmdBool(cmd, "enable-sg"),
+		EnableOrphanIP:       getCmdBool(cmd, "enable-orphan-ip"),
+		EnableVPC:            getCmdBool(cmd, "enable-vpc"),
+		EnablePrivateNetwork: getCmdBool(cmd, "enable-private-network"),
 	}
 	scaleway.RunPlecoScaleway(zones, interval, wg, scalewayOptions)
 	wg.Done()
