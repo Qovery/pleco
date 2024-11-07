@@ -13,12 +13,13 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
+
       -
         name: Fetch tags
         run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
       - name: Ensure tag match the current version
         run: |
-            version=$(git tag | sort --version-sort | tail -1)
+            version=$(git tag | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
             version_without_v=$(echo $version | sed -r 's/v(.+)/\1/')
             file="cmd/version.go"
             if [ "v$(grep '// ci-version-check' $file | sed -r 's/.+return\s"(.+)".+/\1/')" != "$version" ] ; then
