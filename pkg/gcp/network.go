@@ -155,11 +155,47 @@ func DeleteExpiredVPCs(sessions GCPSessions, options GCPOptions) {
 			}
 		}
 
+		// Delete routes
+		log.Info(fmt.Sprintf("Get routes for `%s`", network.GetName()))
+		routesIterator := sessions.Route.List(ctx, &computepb.ListRoutesRequest{
+			Project: options.ProjectID,
+			Filter:  &networkFilter,
+		})
+		for {
+			route, err := routesIterator.Next()
+			if err != nil {
+				break
+			}
+
+			if route.GetNetwork() == network.GetSelfLink() {
+				log.Info(fmt.Sprintf("Deleting route `%s`", route.GetName()))
+				ctxDeleteRoute, cancelDeleteRoute := context.WithTimeout(context.Background(), time.Second*60)
+				operation, err := sessions.Route.Delete(ctxDeleteRoute, &computepb.DeleteRouteRequest{
+					Project: options.ProjectID,
+					Route:   route.GetName(),
+				})
+				if err != nil {
+					log.Error(fmt.Sprintf("Error deleting route `%s`, error: %s", route.GetName(), err))
+				}
+
+				// this operation can be a bit long, we wait until it's done
+				if operation != nil {
+					err = operation.Wait(ctxDeleteRoute)
+					if err != nil {
+						log.Error(fmt.Sprintf("Error waiting for deleting route `%s`, error: %s", route.GetName(), err))
+					}
+				}
+
+				// closing contexts
+				cancelDeleteRoute()
+			}
+		}
+
 		// closing contexts
 		cancelGetNetwork()
 
 		log.Info(fmt.Sprintf("Deleting network `%s`", networkName))
-		ctxDeleteNetwork, cancelNetwork := context.WithTimeout(context.Background(), time.Second*60)
+		ctxDeleteNetwork, cancelNetwork := context.WithTimeout(context.Background(), time.Second*120)
 		operation, err := sessions.Network.Delete(ctxDeleteNetwork, &computepb.DeleteNetworkRequest{
 			Project: options.ProjectID,
 			Network: networkName,
