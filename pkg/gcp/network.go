@@ -1,14 +1,15 @@
 package gcp
 
 import (
-	"cloud.google.com/go/compute/apiv1/computepb"
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"time"
+
+	"cloud.google.com/go/compute/apiv1/computepb"
 	"github.com/Qovery/pleco/pkg/common"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
-	"strconv"
-	"time"
 )
 
 func DeleteExpiredVPCs(sessions GCPSessions, options GCPOptions) {
@@ -85,7 +86,7 @@ func DeleteExpiredVPCs(sessions GCPSessions, options GCPOptions) {
 			log.Error(fmt.Sprintf("Error getting network `%s`, error: %s", networkName, err))
 		}
 
-		if vpcToDelete.AutoCreateSubnetworks != nil && *vpcToDelete.AutoCreateSubnetworks {
+		if vpcToDelete != nil && vpcToDelete.AutoCreateSubnetworks != nil && *vpcToDelete.AutoCreateSubnetworks {
 			log.Info(fmt.Sprintf("Converting network `%s` to subnet custom mode in order to be able to delete it", networkName))
 			// Patch the network to custom mode allowing to delete subnets
 			ctxSwitchToCustomMode, cancelSwitchToCustomMode := context.WithTimeout(context.Background(), time.Second*60)
@@ -214,5 +215,4 @@ func DeleteExpiredVPCs(sessions GCPSessions, options GCPOptions) {
 
 		cancelNetwork()
 	}
-
 }
