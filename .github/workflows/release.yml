@@ -22,7 +22,7 @@ jobs:
             version=$(git tag | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
             version_without_v=$(echo $version | sed -r 's/v(.+)/\1/')
             file="cmd/version.go"
-            if [ "v$(grep '// ci-version-check' $file | sed -r 's/.*return\s"(.+)".+/\1/')" != "$version" ] ; then
+            if [ "v$(grep '// ci-version-check' $file | sed -r 's/.+return "(.+)" .+/\1/')" != "$version" ] ; then
                 echo "Tag version do not match application version in $file"
                 exit 1
             fi
