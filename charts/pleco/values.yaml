@@ -56,6 +56,10 @@ awsFeatures:
   iam: false
   sshKeys: false
   ecr: false
+  sqs: false
+  sfn: false
+  lambda: false
+  cloudformation: false
 
 scwFeatures:
   scwZones: []
