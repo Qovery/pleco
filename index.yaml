@@ -2,6 +2,19 @@ apiVersion: v1
 entries:
   pleco:
   - apiVersion: v2
+    appVersion: 0.20.12
+    created: "2025-01-16T10:15:31.375143881Z"
+    description: Automatically removes Cloud managed services and Kubernetes resources
+      based on tags with TTL
+    digest: 730c7f86d4ca06f89b91d4e87b129696e6a189ea44dbbfb0f42ecd31afa5ce97
+    home: https://github.com/Qovery/pleco
+    icon: https://github.com/Qovery/pleco/raw/main/assets/pleco_logo.png
+    name: pleco
+    type: application
+    urls:
+    - https://Qovery.github.io/pleco/pleco-0.20.12.tgz
+    version: 0.20.12
+  - apiVersion: v2
     appVersion: 0.17.1
     created: "2024-10-18T12:24:22.31130381Z"
     description: Automatically removes Cloud managed services and Kubernetes resources
@@ -1781,4 +1794,4 @@ entries:
     urls:
     - https://Qovery.github.io/pleco/pleco-0.1.0.tgz
     version: 0.1.0
-generated: "2024-10-18T12:24:22.310486185Z"
+generated: "2025-01-16T10:15:31.374490182Z"
