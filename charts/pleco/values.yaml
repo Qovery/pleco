@@ -3,7 +3,7 @@ replicaCount: 1
 image:
   repository: public.ecr.aws/r3m4q3r9/pleco
   pullPolicy: IfNotPresent
-  plecoImageTag: "0.20.11"
+  plecoImageTag: "0.20.12"
 
 cloudProvider: ""
 
