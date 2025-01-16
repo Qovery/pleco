@@ -19,29 +19,32 @@ jobs:
         run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
       - name: Ensure tag match the current version
         run: |
-            version=$(git tag | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
-            version_without_v=$(echo $version | sed -r 's/v(.+)/\1/')
-            file="cmd/version.go"
-            if [ "v$(grep '// ci-version-check' $file | sed -r 's/.*return\s"(.+)".+/\1/')" != "$version" ] ; then
-                echo "Tag version do not match application version in $file"
-                exit 1
-            fi
+          version=$(git tag | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
+          file="cmd/version.go"
+          app_version=$(grep '// ci-version-check' $file | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+          if [ "$version" != "$app_version" ]; then
+            echo "Tag version ($version) does not match application version ($app_version) in $file"
+            exit 1
+          fi
 
-            file="charts/pleco/Chart.yaml"
-            if [ "v$(grep 'appVersion' $file | awk '{ print $2 }')" != "$version" ] ; then
-             echo "Tag appVersion do not match application version in $file"
-             exit 1
-            fi
-            if [ "v$(grep 'version' $file | awk '{ print $2 }')" != "$version" ] ; then
-             echo "Tag version do not match application version in $file"
-             exit 1
-            fi
+          file="charts/pleco/Chart.yaml"
+          chart_version=$(grep '^version:' $file | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+          chart_app_version=$(grep '^appVersion:' $file | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+          if [ "$version" != "$chart_app_version" ]; then
+            echo "Tag version ($version) does not match Chart appVersion ($chart_app_version) in $file"
+            exit 1
+          fi
+          if [ "$version" != "$chart_version" ]; then
+            echo "Tag version ($version) does not match Chart version ($chart_version) in $file"
+            exit 1
+          fi
 
-            file="charts/pleco/values.yaml"
-            if [ "$(grep 'plecoImageTag' $file | awk -F'\"' '{ print $2 }')" != "$version_without_v" ] ; then
-              echo "Tag version do not match application version in $file"
-              exit 1
-            fi
+          file="charts/pleco/values.yaml"
+          helm_version=$(grep 'plecoImageTag' $file | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+          if [ "$version" != "$helm_version" ]; then
+            echo "Tag version ($version) does not match Helm chart version ($helm_version) in $file"
+            exit 1
+          fi
       -
         name: Set up Go
         uses: actions/setup-go@main
