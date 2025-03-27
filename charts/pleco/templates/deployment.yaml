@@ -112,9 +112,9 @@ spec:
             {{ if or (eq .Values.awsFeatures.ec2 true)}}
             - --enable-ec2-instance
             {{ end }}
-            - {{ if or (eq .Values.awsFeatures.cloudwatchEvents true)}}
+            {{ if or (eq .Values.awsFeatures.cloudwatchEvents true)}}
             - --enable-cloudwatch-events
-            - {{ end }}
+            {{ end }}
             {{- end }}
 
 #            Scaleway features
