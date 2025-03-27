@@ -131,9 +131,9 @@ func DeleteExpiredCloudWatchEvents(sessions AWSSessions, options AwsOptions) {
 
 	log.Info(count)
 
-	//if options.DryRun || len(expiredCloudwatchEvents) == 0 {
-	//	return
-	//}
+	if options.DryRun || len(expiredCloudwatchEvents) == 0 {
+		return
+	}
 
 	log.Info(start)
 
