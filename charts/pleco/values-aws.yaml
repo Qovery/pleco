@@ -48,6 +48,7 @@ awsFeatures:
   sfn: true
   sqs: true
   lambda: true
+  awsFeatures: true
 
 resources:
   limits:
