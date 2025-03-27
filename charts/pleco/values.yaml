@@ -60,6 +60,7 @@ awsFeatures:
   sfn: false
   lambda: false
   cloudformation: false
+  cloudwatchEvents: false
 
 scwFeatures:
   scwZones: []

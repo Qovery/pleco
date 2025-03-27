@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"github.com/aws/aws-sdk-go/service/eventbridge"
 	"sync"
 	"time"
 
@@ -24,29 +25,30 @@ import (
 )
 
 type AwsOptions struct {
-	TagName              string
-	TagValue             string
-	DisableTTLCheck      bool
-	IsDestroyingCommand  bool
-	DryRun               bool
-	EnableRDS            bool
-	EnableElastiCache    bool
-	EnableEKS            bool
-	EnableELB            bool
-	EnableEBS            bool
-	EnableVPC            bool
-	EnableS3             bool
-	EnableCloudWatchLogs bool
-	EnableKMS            bool
-	EnableIAM            bool
-	EnableSSH            bool
-	EnableDocumentDB     bool
-	EnableECR            bool
-	EnableSQS            bool
-	EnableLambda         bool
-	EnableSFN            bool
-	EnableCloudFormation bool
-	EnableEC2Instance    bool
+	TagName                string
+	TagValue               string
+	DisableTTLCheck        bool
+	IsDestroyingCommand    bool
+	DryRun                 bool
+	EnableRDS              bool
+	EnableElastiCache      bool
+	EnableEKS              bool
+	EnableELB              bool
+	EnableEBS              bool
+	EnableVPC              bool
+	EnableS3               bool
+	EnableCloudWatchLogs   bool
+	EnableKMS              bool
+	EnableIAM              bool
+	EnableSSH              bool
+	EnableDocumentDB       bool
+	EnableECR              bool
+	EnableSQS              bool
+	EnableLambda           bool
+	EnableSFN              bool
+	EnableCloudFormation   bool
+	EnableEC2Instance      bool
+	EnableCloudWatchEvents bool
 }
 
 type AWSSessions struct {
@@ -64,6 +66,7 @@ type AWSSessions struct {
 	LambdaFunction *lambda.Lambda
 	SFN            *sfn.SFN
 	CloudFormation *cloudformation.CloudFormation
+	EventBridge    *eventbridge.EventBridge
 }
 
 type funcDeleteExpired func(sessions AWSSessions, options AwsOptions)
@@ -177,6 +180,12 @@ func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options
 	if options.EnableSQS {
 		sessions.SQS = sqs.New(currentSession)
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredSQSQueues)
+	}
+
+	// Cloudwatch events
+	if options.EnableCloudWatchEvents {
+		sessions.EventBridge = eventbridge.New(currentSession)
+		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredCloudWatchEvents)
 	}
 
 	// Lambda Function
