@@ -1,7 +1,7 @@
 package aws
 
 import (
-	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
+	"github.com/aws/aws-sdk-go/service/eventbridge"
 	"sync"
 	"time"
 
@@ -52,21 +52,21 @@ type AwsOptions struct {
 }
 
 type AWSSessions struct {
-	RDS              *rds.RDS
-	ElastiCache      *elasticache.ElastiCache
-	EKS              *eks.EKS
-	ELB              *elbv2.ELBV2
-	EC2              *ec2.EC2
-	S3               *s3.S3
-	CloudWatchLogs   *cloudwatchlogs.CloudWatchLogs
-	KMS              *kms.KMS
-	IAM              *iam.IAM
-	ECR              *ecr.ECR
-	SQS              *sqs.SQS
-	LambdaFunction   *lambda.Lambda
-	SFN              *sfn.SFN
-	CloudFormation   *cloudformation.CloudFormation
-	CloudWatchEvents *cloudwatchevents.CloudWatchEvents
+	RDS            *rds.RDS
+	ElastiCache    *elasticache.ElastiCache
+	EKS            *eks.EKS
+	ELB            *elbv2.ELBV2
+	EC2            *ec2.EC2
+	S3             *s3.S3
+	CloudWatchLogs *cloudwatchlogs.CloudWatchLogs
+	KMS            *kms.KMS
+	IAM            *iam.IAM
+	ECR            *ecr.ECR
+	SQS            *sqs.SQS
+	LambdaFunction *lambda.Lambda
+	SFN            *sfn.SFN
+	CloudFormation *cloudformation.CloudFormation
+	EventBridge    *eventbridge.EventBridge
 }
 
 type funcDeleteExpired func(sessions AWSSessions, options AwsOptions)
@@ -184,7 +184,7 @@ func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options
 
 	// Cloudwatch events
 	if options.EnableCloudWatchEvents {
-		sessions.CloudWatchEvents = cloudwatchevents.New(currentSession)
+		sessions.EventBridge = eventbridge.New(currentSession)
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredCloudWatchEvents)
 	}
 

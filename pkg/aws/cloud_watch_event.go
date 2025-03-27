@@ -3,7 +3,7 @@ package aws
 import (
 	"github.com/Qovery/pleco/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
+	"github.com/aws/aws-sdk-go/service/eventbridge"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -11,12 +11,12 @@ type cloudWatchEvent struct {
 	common.CloudProviderResource
 }
 
-func listTaggedCloudWatchEvents(svc cloudwatchevents.CloudWatchEvents, tagName string) ([]cloudWatchEvent, error) {
+func listTaggedCloudWatchEvents(svc eventbridge.EventBridge, tagName string) ([]cloudWatchEvent, error) {
 	var taggedCloudwatchEvents []cloudWatchEvent
 
-	MaxResultsPerPager := int64(1000)
+	MaxResultsPerPager := int64(100)
 
-	params := &cloudwatchevents.ListRulesInput{
+	params := &eventbridge.ListRulesInput{
 		Limit: aws.Int64(MaxResultsPerPager), // Set the maximum number of results per page
 	}
 
@@ -32,7 +32,7 @@ func listTaggedCloudWatchEvents(svc cloudwatchevents.CloudWatchEvents, tagName s
 
 		for _, rule := range result.Rules {
 			tags, err := svc.ListTagsForResource(
-				&cloudwatchevents.ListTagsForResourceInput{
+				&eventbridge.ListTagsForResourceInput{
 					ResourceARN: rule.Arn,
 				},
 			)
@@ -52,7 +52,6 @@ func listTaggedCloudWatchEvents(svc cloudwatchevents.CloudWatchEvents, tagName s
 					IsProtected:  essentialTags.IsProtected,
 				},
 			})
-			log.Debug(*rule)
 		}
 		if result.NextToken != nil {
 			params.NextToken = result.NextToken
@@ -64,7 +63,7 @@ func listTaggedCloudWatchEvents(svc cloudwatchevents.CloudWatchEvents, tagName s
 	return taggedCloudwatchEvents, nil
 }
 
-func getExpiredCloudWatchEvents(ECsession *cloudwatchevents.CloudWatchEvents, options *AwsOptions) ([]cloudWatchEvent, string) {
+func getExpiredCloudWatchEvents(ECsession *eventbridge.EventBridge, options *AwsOptions) ([]cloudWatchEvent, string) {
 	cloudwatchEvents, err := listTaggedCloudWatchEvents(*ECsession, options.TagName)
 	region := *ECsession.Config.Region
 	if err != nil {
@@ -82,21 +81,75 @@ func getExpiredCloudWatchEvents(ECsession *cloudwatchevents.CloudWatchEvents, op
 	return expiredCloudwatchEvents, region
 }
 
+func deleteCloudWatchEvent(svc eventbridge.EventBridge, event cloudWatchEvent) error {
+	force := true
+
+	_, err := svc.DeleteRule(
+		&eventbridge.DeleteRuleInput{
+			Force: &force,
+			Name:  aws.String(event.Identifier),
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func removeTarget(svc eventbridge.EventBridge, event cloudWatchEvent) error {
+	targetsInput := &eventbridge.ListTargetsByRuleInput{
+		Rule: aws.String(event.Identifier),
+	}
+	var targetIdsPtr []*string
+
+	targetsOutput, err := svc.ListTargetsByRule(targetsInput)
+	if err == nil && len(targetsOutput.Targets) > 0 {
+		for _, target := range targetsOutput.Targets {
+			targetIdsPtr = append(targetIdsPtr, target.Id)
+		}
+
+		removeInput := &eventbridge.RemoveTargetsInput{
+			Rule:  aws.String(event.Identifier),
+			Ids:   targetIdsPtr,
+			Force: aws.Bool(true),
+		}
+
+		_, err = svc.RemoveTargets(removeInput)
+		if err != nil {
+			log.Errorf("Remove target error %s: %s", event.Identifier, err.Error())
+		}
+	}
+
+	return nil
+}
+
 func DeleteExpiredCloudWatchEvents(sessions AWSSessions, options AwsOptions) {
-	expiredCloudwatchEvents, region := getExpiredCloudWatchEvents(sessions.CloudWatchEvents, &options)
+	expiredCloudwatchEvents, region := getExpiredCloudWatchEvents(sessions.EventBridge, &options)
 
 	count, start := common.ElemToDeleteFormattedInfos("expired CloudWatch Events", len(expiredCloudwatchEvents), region)
 
 	log.Info(count)
 
-	if options.DryRun || len(expiredCloudwatchEvents) == 0 {
-		return
-	}
+	//if options.DryRun || len(expiredCloudwatchEvents) == 0 {
+	//	return
+	//}
 
 	log.Info(start)
 
 	for _, cloudwatchEvent := range expiredCloudwatchEvents {
-		// TODO delete the events
 		log.Debugf("cloudwatchEvent %s in %s deleted.", cloudwatchEvent.Identifier, region)
+
+		removeError := removeTarget(*sessions.EventBridge, cloudwatchEvent)
+		if removeError != nil {
+			log.Errorf("Remove target error %s/%s: %s", cloudwatchEvent.Identifier, region, removeError.Error())
+		}
+
+		deletionErr := deleteCloudWatchEvent(*sessions.EventBridge, cloudwatchEvent)
+		if deletionErr != nil {
+			log.Errorf("Deletion CloudWatch event error %s/%s: %s", cloudwatchEvent.Identifier, region, deletionErr.Error())
+		} else {
+			log.Debugf("CloudWatch event %s in %s deleted.", cloudwatchEvent.Identifier, region)
+		}
 	}
 }
