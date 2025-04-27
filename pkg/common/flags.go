@@ -6,6 +6,8 @@ func InitFlags(cloudProvider string, startCmd *cobra.Command) {
 	switch cloudProvider {
 	case "aws":
 		initAWSFlags(startCmd)
+	case "azure":
+		initAzureFlags(startCmd)
 	case "scaleway":
 		initScalewayFlags(startCmd)
 	case "do":
@@ -36,6 +38,11 @@ func initAWSFlags(startCmd *cobra.Command) {
 	startCmd.Flags().BoolP("enable-cloudformation", "d", false, "Enable Cloudformation watch")
 	startCmd.Flags().BoolP("enable-ec2-instance", "g", false, "Enable EC2 Instance watch")
 	startCmd.Flags().BoolP("enable-cloudwatch-events", "v", false, "Enable CloudWatch events watch")
+}
+
+func initAzureFlags(startCmd *cobra.Command) {
+	startCmd.Flags().StringSliceP("az-regions", "a", nil, "Set Azure regions")
+	startCmd.Flags().BoolP("enable-rg", "e", false, "Enable Resource Groups watch")
 }
 
 func initScalewayFlags(startCmd *cobra.Command) {

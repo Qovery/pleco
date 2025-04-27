@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/Qovery/pleco/pkg/aws"
+	"github.com/Qovery/pleco/pkg/azure"
 	"github.com/Qovery/pleco/pkg/common"
 	"github.com/Qovery/pleco/pkg/do"
 	"github.com/Qovery/pleco/pkg/gcp"
@@ -69,6 +70,8 @@ func run(cloudProvider string, dryRun bool, interval int64, disableTTLCheck bool
 	switch cloudProvider {
 	case "aws":
 		startAWS(cmd, interval, dryRun, disableTTLCheck, wg)
+	case "azure":
+		startAzure(cmd, interval, dryRun, disableTTLCheck, wg)
 	case "scaleway":
 		startScaleway(cmd, interval, dryRun, disableTTLCheck, wg)
 	case "do":
@@ -111,6 +114,23 @@ func startAWS(cmd *cobra.Command, interval int64, dryRun bool, disableTTLCheck b
 		EnableCloudWatchEvents: getCmdBool(cmd, "enable-cloudwatch-events"),
 	}
 	aws.RunPlecoAWS(cmd, regions, interval, wg, awsOptions)
+	wg.Done()
+}
+
+func startAzure(cmd *cobra.Command, interval int64, dryRun bool, disableTTLCheck bool, wg *sync.WaitGroup) {
+	locations, _ := cmd.Flags().GetStringSlice("az-regions")
+	tagValue := getCmdString(cmd, "tag-value")
+
+	azureOptions := azure.AzureOptions{
+		TagName:              getCmdString(cmd, "tag-name"),
+		TagValue:             tagValue,
+		DisableTTLCheck:      disableTTLCheck,
+		IsDestroyingCommand:  strings.TrimSpace(tagValue) != "",
+		DryRun:               dryRun,
+		EnableRG:             getCmdBool(cmd, "enable-rg"),
+	}
+
+	azure.RunPlecoAzure(locations, interval, wg, azureOptions)
 	wg.Done()
 }
 

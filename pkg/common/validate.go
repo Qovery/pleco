@@ -21,6 +21,8 @@ func CheckEnvVars(cloudProvider string, cmd *cobra.Command) {
 	switch cloudProvider {
 	case "aws":
 		requiredEnvVars = append(requiredEnvVars, checkAWSEnvVars(cmd)...)
+	case "azure":
+		requiredEnvVars = append(requiredEnvVars, checkAzureEnvVars(cmd)...)
 	case "scaleway":
 		requiredEnvVars = append(requiredEnvVars, checkScalewayEnvVars(cmd)...)
 	case "do":
@@ -28,7 +30,7 @@ func CheckEnvVars(cloudProvider string, cmd *cobra.Command) {
 	case "gcp":
 		requiredEnvVars = append(requiredEnvVars, checkGCPEnvVars(cmd)...)
 	default:
-		log.Fatalf("Unknown cloud provider: %s. Should be \"aws\", \"scaleway\" or \"do\"", cloudProvider)
+		log.Fatalf("Unknown cloud provider: %s. Should be \"aws\", \"azure\", \"scaleway\" or \"do\"", cloudProvider)
 	}
 
 	kubeConn, err := cmd.Flags().GetString("kube-conn")
@@ -67,6 +69,23 @@ func checkAWSEnvVars(cmd *cobra.Command) []string {
 
 	return []string{}
 }
+
+func checkAzureEnvVars(cmd *cobra.Command) []string {
+	var requiredEnvVars = []string{
+		"AZURE_CLIENT_ID",
+		"AZURE_CLIENT_SECRET",
+		"AZURE_TENANT_ID",
+		"AZURE_SUBSCRIPTION_ID",
+	}
+
+	if isUsed(cmd, "rg") {
+		return requiredEnvVars
+	}
+
+	return []string{}
+}
+
+
 
 func checkScalewayEnvVars(cmd *cobra.Command) []string {
 	var requiredEnvVars = []string{
