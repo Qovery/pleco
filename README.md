@@ -86,6 +86,8 @@ Check out our Blog announcement of Pleco: https://www.qovery.com/blog/announceme
   - [x] Service accounts // via JSON tags in resource description because resource has no support for tags
 - [x] AZURE
   - [x] Resource Group
+  - [x] Storage Account
+  - [x] Azure Container Registry
 
 ---
 

@@ -7,3 +7,4 @@ dist/
 bin
 .task
 __debug*
+docker-compose.yml
