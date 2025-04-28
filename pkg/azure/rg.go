@@ -3,13 +3,10 @@ package azure
 import (
 	"context"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
-	armresources "github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -19,37 +16,20 @@ func DeleteExpiredRGs(sessions AzureSessions, options AzureOptions) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
 
-	// Get subscription ID from environment variable
-	subscriptionID := os.Getenv("AZURE_SUBSCRIPTION_ID")
-	if subscriptionID == "" {
-		log.Fatal("AZURE_SUBSCRIPTION_ID environment variable is not set")
-	}
-
-	// Get tenant ID from environment variable
-	tenantID := os.Getenv("AZURE_TENANT_ID")
-	if tenantID == "" {
-		log.Fatal("AZURE_TENANT_ID environment variable is not set")
-	}
-
-	// Create a credential using the DefaultAzureCredential
-	cred, err := azidentity.NewDefaultAzureCredential(nil)
-	if err != nil {
-		log.Fatalf("Failed to create credential: %v", err)
-	}
-
-	// Create the resource groups client
-	client, err := armresources.NewResourceGroupsClient(subscriptionID, cred, nil)
-	if err != nil {
-		log.Fatalf("Failed to create client: %v", err)
+	// Ensure we have a valid Resource Groups client
+	if sessions.RG == nil {
+		log.Error("Resource Groups client is not initialized")
+		return
 	}
 
 	// List all resource groups using pagination
-	pager := client.NewListPager(nil)
+	pager := sessions.RG.NewListPager(nil)
 	for pager.More() {
 		// Fetch the next page of resource groups
 		page, err := pager.NextPage(ctx)
 		if err != nil {
-			log.Fatalf("Error listing clusters, error: %v", err)
+			log.Errorf("Error listing clusters, error: %v", err)
+			return
 		}
 
 		// Process each resource group on the current page
@@ -98,9 +78,9 @@ func DeleteExpiredRGs(sessions AzureSessions, options AzureOptions) {
 			}
 
 			// Delete the expired resource group
-			log.Info(fmt.Sprintf("Deleting cluster `%s` created at `%s` UTC (TTL `{%d}` seconds)", *group.Name, creationTime.UTC(), ttl))
-			if _, err := client.BeginDelete(ctx, *group.Name, nil); err != nil {
-				log.Error(fmt.Sprintf("Error deleting cluster `%s`, error: %s", *group.Name, err))
+			log.Info(fmt.Sprintf("Deleting resource group `%s` created at `%s` UTC (TTL `{%d}` seconds)", *group.Name, creationTime.UTC(), ttl))
+			if _, err := sessions.RG.BeginDelete(ctx, *group.Name, nil); err != nil {
+				log.Error(fmt.Sprintf("Error deleting resource group `%s`, error: %s", *group.Name, err))
 			}
 		}
 	}

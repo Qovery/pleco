@@ -1,11 +1,15 @@
 package azure
 
 import (
-	armresources "github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources"
-	"github.com/sirupsen/logrus"
-
+	"fmt"
+	"os"
 	"sync"
 	"time"
+
+	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
+	armresources "github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources"
+	armstorage "github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/storage/armstorage"
+	"github.com/sirupsen/logrus"
 )
 
 type AzureOptions struct {
@@ -18,13 +22,48 @@ type AzureOptions struct {
 	SubscriptionID      string
 	ResourceGroupName   string
 	EnableRG        	 bool
+	EnableStorageAccount bool
 }
 
 type AzureSessions struct {
-	RG *armresources.ResourceGroupsClient
+	RG             *armresources.ResourceGroupsClient
+	StorageAccount *armstorage.AccountsClient
 }
 
 type funcDeleteExpired func(sessions AzureSessions, options AzureOptions)
+
+// Initialize creates and returns an AzureSessions object with authenticated clients
+func Initialize() (AzureSessions, error) {
+	var sessions AzureSessions
+	
+	// Get subscription ID from environment variable
+	subscriptionID := os.Getenv("AZURE_SUBSCRIPTION_ID")
+	if subscriptionID == "" {
+		return sessions, fmt.Errorf("AZURE_SUBSCRIPTION_ID environment variable is not set")
+	}
+
+	// Create a credential using the DefaultAzureCredential
+	cred, err := azidentity.NewDefaultAzureCredential(nil)
+	if err != nil {
+		return sessions, fmt.Errorf("failed to create credential: %v", err)
+	}
+
+	// Initialize Resource Groups client
+	rgClient, err := armresources.NewResourceGroupsClient(subscriptionID, cred, nil)
+	if err != nil {
+		return sessions, fmt.Errorf("failed to create resource groups client: %v", err)
+	}
+	sessions.RG = rgClient
+
+	// Initialize Storage Account client
+	storageClient, err := armstorage.NewAccountsClient(subscriptionID, cred, nil)
+	if err != nil {
+		return sessions, fmt.Errorf("failed to create storage account client: %v", err)
+	}
+	sessions.StorageAccount = storageClient
+
+	return sessions, nil
+}
 
 func RunPlecoAzure(locations []string, interval int64, wg *sync.WaitGroup, options AzureOptions) {
 	for _, location := range locations {
@@ -36,7 +75,13 @@ func RunPlecoAzure(locations []string, interval int64, wg *sync.WaitGroup, optio
 func runPlecoInRegion(location string, interval int64, wg *sync.WaitGroup, options AzureOptions) {
 	defer wg.Done()
 	options.Location = location
-	sessions := AzureSessions{}
+	
+	// Initialize Azure sessions with authentication
+	sessions, err := Initialize()
+	if err != nil {
+		logrus.Errorf("Failed to initialize Azure sessions for location %s: %v", location, err)
+		return
+	}
 
 	logrus.Infof("Starting to check expired resources in location %s.", options.Location)
 
@@ -44,6 +89,10 @@ func runPlecoInRegion(location string, interval int64, wg *sync.WaitGroup, optio
 
 	if options.EnableRG {
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredRGs)
+	}
+	
+	if options.EnableStorageAccount {
+		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredStorageAccounts)
 	}
 
 	if options.IsDestroyingCommand {
