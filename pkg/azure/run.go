@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
+	armcontainerregistry "github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerregistry/armcontainerregistry"
 	armresources "github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources"
 	armstorage "github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/storage/armstorage"
 	"github.com/sirupsen/logrus"
@@ -23,11 +24,13 @@ type AzureOptions struct {
 	ResourceGroupName   string
 	EnableRG        	 bool
 	EnableStorageAccount bool
+	EnableACR           bool
 }
 
 type AzureSessions struct {
 	RG             *armresources.ResourceGroupsClient
 	StorageAccount *armstorage.AccountsClient
+	ACR            *armcontainerregistry.RegistriesClient
 }
 
 type funcDeleteExpired func(sessions AzureSessions, options AzureOptions)
@@ -62,6 +65,13 @@ func Initialize() (AzureSessions, error) {
 	}
 	sessions.StorageAccount = storageClient
 
+	// Initialize Container Registry client
+	acrClient, err := armcontainerregistry.NewRegistriesClient(subscriptionID, cred, nil)
+	if err != nil {
+		return sessions, fmt.Errorf("failed to create container registry client: %v", err)
+	}
+	sessions.ACR = acrClient
+
 	return sessions, nil
 }
 
@@ -93,6 +103,10 @@ func runPlecoInRegion(location string, interval int64, wg *sync.WaitGroup, optio
 	
 	if options.EnableStorageAccount {
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredStorageAccounts)
+	}
+
+	if options.EnableACR {
+		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredACRs)
 	}
 
 	if options.IsDestroyingCommand {

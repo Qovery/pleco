@@ -129,6 +129,7 @@ func startAzure(cmd *cobra.Command, interval int64, dryRun bool, disableTTLCheck
 		DryRun:               dryRun,
 		EnableRG:             getCmdBool(cmd, "enable-rg"),
 		EnableStorageAccount: getCmdBool(cmd, "enable-storage-account"),
+		EnableACR:            getCmdBool(cmd, "enable-acr"),
 	}
 
 	azure.RunPlecoAzure(locations, interval, wg, azureOptions)

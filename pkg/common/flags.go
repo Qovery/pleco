@@ -44,6 +44,7 @@ func initAzureFlags(startCmd *cobra.Command) {
 	startCmd.Flags().StringSliceP("az-regions", "a", nil, "Set Azure regions")
 	startCmd.Flags().BoolP("enable-rg", "e", false, "Enable Resource Groups watch")
 	startCmd.Flags().BoolP("enable-storage-account", "s", false, "Enable Storage Account watch")
+	startCmd.Flags().BoolP("enable-acr", "c", false, "Enable Container Registry watch")
 }
 
 func initScalewayFlags(startCmd *cobra.Command) {

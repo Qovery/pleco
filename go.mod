@@ -11,6 +11,7 @@ require (
 	cloud.google.com/go/run v1.7.0
 	cloud.google.com/go/storage v1.48.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.4.0
+	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerregistry/armcontainerregistry v1.2.0
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources v1.2.0
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/storage/armstorage v1.5.0
 	github.com/aws/aws-sdk-go v1.50.8
