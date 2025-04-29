@@ -62,6 +62,15 @@ awsFeatures:
   cloudformation: false
   cloudwatchEvents: false
 
+azureFeatures:
+  azureRegions:
+    # - australiacentral
+    # - australiacentral2
+    # - australiaeast
+  rg: false
+  acr: false
+  storageAccount: false
+
 scwFeatures:
   scwZones: []
   #  - fr-par-1

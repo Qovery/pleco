@@ -120,7 +120,7 @@ spec:
 #            Azure features
             {{ if eq .Values.cloudProvider "azure" }}
             {{ if .Values.azureFeatures.azureRegions }}
-            - --azure-regions
+            - --az-regions
             - "{{ join "," .Values.azureFeatures.azureRegions }}"
             {{ end }}
             {{ if eq .Values.azureFeatures.rg true }}

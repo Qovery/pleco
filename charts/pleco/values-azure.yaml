@@ -11,7 +11,7 @@ enabledFeatures:
   s3: false
 
 azureFeatures:
-  azureZones:
+  azureRegions:
     - australiacentral
     - australiacentral2
     - australiaeast
