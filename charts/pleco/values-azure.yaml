@@ -1,0 +1,78 @@
+cloudProvider: "azure"
+
+environmentVariables:
+  LOG_LEVEL: "debug"
+
+enabledFeatures:
+  disableDryRun: true
+  checkInterval: 120
+  disableTTLCheck: false
+  kubernetes: "in"
+  s3: false
+
+azureFeatures:
+  azureZones:
+    - australiacentral
+    - australiacentral2
+    - australiaeast
+    - australiasoutheast
+    - austriaeast
+    - brazilsouth
+    - brazilsoutheast
+    - canadacentral
+    - canadaeast
+    - centralindia
+    - centralus
+    - eastasia
+    - eastus
+    - eastus2
+    - francecentral
+    - francesouth
+    - germanynorth
+    - germanywestcentral
+    - indonesiacentral
+    - israelcentral
+    - italynorth
+    - japaneast
+    - japanwest
+    - koreacentral
+    - koreasouth
+    - mexicocentral
+    - newzealandnorth
+    - northcentralus
+    - northeurope
+    - norwayeast
+    - norwaywest
+    - polandcentral
+    - qatarcentral
+    - southafricanorth
+    - southafricawest
+    - southcentralus
+    - southindia
+    - southeastasia
+    - spaincentral
+    - swedencentral
+    - swedensouth
+    - switzerlandnorth
+    - switzerlandwest
+    - uaecentral
+    - uaenorth
+    - uksouth
+    - ukwest
+    - westcentralus
+    - westeurope
+    - westindia
+    - westus
+    - westus2
+    - westus3
+  rg: true
+  acr: true
+  storageAccount: true
+
+resources:
+  limits:
+    cpu: 250m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
