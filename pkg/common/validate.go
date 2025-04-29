@@ -78,7 +78,9 @@ func checkAzureEnvVars(cmd *cobra.Command) []string {
 		"AZURE_SUBSCRIPTION_ID",
 	}
 
-	if isUsed(cmd, "rg") {
+	if isUsed(cmd, "rg") ||
+		isUsed(cmd, "acr") ||
+		isUsed(cmd, "storage-account") {
 		return requiredEnvVars
 	}
 
