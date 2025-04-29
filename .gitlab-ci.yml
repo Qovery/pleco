@@ -79,3 +79,13 @@ aws-sandbox:
     - schedules
   tags:
     - vm-250mcpu-1gmem-0g
+
+azure-test-cluster:
+  stage: deploy
+  script:
+    - AZURE_CLIENT_ID=$AZURE_CLIENT_ID AZURE_CLIENT_SECRET=$AZURE_CLIENT_SECRET AZURE_TENANT_ID=$AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID=$AZURE_SUBSCRIPTION_ID helm --kubeconfig $KUBECONFIG_AZURE_TEST_CLUSTER upgrade --install --wait -n kube-system -f $PLECO_VALUES_AZURE --create-namespace pleco-azure charts/pleco
+  only:
+    - tags
+    - schedules
+  tags:
+    - vm-250mcpu-1gmem-0g

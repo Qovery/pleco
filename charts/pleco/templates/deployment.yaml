@@ -117,6 +117,23 @@ spec:
             {{ end }}
             {{- end }}
 
+#            Azure features
+            {{ if eq .Values.cloudProvider "azure" }}
+            {{ if .Values.azureFeatures.azureRegions }}
+            - --azure-regions
+            - "{{ join "," .Values.azureFeatures.azureRegions }}"
+            {{ end }}
+            {{ if eq .Values.azureFeatures.rg true }}
+            - --enable-rg
+            {{ end }}
+            {{ if eq .Values.azureFeatures.acr true }}
+            - --enable-acr
+            {{ end }}
+            {{ if eq .Values.azureFeatures.storageAccount true }}
+            - --enable-storage-account
+            {{ end }}
+            {{- end }}
+
 #            Scaleway features
             {{ if eq .Values.cloudProvider "scaleway" }}
             {{ if .Values.scwFeatures.scwZones }}
