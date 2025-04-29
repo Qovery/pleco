@@ -3,11 +3,12 @@ replicaCount: 1
 image:
   repository: public.ecr.aws/r3m4q3r9/pleco
   pullPolicy: IfNotPresent
-  plecoImageTag: "0.20.13"
+  plecoImageTag: "0.21.0"
 
 cloudProvider: ""
 
-mountedFiles: []
+mountedFiles:
+  []
   # - name: "toto"
   #   mountPath: "/tmp"
   #   contentBase64: "content"
@@ -30,7 +31,6 @@ environmentVariables:
   #  DO_VOLUME_TIMEOUT: ""
   # GCP
   #  GOOGLE_APPLICATION_CREDENTIALS_JSON_BASE64: ""
-
 
 enabledFeatures:
   disableDryRun: false
@@ -77,7 +77,7 @@ scwFeatures:
   privateNetwork: false
 
 doFeatures:
-  doRegions: [ ]
+  doRegions: []
   #  - nyc3
   cluster: false
   lb: false
@@ -118,7 +118,8 @@ podAnnotations: {}
 podSecurityContext: {}
 # fsGroup: 2000
 
-securityContext: {}
+securityContext:
+  {}
   # capabilities:
   #   drop:
   #   - ALL
