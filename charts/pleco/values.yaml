@@ -64,9 +64,7 @@ awsFeatures:
 
 azureFeatures:
   azureRegions:
-    # - australiacentral
-    # - australiacentral2
-    # - australiaeast
+    # - francecentral # Only need one region for Azure, it will check all regions
   rg: false
   acr: false
   storageAccount: false
