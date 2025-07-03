@@ -92,7 +92,6 @@ func deleteS3Objects(s3session s3.S3, bucket string, objects []*s3.ObjectIdentif
 				Quiet:   aws.Bool(false),
 			},
 		})
-
 	if err != nil {
 		return err
 	}
@@ -106,7 +105,6 @@ func deleteS3ObjectsVersions(s3session s3.S3, bucket string) error {
 		&s3.ListObjectVersionsInput{
 			Bucket: aws.String(bucket),
 		})
-
 	if err != nil {
 		return err
 	}
@@ -162,7 +160,6 @@ func deleteAllS3Objects(s3session s3.S3, bucket string) error {
 		&s3.ListObjectsV2Input{
 			Bucket: aws.String(bucket),
 		})
-
 	if err != nil {
 		return err
 	}
@@ -191,11 +188,33 @@ func deleteAllS3Objects(s3session s3.S3, bucket string) error {
 	return nil
 }
 
+func deleteS3BucketPolicy(s3session s3.S3, bucket string) error {
+	log.Infof("Deleting policy for bucket %s in %s", bucket, *s3session.Config.Region)
+
+	// delete bucket policy
+	_, err := s3session.DeleteBucketPolicy(
+		&s3.DeleteBucketPolicyInput{
+			Bucket: &bucket,
+		})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func deleteS3Buckets(s3session s3.S3, bucket string) error {
 	log.Infof("Deleting bucket %s in %s", bucket, *s3session.Config.Region)
 
+	// delete bucket policy
+	err := deleteS3BucketPolicy(s3session, bucket)
+	if err != nil {
+		log.Errorf("Error while deleting kucket policy: %v", err)
+		return err
+	}
+
 	// delete objects versions
-	err := deleteS3ObjectsVersions(s3session, bucket)
+	err = deleteS3ObjectsVersions(s3session, bucket)
 	if err != nil {
 		log.Errorf("Error while deleting object version file: %v", err)
 		return err
