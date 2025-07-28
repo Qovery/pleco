@@ -8,3 +8,4 @@ bin
 .task
 __debug*
 docker-compose.yml
+CLAUDE.md

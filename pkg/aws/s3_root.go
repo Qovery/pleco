@@ -248,7 +248,7 @@ func DeleteExpiredBuckets(sessions AWSSessions, options AwsOptions) {
 	}
 	var expiredBuckets []s3Bucket
 	for _, bucket := range buckets {
-		if (bucket.ObjectsCount == 0 && time.Now().UTC().After(bucket.CreationDate.Add(4*time.Hour))) || bucket.IsResourceExpired(options.TagValue, options.DisableTTLCheck) {
+		if (bucket.ObjectsCount == 0 && time.Now().UTC().After(bucket.CreationDate.Add(14*24*time.Hour))) || bucket.IsResourceExpired(options.TagValue, options.DisableTTLCheck) {
 			expiredBuckets = append(expiredBuckets, bucket)
 		}
 	}
