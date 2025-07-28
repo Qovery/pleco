@@ -248,6 +248,7 @@ func DeleteExpiredBuckets(sessions AWSSessions, options AwsOptions) {
 	}
 	var expiredBuckets []s3Bucket
 	for _, bucket := range buckets {
+		// Set to 2 weeks to avoid terraform issue when recreating the bucket after Pleco deleted it, will revert once fixed in terraform/aws provider (QOV-1033)
 		if (bucket.ObjectsCount == 0 && time.Now().UTC().After(bucket.CreationDate.Add(14*24*time.Hour))) || bucket.IsResourceExpired(options.TagValue, options.DisableTTLCheck) {
 			expiredBuckets = append(expiredBuckets, bucket)
 		}
