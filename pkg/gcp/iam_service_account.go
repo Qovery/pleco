@@ -3,10 +3,13 @@ package gcp
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/Qovery/pleco/pkg/common"
 	log "github.com/sirupsen/logrus"
-	"strconv"
-	"time"
+	cloudresourcemanager "google.golang.org/api/cloudresourcemanager/v1"
 )
 
 func DeleteExpiredServiceAccounts(sessions GCPSessions, options GCPOptions) {
@@ -79,5 +82,53 @@ func DeleteExpiredServiceAccounts(sessions GCPSessions, options GCPOptions) {
 		if serviceAccountsListResponse.NextPageToken == "" {
 			break
 		}
+	}
+}
+
+func DeleteOrphanedIAMPolicyBindings(sessions GCPSessions, options GCPOptions) {
+	policy, err := sessions.CRM.Projects.GetIamPolicy(options.ProjectID, &cloudresourcemanager.GetIamPolicyRequest{}).Do()
+	if err != nil {
+		log.Error(fmt.Sprintf("Error getting IAM policy for project `%s`, error: %s", options.ProjectID, err))
+		return
+	}
+
+	var updatedBindings []*cloudresourcemanager.Binding
+	hasChanges := false
+
+	for _, binding := range policy.Bindings {
+		var remainingMembers []string
+		for _, member := range binding.Members {
+			if strings.HasPrefix(member, "deleted:serviceAccount:") {
+				hasChanges = true
+				if options.DryRun {
+					log.Info(fmt.Sprintf("Orphaned IAM policy binding will be removed: role=%s member=%s", binding.Role, member))
+				} else {
+					log.Info(fmt.Sprintf("Removing orphaned IAM policy binding: role=%s member=%s", binding.Role, member))
+				}
+				continue
+			}
+			remainingMembers = append(remainingMembers, member)
+		}
+		if len(remainingMembers) > 0 {
+			binding.Members = remainingMembers
+			updatedBindings = append(updatedBindings, binding)
+		}
+	}
+
+	if !hasChanges {
+		log.Info("No eligible orphaned IAM policy bindings found")
+		return
+	}
+
+	if options.DryRun {
+		log.Info("DryRun mode enabled, won't delete orphaned IAM policy bindings")
+		return
+	}
+
+	policy.Bindings = updatedBindings
+	if _, err = sessions.CRM.Projects.SetIamPolicy(options.ProjectID, &cloudresourcemanager.SetIamPolicyRequest{
+		Policy: policy,
+	}).Do(); err != nil {
+		log.Error(fmt.Sprintf("Error updating IAM policy for project `%s`, error: %s", options.ProjectID, err))
 	}
 }

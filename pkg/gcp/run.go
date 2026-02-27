@@ -8,6 +8,7 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
+	cloudresourcemanager "google.golang.org/api/cloudresourcemanager/v1"
 	iam "google.golang.org/api/iam/v1"
 	"sync"
 	"time"
@@ -39,6 +40,7 @@ type GCPSessions struct {
 	Route            *compute.RoutesClient
 	Router           *compute.RoutersClient
 	IAM              *iam.Service
+	CRM              *cloudresourcemanager.Service
 	Job              *run.JobsClient
 }
 
@@ -145,7 +147,14 @@ func runPlecoInRegion(location string, interval int64, wg *sync.WaitGroup, optio
 		}
 		sessions.IAM = iamService
 
-		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredServiceAccounts)
+		crmService, err := cloudresourcemanager.NewService(ctx)
+		if err != nil {
+			logrus.Errorf("cloudresourcemanager.NewService: %s", err)
+			return
+		}
+		sessions.CRM = crmService
+
+		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredServiceAccounts, DeleteOrphanedIAMPolicyBindings)
 	}
 
 	if options.EnableJob {
