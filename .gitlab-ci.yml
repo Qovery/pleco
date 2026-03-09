@@ -51,7 +51,7 @@ scaleway-test-cluster:
   stage: deploy
   extends: [.resources-default]
   script:
-    - helm --kubeconfig $KUBECONFIG_SCW_TEST_CLUSTER upgrade --install --wait -n kube-system -f $PLECO_VALUES_SCALEWAY --create-namespace pleco-scaleway charts/pleco
+    - helm --kubeconfig $KUBECONFIG_SCW_TEST_CLUSTER upgrade --create-namespace --install --wait -n kube-system -f $PLECO_VALUES_SCALEWAY pleco-scaleway charts/pleco
   only:
     - tags
     - schedules
@@ -64,7 +64,7 @@ gcp-test-cluster:
   script:
     - gcloud auth activate-service-account $(cat $GKE_GCP_CREDENTIALS_JSON | jq -r .client_email) --key-file=$GKE_GCP_CREDENTIALS_JSON
     - gcloud container clusters get-credentials $GKE_GCP_TEST_CLUSTER_NAME --region=$GKE_GCP_DEFAULT_REGION --project=$(cat $GKE_GCP_CREDENTIALS_JSON | jq -r .project_id)
-    - helm --kubeconfig $KUBECONFIG_GCP_TEST_CLUSTER upgrade --install --wait -n qovery -f $PLECO_VALUES_GCP --create-namespace pleco-gcp charts/pleco
+    - helm --kubeconfig $KUBECONFIG_GCP_TEST_CLUSTER upgrade --create-namespace --install --wait -n qovery -f $PLECO_VALUES_GCP pleco-gcp charts/pleco
   only:
     - tags
     - schedules
@@ -75,7 +75,7 @@ eks-test-cluster:
   stage: deploy
   extends: [.resources-default]
   script:
-    - AWS_ACCESS_KEY_ID=$EKS_AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$EKS_AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION=$EKS_AWS_DEFAULT_REGION helm --kubeconfig $KUBECONFIG_EKS_TEST_CLUSTER upgrade --install --wait -n kube-system -f $PLECO_VALUES_EKS --create-namespace pleco-eks charts/pleco
+    - AWS_ACCESS_KEY_ID=$EKS_AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$EKS_AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION=$EKS_AWS_DEFAULT_REGION helm --kubeconfig $KUBECONFIG_EKS_TEST_CLUSTER upgrade --create-namespace --install --wait -n kube-system -f $PLECO_VALUES_EKS pleco-eks charts/pleco
   only:
     - tags
     - schedules
@@ -86,7 +86,7 @@ aws-sandbox:
   stage: deploy
   extends: [.resources-default]
   script:
-    - AWS_ACCESS_KEY_ID=$EKS_AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$EKS_AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION=$EKS_AWS_DEFAULT_REGION helm --kubeconfig $KUBECONFIG_EKS_TEST_CLUSTER upgrade --install --wait -n kube-system -f $PLECO_VALUES_SANDBOX --create-namespace pleco-sandbox charts/pleco
+    - AWS_ACCESS_KEY_ID=$EKS_AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$EKS_AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION=$EKS_AWS_DEFAULT_REGION helm --kubeconfig $KUBECONFIG_EKS_TEST_CLUSTER upgrade --create-namespace --install --wait -n kube-system -f $PLECO_VALUES_SANDBOX pleco-sandbox charts/pleco
   only:
     - tags
     - schedules
@@ -97,7 +97,7 @@ azure-test-cluster:
   stage: deploy
   extends: [.resources-default]
   script:
-    - AZURE_CLIENT_ID=$AZURE_CLIENT_ID AZURE_CLIENT_SECRET=$AZURE_CLIENT_SECRET AZURE_TENANT_ID=$AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID=$AZURE_SUBSCRIPTION_ID helm --kubeconfig $KUBECONFIG_AZURE_TEST_CLUSTER upgrade --install --wait -n kube-system -f $PLECO_VALUES_AZURE --create-namespace pleco-azure charts/pleco
+    - AZURE_CLIENT_ID=$AZURE_CLIENT_ID AZURE_CLIENT_SECRET=$AZURE_CLIENT_SECRET AZURE_TENANT_ID=$AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID=$AZURE_SUBSCRIPTION_ID helm --kubeconfig $KUBECONFIG_AZURE_TEST_CLUSTER upgrade --create-namespace --install --wait -n kube-system -f $PLECO_VALUES_AZURE pleco-azure charts/pleco
   only:
     - tags
     - schedules
