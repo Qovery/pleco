@@ -3,12 +3,11 @@ replicaCount: 1
 image:
   repository: public.ecr.aws/r3m4q3r9/pleco
   pullPolicy: IfNotPresent
-  plecoImageTag: "0.24.0"
+  plecoImageTag: "0.27.3"
 
 cloudProvider: ""
 
-mountedFiles:
-  []
+mountedFiles: []
   # - name: "toto"
   #   mountPath: "/tmp"
   #   contentBase64: "content"
@@ -125,8 +124,7 @@ podAnnotations: {}
 podSecurityContext: {}
 # fsGroup: 2000
 
-securityContext:
-  {}
+securityContext: {}
   # capabilities:
   #   drop:
   #   - ALL
