@@ -21,7 +21,7 @@ func DeleteExpiredBuckets(sessions GCPSessions, options GCPOptions) {
 		}
 
 		// bucket from another region
-		if strings.EqualFold(bucket.Location, options.Location) {
+		if !strings.EqualFold(bucket.Location, options.Location) {
 			continue
 		}
 
@@ -45,25 +45,30 @@ func DeleteExpiredBuckets(sessions GCPSessions, options GCPOptions) {
 			continue
 		}
 
-		// bucket is eligible to deletion
-		objectsIterator := sessions.Bucket.Bucket(bucket.Name).Objects(ctx, nil)
+		log.Info(fmt.Sprintf("Deleting bucket `%s` created at `%s` UTC (TTL `{%d}` seconds)", bucket.Name, bucket.Created.UTC(), ttl))
+
+		// bucket is eligible to deletion: empty it first
+		ctxListObjects, cancelListObjects := context.WithTimeout(context.Background(), time.Second*30)
+		objectsIterator := sessions.Bucket.Bucket(bucket.Name).Objects(ctxListObjects, nil)
 		for {
 			object, err := objectsIterator.Next()
 			if err != nil {
 				break
 			}
 
-			ctxDeleteObject, _ := context.WithTimeout(context.Background(), time.Second*15)
+			ctxDeleteObject, cancelDeleteObject := context.WithTimeout(context.Background(), time.Second*15)
 			err = sessions.Bucket.Bucket(bucket.Name).Object(object.Name).Delete(ctxDeleteObject)
+			cancelDeleteObject()
 			if err != nil {
 				log.Error(fmt.Sprintf("Error deleting object `%s` from bucket `%s`, error: %s", object.Name, bucket.Name, err))
 			}
 		}
+		cancelListObjects()
 
-		log.Info(fmt.Sprintf("Deleting bucket `%s` created at `%s` UTC (TTL `{%d}` seconds)", bucket.Name, bucket.Created.UTC(), ttl))
-		ctxDeleteBucket, _ := context.WithTimeout(context.Background(), time.Second*60)
+		ctxDeleteBucket, cancelDeleteBucket := context.WithTimeout(context.Background(), time.Second*60)
 		if err := sessions.Bucket.Bucket(bucket.Name).Delete(ctxDeleteBucket); err != nil {
 			log.Error(fmt.Sprintf("Error deleting bucket `%s`, error: %s", bucket.Name, err))
 		}
+		cancelDeleteBucket()
 	}
 }
