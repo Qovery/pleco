@@ -10,6 +10,7 @@ import (
 	"github.com/Qovery/pleco/pkg/common"
 	log "github.com/sirupsen/logrus"
 	cloudresourcemanager "google.golang.org/api/cloudresourcemanager/v1"
+	"google.golang.org/api/googleapi"
 )
 
 func DeleteExpiredServiceAccounts(sessions GCPSessions, options GCPOptions) {
@@ -87,64 +88,164 @@ func DeleteExpiredServiceAccounts(sessions GCPSessions, options GCPOptions) {
 
 const iamPolicyMemberLimit = 1500
 const iamPolicyMemberChunkSize = 100
+const iamPolicyMaxRetries = 6
 
-// removeServiceAccountIAMBindings removes all IAM policy bindings for the given
-// service account email from the project policy. It is intended to be called
-// immediately before or after deleting the service account so that dangling
-// bindings are cleaned up atomically rather than relying on GCP eventually
-// marking them as "deleted:serviceAccount:" prefixed entries.
+// updateIAMPolicyWithRetry performs a read-modify-write on the project IAM policy,
+// retrying on 409 (concurrent modification) with exponential backoff.
+// The mutate function receives the current policy and returns whether it was changed.
+func updateIAMPolicyWithRetry(sessions GCPSessions, projectID string, mutate func(*cloudresourcemanager.Policy) bool) error {
+	backoff := 500 * time.Millisecond
+	for attempt := 0; attempt <= iamPolicyMaxRetries; attempt++ {
+		policy, err := sessions.CRM.Projects.GetIamPolicy(projectID, &cloudresourcemanager.GetIamPolicyRequest{}).Do()
+		if err != nil {
+			return fmt.Errorf("getting IAM policy: %w", err)
+		}
+
+		if !mutate(policy) {
+			return nil
+		}
+
+		_, err = sessions.CRM.Projects.SetIamPolicy(projectID, &cloudresourcemanager.SetIamPolicyRequest{
+			Policy: policy,
+		}).Do()
+		if err == nil {
+			return nil
+		}
+
+		if apiErr, ok := err.(*googleapi.Error); ok && apiErr.Code == 409 {
+			if attempt == iamPolicyMaxRetries {
+				return err
+			}
+			log.Debug(fmt.Sprintf("IAM policy conflict for project `%s`, retrying after %s (attempt %d/%d)", projectID, backoff, attempt+1, iamPolicyMaxRetries))
+			time.Sleep(backoff)
+			backoff *= 2
+			continue
+		}
+
+		return err
+	}
+	return nil
+}
+
 func removeServiceAccountIAMBindings(sessions GCPSessions, options GCPOptions, serviceAccountEmail string) {
 	member := "serviceAccount:" + serviceAccountEmail
 
-	policy, err := sessions.CRM.Projects.GetIamPolicy(options.ProjectID, &cloudresourcemanager.GetIamPolicyRequest{}).Do()
-	if err != nil {
-		log.Error(fmt.Sprintf("Error getting IAM policy for project `%s` while removing bindings for `%s`, error: %s", options.ProjectID, serviceAccountEmail, err))
-		return
-	}
-
-	changed := false
-	var updatedBindings []*cloudresourcemanager.Binding
-	for _, binding := range policy.Bindings {
-		var remainingMembers []string
-		for _, m := range binding.Members {
-			if m == member {
-				log.Info(fmt.Sprintf("Removing IAM policy binding for deleted service account: role=%s member=%s", binding.Role, member))
-				changed = true
-				continue
+	err := updateIAMPolicyWithRetry(sessions, options.ProjectID, func(policy *cloudresourcemanager.Policy) bool {
+		changed := false
+		var updatedBindings []*cloudresourcemanager.Binding
+		for _, binding := range policy.Bindings {
+			var remainingMembers []string
+			for _, m := range binding.Members {
+				if m == member {
+					log.Info(fmt.Sprintf("Removing IAM policy binding for deleted service account: role=%s member=%s", binding.Role, member))
+					changed = true
+					continue
+				}
+				remainingMembers = append(remainingMembers, m)
 			}
-			remainingMembers = append(remainingMembers, m)
+			if len(remainingMembers) > 0 {
+				binding.Members = remainingMembers
+				updatedBindings = append(updatedBindings, binding)
+			}
 		}
-		if len(remainingMembers) > 0 {
-			binding.Members = remainingMembers
-			updatedBindings = append(updatedBindings, binding)
-		}
-	}
-
-	if !changed {
-		return
-	}
-
-	policy.Bindings = updatedBindings
-	if _, err = sessions.CRM.Projects.SetIamPolicy(options.ProjectID, &cloudresourcemanager.SetIamPolicyRequest{
-		Policy: policy,
-	}).Do(); err != nil {
+		policy.Bindings = updatedBindings
+		return changed
+	})
+	if err != nil {
 		log.Error(fmt.Sprintf("Error updating IAM policy for project `%s` while removing bindings for `%s`, error: %s", options.ProjectID, serviceAccountEmail, err))
 	}
 }
 
-func DeleteOrphanedIAMPolicyBindings(sessions GCPSessions, options GCPOptions) {
+func DeleteBindingsWithNonExistentServiceAccounts(sessions GCPSessions, options GCPOptions) {
+	existingSAs := make(map[string]struct{})
+	nextPageToken := ""
+	for {
+		resp, err := sessions.IAM.Projects.ServiceAccounts.List("projects/" + options.ProjectID).
+			PageToken(nextPageToken).PageSize(100).Do()
+		if err != nil {
+			log.Error(fmt.Sprintf("Error listing service accounts for project `%s`, error: %s", options.ProjectID, err))
+			return
+		}
+		for _, sa := range resp.Accounts {
+			existingSAs["serviceAccount:"+sa.Email] = struct{}{}
+		}
+		nextPageToken = resp.NextPageToken
+		if resp.NextPageToken == "" {
+			break
+		}
+	}
+
 	policy, err := sessions.CRM.Projects.GetIamPolicy(options.ProjectID, &cloudresourcemanager.GetIamPolicyRequest{}).Do()
 	if err != nil {
 		log.Error(fmt.Sprintf("Error getting IAM policy for project `%s`, error: %s", options.ProjectID, err))
 		return
 	}
 
+	nonExistent := make(map[string]struct{})
+	for _, binding := range policy.Bindings {
+		for _, member := range binding.Members {
+			if strings.HasPrefix(member, "serviceAccount:") {
+				if _, exists := existingSAs[member]; !exists {
+					nonExistent[member] = struct{}{}
+				}
+			}
+		}
+	}
+
+	if len(nonExistent) == 0 {
+		log.Info("All serviceAccount members in IAM policy still exist, nothing to remove")
+		return
+	}
+
+	if options.DryRun {
+		for member := range nonExistent {
+			log.Info(fmt.Sprintf("DryRun: would remove all IAM bindings for non-existent service account `%s`", member))
+		}
+		return
+	}
+
+	err = updateIAMPolicyWithRetry(sessions, options.ProjectID, func(policy *cloudresourcemanager.Policy) bool {
+		changed := false
+		var updatedBindings []*cloudresourcemanager.Binding
+		for _, binding := range policy.Bindings {
+			var remainingMembers []string
+			for _, member := range binding.Members {
+				if _, remove := nonExistent[member]; remove {
+					log.Info(fmt.Sprintf("Removing IAM binding for non-existent service account: role=%s member=%s", binding.Role, member))
+					changed = true
+					continue
+				}
+				remainingMembers = append(remainingMembers, member)
+			}
+			if len(remainingMembers) > 0 {
+				binding.Members = remainingMembers
+				updatedBindings = append(updatedBindings, binding)
+			}
+		}
+		policy.Bindings = updatedBindings
+		return changed
+	})
+	if err != nil {
+		log.Error(fmt.Sprintf("Error updating IAM policy for project `%s`, error: %s", options.ProjectID, err))
+		return
+	}
+
+	log.Info(fmt.Sprintf("Removed IAM bindings for %d non-existent service accounts in project `%s`", len(nonExistent), options.ProjectID))
+}
+
+func DeleteOrphanedIAMPolicyBindings(sessions GCPSessions, options GCPOptions) {
 	type orphanedBinding struct {
 		role   string
 		member string
 	}
 
 	var orphaned []orphanedBinding
+
+	policy, err := sessions.CRM.Projects.GetIamPolicy(options.ProjectID, &cloudresourcemanager.GetIamPolicyRequest{}).Do()
+	if err != nil {
+		log.Error(fmt.Sprintf("Error getting IAM policy for project `%s`, error: %s", options.ProjectID, err))
+		return
+	}
 
 	for _, binding := range policy.Bindings {
 		for _, member := range binding.Members {
@@ -175,12 +276,8 @@ func DeleteOrphanedIAMPolicyBindings(sessions GCPSessions, options GCPOptions) {
 			end = len(orphaned)
 		}
 		chunk := orphaned[start:end]
-
-		currentPolicy, err := sessions.CRM.Projects.GetIamPolicy(options.ProjectID, &cloudresourcemanager.GetIamPolicyRequest{}).Do()
-		if err != nil {
-			log.Error(fmt.Sprintf("Error getting IAM policy for project `%s`, error: %s", options.ProjectID, err))
-			return
-		}
+		batchNum := end / iamPolicyMemberChunkSize
+		totalBatches := (len(orphaned) + iamPolicyMemberChunkSize - 1) / iamPolicyMemberChunkSize
 
 		toRemove := make(map[string]map[string]bool)
 		for _, ob := range chunk {
@@ -190,42 +287,43 @@ func DeleteOrphanedIAMPolicyBindings(sessions GCPSessions, options GCPOptions) {
 			toRemove[ob.role][ob.member] = true
 		}
 
-		var updatedBindings []*cloudresourcemanager.Binding
-		for _, binding := range currentPolicy.Bindings {
-			var remainingMembers []string
-			for _, member := range binding.Members {
-				if toRemove[binding.Role] != nil && toRemove[binding.Role][member] {
-					continue
+		err := updateIAMPolicyWithRetry(sessions, options.ProjectID, func(p *cloudresourcemanager.Policy) bool {
+			var updatedBindings []*cloudresourcemanager.Binding
+			for _, binding := range p.Bindings {
+				var remainingMembers []string
+				for _, member := range binding.Members {
+					if toRemove[binding.Role] != nil && toRemove[binding.Role][member] {
+						continue
+					}
+					remainingMembers = append(remainingMembers, member)
 				}
-				remainingMembers = append(remainingMembers, member)
+				if len(remainingMembers) > 0 {
+					binding.Members = remainingMembers
+					updatedBindings = append(updatedBindings, binding)
+				}
 			}
-			if len(remainingMembers) > 0 {
-				binding.Members = remainingMembers
-				updatedBindings = append(updatedBindings, binding)
+
+			totalMembers := 0
+			for _, b := range updatedBindings {
+				totalMembers += len(b.Members)
 			}
-		}
+			if totalMembers > iamPolicyMemberLimit {
+				log.Warn(fmt.Sprintf(
+					"Skipping SetIamPolicy for project `%s`: resulting policy would have %d members (limit %d). Reduce existing members first.",
+					options.ProjectID, totalMembers, iamPolicyMemberLimit,
+				))
+				return false
+			}
 
-		totalMembers := 0
-		for _, b := range updatedBindings {
-			totalMembers += len(b.Members)
-		}
-		if totalMembers > iamPolicyMemberLimit {
-			log.Warn(fmt.Sprintf(
-				"Skipping SetIamPolicy for project `%s`: resulting policy would have %d members (limit %d). Reduce existing members first.",
-				options.ProjectID, totalMembers, iamPolicyMemberLimit,
-			))
-			return
-		}
-
-		currentPolicy.Bindings = updatedBindings
-		if _, err = sessions.CRM.Projects.SetIamPolicy(options.ProjectID, &cloudresourcemanager.SetIamPolicyRequest{
-			Policy: currentPolicy,
-		}).Do(); err != nil {
+			p.Bindings = updatedBindings
+			return true
+		})
+		if err != nil {
 			log.Error(fmt.Sprintf("Error updating IAM policy for project `%s`, error: %s", options.ProjectID, err))
 			return
 		}
 
 		log.Info(fmt.Sprintf("Removed %d orphaned IAM policy bindings for project `%s` (batch %d/%d)",
-			len(chunk), options.ProjectID, end/iamPolicyMemberChunkSize, (len(orphaned)+iamPolicyMemberChunkSize-1)/iamPolicyMemberChunkSize))
+			len(chunk), options.ProjectID, batchNum, totalBatches))
 	}
 }

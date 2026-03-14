@@ -15,8 +15,8 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-const bucketDeleteWorkers = 10
-const bucketDeleteRatePerSec = 50
+const bucketDeleteWorkers = 3
+const bucketDeleteRatePerSec = 10
 const bucketDeleteMaxRetries = 6
 
 func deleteObjectWithRetry(bucketHandle *storage.BucketHandle, bucketName, objectName string, generation int64) error {
@@ -29,7 +29,6 @@ func deleteObjectWithRetry(bucketHandle *storage.BucketHandle, bucketName, objec
 			return nil
 		}
 
-		// Retry only on 429 (rate limit) or 500/503 (transient server errors)
 		if apiErr, ok := err.(*googleapi.Error); ok && (apiErr.Code == 429 || apiErr.Code == 500 || apiErr.Code == 503) {
 			if attempt == bucketDeleteMaxRetries {
 				return err
@@ -51,7 +50,6 @@ func emptyBucket(bucketHandle *storage.BucketHandle, bucketName string) bool {
 		generation int64
 	}
 
-	// Collect all object versions first
 	var objects []objectVersion
 	it := bucketHandle.Objects(context.Background(), &storage.Query{Versions: true})
 	for {
@@ -125,7 +123,6 @@ func DeleteExpiredBuckets(sessions GCPSessions, options GCPOptions) {
 			break
 		}
 
-		// bucket from another region
 		if !strings.EqualFold(bucket.Location, options.Location) {
 			continue
 		}
@@ -140,7 +137,6 @@ func DeleteExpiredBuckets(sessions GCPSessions, options GCPOptions) {
 			log.Warn(fmt.Sprintf("ttl label value `%s` is not parsable to int64, ignoring this bucket (`%s`)", ttlStr, bucket.Name))
 			continue
 		}
-		// bucket is not expired (or is protected TTL = 0)
 		if ttl == 0 || time.Now().UTC().Before(bucket.Created.UTC().Add(time.Second*time.Duration(ttl))) {
 			continue
 		}

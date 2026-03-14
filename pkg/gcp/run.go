@@ -154,7 +154,7 @@ func runPlecoInRegion(location string, interval int64, wg *sync.WaitGroup, optio
 		}
 		sessions.CRM = crmService
 
-		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredServiceAccounts, DeleteOrphanedIAMPolicyBindings)
+		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredServiceAccounts, DeleteOrphanedIAMPolicyBindings, DeleteBindingsWithNonExistentServiceAccounts)
 	}
 
 	if options.EnableJob {
