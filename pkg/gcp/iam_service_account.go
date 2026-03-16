@@ -90,6 +90,78 @@ const iamPolicyMemberLimit = 1500
 const iamPolicyMemberChunkSize = 100
 const iamPolicyMaxRetries = 6
 
+// gcpManagedSADomains is the set of email domains used exclusively by
+// GCP-managed service agents. User-created service accounts always live under
+// <project-id>.iam.gserviceaccount.com, never under these domains.
+// Entries here require that the local part is a numeric project number.
+var gcpManagedSADomains = []string{
+	"@container-engine-robot.iam.gserviceaccount.com",
+	"@compute-system.iam.gserviceaccount.com",
+	"@cloudservices.gserviceaccount.com",
+	// gcp-sa-* covers all Google-managed per-service agents, e.g.
+	// @gcp-sa-firestore.iam.gserviceaccount.com
+	"@gcp-sa-",
+}
+
+// gcpManagedSADomainsAnyLocal is the set of GCP-managed domains where the
+// local part is NOT necessarily numeric (e.g. service-agent-manager).
+var gcpManagedSADomainsAnyLocal = []string{
+	"@system.gserviceaccount.com",
+}
+
+// isGCPManagedMember returns true for members that are GCP-managed service agents
+// which must never be removed from the IAM policy.
+//
+// GCP-managed service agents either follow the pattern:
+//
+//	serviceAccount:service-<numeric-project-number>@<managed-domain>
+//
+// or belong to specific always-managed domains regardless of local part:
+//
+//	serviceAccount:service-agent-manager@system.gserviceaccount.com
+//
+// Examples:
+//   - serviceAccount:service-809315353539@container-engine-robot.iam.gserviceaccount.com
+//   - serviceAccount:service-123456789@compute-system.iam.gserviceaccount.com
+//   - serviceAccount:service-123456789@gcp-sa-firestore.iam.gserviceaccount.com
+//   - serviceAccount:service-agent-manager@system.gserviceaccount.com
+func isGCPManagedMember(member string) bool {
+	const prefix = "serviceAccount:service-"
+	if !strings.HasPrefix(member, prefix) {
+		return false
+	}
+
+	// Extract the part after "service-" (e.g. "809315353539@container-engine-robot.iam.gserviceaccount.com")
+	rest := member[len(prefix):]
+	atIdx := strings.Index(rest, "@")
+	if atIdx < 0 {
+		return false
+	}
+
+	domainPart := rest[atIdx:] // includes the "@"
+
+	// Domains that are always GCP-managed regardless of the local part.
+	for _, domain := range gcpManagedSADomainsAnyLocal {
+		if strings.HasPrefix(domainPart, domain) {
+			return true
+		}
+	}
+
+	// For the remaining managed domains, require a numeric project number.
+	localPart := rest[:atIdx]
+	for _, ch := range localPart {
+		if ch < '0' || ch > '9' {
+			return false
+		}
+	}
+	for _, domain := range gcpManagedSADomains {
+		if strings.HasPrefix(domainPart, domain) {
+			return true
+		}
+	}
+	return false
+}
+
 // updateIAMPolicyWithRetry performs a read-modify-write on the project IAM policy,
 // retrying on 409 (concurrent modification) with exponential backoff.
 // The mutate function receives the current policy and returns whether it was changed.
@@ -136,6 +208,10 @@ func removeServiceAccountIAMBindings(sessions GCPSessions, options GCPOptions, s
 		for _, binding := range policy.Bindings {
 			var remainingMembers []string
 			for _, m := range binding.Members {
+				if isGCPManagedMember(m) {
+					remainingMembers = append(remainingMembers, m)
+					continue
+				}
 				if m == member {
 					log.Info(fmt.Sprintf("Removing IAM policy binding for deleted service account: role=%s member=%s", binding.Role, member))
 					changed = true
@@ -210,6 +286,10 @@ func DeleteBindingsWithNonExistentServiceAccounts(sessions GCPSessions, options 
 		for _, binding := range policy.Bindings {
 			var remainingMembers []string
 			for _, member := range binding.Members {
+				if isGCPManagedMember(member) {
+					remainingMembers = append(remainingMembers, member)
+					continue
+				}
 				if _, remove := nonExistent[member]; remove {
 					log.Info(fmt.Sprintf("Removing IAM binding for non-existent service account: role=%s member=%s", binding.Role, member))
 					changed = true
@@ -292,6 +372,10 @@ func DeleteOrphanedIAMPolicyBindings(sessions GCPSessions, options GCPOptions) {
 			for _, binding := range p.Bindings {
 				var remainingMembers []string
 				for _, member := range binding.Members {
+					if isGCPManagedMember(member) {
+						remainingMembers = append(remainingMembers, member)
+						continue
+					}
 					if toRemove[binding.Role] != nil && toRemove[binding.Role][member] {
 						continue
 					}
