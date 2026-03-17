@@ -16,7 +16,8 @@ import (
 )
 
 const bucketDeleteWorkers = 3
-const bucketDeleteRatePerSec = 10
+const bucketDeleteRatePerSec = 1
+const bucketListRatePerSec = 1
 const bucketDeleteMaxRetries = 6
 
 func deleteObjectWithRetry(bucketHandle *storage.BucketHandle, bucketName, objectName string, generation int64) error {
@@ -51,24 +52,33 @@ func emptyBucket(bucketHandle *storage.BucketHandle, bucketName string) bool {
 	}
 
 	var objects []objectVersion
+	listLimiter := rate.NewLimiter(rate.Limit(bucketListRatePerSec), 1)
 	it := bucketHandle.Objects(context.Background(), &storage.Query{Versions: true})
+	pager := iterator.NewPager(it, 1000, "")
 	for {
-		obj, err := it.Next()
-		if err == iterator.Done {
-			break
+		if err := listLimiter.Wait(context.Background()); err != nil {
+			log.Error(fmt.Sprintf("List rate limiter error for bucket `%s`: %s", bucketName, err))
+			return false
 		}
+		var page []*storage.ObjectAttrs
+		nextPageToken, err := pager.NextPage(&page)
 		if err != nil {
 			log.Error(fmt.Sprintf("Error listing objects in bucket `%s`, error: %s", bucketName, err))
 			return false
 		}
-		objects = append(objects, objectVersion{name: obj.Name, generation: obj.Generation})
+		for _, obj := range page {
+			objects = append(objects, objectVersion{name: obj.Name, generation: obj.Generation})
+		}
+		if nextPageToken == "" {
+			break
+		}
 	}
 
 	if len(objects) == 0 {
 		return true
 	}
 
-	log.Info(fmt.Sprintf("Emptying bucket `%s`: deleting %d object versions with %d workers at %d req/s", bucketName, len(objects), bucketDeleteWorkers, bucketDeleteRatePerSec))
+	log.Info(fmt.Sprintf("Emptying bucket `%s`: deleting %d object versions with %d workers at %d req/s (list rate: %d req/s)", bucketName, len(objects), bucketDeleteWorkers, bucketDeleteRatePerSec, bucketListRatePerSec))
 
 	limiter := rate.NewLimiter(rate.Limit(bucketDeleteRatePerSec), bucketDeleteWorkers)
 
