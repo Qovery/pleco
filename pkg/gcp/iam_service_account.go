@@ -98,8 +98,11 @@ var gcpManagedSADomains = []string{
 	"@container-engine-robot.iam.gserviceaccount.com",
 	"@compute-system.iam.gserviceaccount.com",
 	"@cloudservices.gserviceaccount.com",
-	// gcp-sa-* covers all Google-managed per-service agents, e.g.
-	// @gcp-sa-firestore.iam.gserviceaccount.com
+	// gcp-sa-* covers many Google-managed per-service agents, e.g.
+	// @gcp-sa-firestore.iam.gserviceaccount.com. It is not exhaustive: several
+	// services keep their own legacy domain (@cloud-redis, @service-networking,
+	// @cloudbuild, ...), so this list alone cannot decide whether a member is
+	// Google-managed.
 	"@gcp-sa-",
 }
 
@@ -160,6 +163,40 @@ func isGCPManagedMember(member string) bool {
 		}
 	}
 	return false
+}
+
+// isProjectOwnedServiceAccount reports whether member is a service account that
+// would appear in projectID's own service-account listing.
+func isProjectOwnedServiceAccount(member string, projectID string) bool {
+	return strings.HasPrefix(member, "serviceAccount:") &&
+		strings.HasSuffix(member, "@"+projectID+".iam.gserviceaccount.com")
+}
+
+// findNonExistentProjectServiceAccounts returns the policy members that belong to
+// projectID yet are absent from existingSAs, i.e. bindings left behind by a
+// deleted service account.
+//
+// Only project-owned service accounts are eligible. Google-managed service agents
+// and service accounts owned by other projects never appear in a project's
+// service-account listing whether or not they exist, so their absence proves
+// nothing and removing them breaks the services that depend on them.
+func findNonExistentProjectServiceAccounts(
+	policy *cloudresourcemanager.Policy,
+	existingSAs map[string]struct{},
+	projectID string,
+) map[string]struct{} {
+	nonExistent := make(map[string]struct{})
+	for _, binding := range policy.Bindings {
+		for _, member := range binding.Members {
+			if !isProjectOwnedServiceAccount(member, projectID) {
+				continue
+			}
+			if _, exists := existingSAs[member]; !exists {
+				nonExistent[member] = struct{}{}
+			}
+		}
+	}
+	return nonExistent
 }
 
 // updateIAMPolicyWithRetry performs a read-modify-write on the project IAM policy,
@@ -257,16 +294,7 @@ func DeleteBindingsWithNonExistentServiceAccounts(sessions GCPSessions, options 
 		return
 	}
 
-	nonExistent := make(map[string]struct{})
-	for _, binding := range policy.Bindings {
-		for _, member := range binding.Members {
-			if strings.HasPrefix(member, "serviceAccount:") {
-				if _, exists := existingSAs[member]; !exists {
-					nonExistent[member] = struct{}{}
-				}
-			}
-		}
-	}
+	nonExistent := findNonExistentProjectServiceAccounts(policy, existingSAs, options.ProjectID)
 
 	if len(nonExistent) == 0 {
 		log.Info("All serviceAccount members in IAM policy still exist, nothing to remove")
