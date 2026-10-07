@@ -23,6 +23,7 @@ type GCPOptions struct {
 	DryRun                 bool
 	Location               string
 	EnableCluster          bool
+	EnableDisk             bool
 	EnableBucket           bool
 	EnableNetwork          bool
 	EnableArtifactRegistry bool
@@ -35,6 +36,8 @@ type GCPSessions struct {
 	Bucket           *storage.Client
 	ArtifactRegistry *artifactregistry.Client
 	Cluster          *container.ClusterManagerClient
+	Disk             *compute.DisksClient
+	RegionDisk       *compute.RegionDisksClient
 	Network          *compute.NetworksClient
 	Subnetwork       *compute.SubnetworksClient
 	Route            *compute.RoutesClient
@@ -88,7 +91,7 @@ func runPlecoInRegion(location string, interval int64, wg *sync.WaitGroup, optio
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredArtifactRegistryRepositories)
 	}
 
-	if options.EnableCluster {
+	if options.EnableCluster || options.EnableDisk {
 		client, err := container.NewClusterManagerClient(ctx)
 		if err != nil {
 			logrus.Errorf("container.NewClusterManagerClient: %s", err)
@@ -97,7 +100,29 @@ func runPlecoInRegion(location string, interval int64, wg *sync.WaitGroup, optio
 		defer client.Close()
 		sessions.Cluster = client
 
-		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredGKEClusters)
+		if options.EnableCluster {
+			listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredGKEClusters)
+		}
+	}
+
+	if options.EnableDisk {
+		diskClient, err := compute.NewDisksRESTClient(ctx)
+		if err != nil {
+			logrus.Errorf("compute.NewDisksRESTClient: %s", err)
+			return
+		}
+		defer func() { _ = diskClient.Close() }()
+		sessions.Disk = diskClient
+
+		regionDiskClient, err := compute.NewRegionDisksRESTClient(ctx)
+		if err != nil {
+			logrus.Errorf("compute.NewRegionDisksRESTClient: %s", err)
+			return
+		}
+		defer func() { _ = regionDiskClient.Close() }()
+		sessions.RegionDisk = regionDiskClient
+
+		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteOrphanedDisks)
 	}
 
 	if options.EnableNetwork {

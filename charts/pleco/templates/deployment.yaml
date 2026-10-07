@@ -178,6 +178,9 @@ spec:
             {{ if eq .Values.gcpFeatures.cluster true }}
             - --enable-cluster
             {{ end }}
+            {{ if eq .Values.gcpFeatures.disk true }}
+            - --enable-orphan-disk-cleanup
+            {{ end }}
             {{ if eq .Values.gcpFeatures.network true }}
             - --enable-network
             {{ end }}

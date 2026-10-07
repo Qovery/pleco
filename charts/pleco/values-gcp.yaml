@@ -58,6 +58,7 @@ gcpFeatures:
   - us-west3
   - us-west4
   cluster: true
+  disk: true
   network: true
   router: true
   iam: true

@@ -80,6 +80,7 @@ Check out our Blog announcement of Pleco: https://www.qovery.com/blog/announceme
   - [x] Cloud Storage Buckets
   - [x] Artifact Registry Repositories
   - [x] Kubernetes clusters
+  - [x] Detached disks belonging to deleted GKE clusters (zonal and regional)
   - [x] Cloud run jobs
   - [x] Networks // via JSON tags in resource description because resource has no support for tags
   - [x] Routers // via JSON tags in resource description because resource has no support for tags
@@ -326,10 +327,35 @@ Here are some of the resources you can check:
 --enable-cluster # Enable cluster watch
 --enable-object-storage # Enable object storage watch
 --enable-artifact-registry # Enable artifact registry watch
+--enable-orphan-disk-cleanup # Clean up detached disks whose GKE cluster no longer exists
 --enable-network # Enable network watch
 --enable-router # Enable router watch
 --enable-iam # Enable IAM watch (service accounts)
 ```
+
+#### Orphaned disk cleanup
+
+Enable `--enable-orphan-disk-cleanup` (Helm: `gcpFeatures.disk: true`) to clean up
+persistent disks left behind by deleted GKE clusters. It works independently of
+`--enable-cluster` and scans zonal and regional disks in the configured
+`--gcp-regions`.
+
+A disk is deleted only when it is `READY`, has no attached instances (`users` is
+empty), and its owning GKE cluster returns `NotFound`. Ownership comes from GKE's
+`goog-k8s-cluster-name` and `goog-k8s-cluster-location` labels. Disks belonging to an
+existing cluster, disks missing either label, and failed cluster lookups are
+skipped. Dry-run logs eligible disks without deleting them.
+
+Cleanup does not require a TTL or wait for a positive TTL to expire. However,
+`do_not_delete=true`, `ttl=0`, malformed protection/TTL labels, and negative TTLs
+prevent deletion, even with `--disable-ttl-check`. Tag-based destruction also
+requires the disk to match the requested tag name and value.
+
+The service account needs `compute.disks.list`, `compute.disks.get`,
+`compute.disks.delete`, and `container.clusters.get`, plus
+`compute.zoneOperations.get` and `compute.regionOperations.get` to wait for
+deletions to finish. The GCP example values enable disk cleanup; the base chart
+defaults to disabled.
 
 #### Example
 
@@ -343,6 +369,7 @@ pleco start
   --enable-object-storage
   --enable-artifact-registry
   --enable-cluster
+  --enable-orphan-disk-cleanup
   --enable-network
   --enable-router
   --enable-iam

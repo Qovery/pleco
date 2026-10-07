@@ -94,6 +94,7 @@ gcpFeatures:
   gcpRegions: []
   # - europe-west9
   cluster: false
+  disk: false
   network: false
   router: false
   iam: false

@@ -189,11 +189,13 @@ func startGCP(cmd *cobra.Command, interval int64, dryRun bool, disableTTLCheck b
 
 	gcpOptions := gcp.GCPOptions{
 		ProjectID:              "qovery-gcp-tests",
+		TagName:                getCmdString(cmd, "tag-name"),
 		TagValue:               tagValue,
 		DisableTTLCheck:        disableTTLCheck,
 		IsDestroyingCommand:    strings.TrimSpace(tagValue) != "",
 		DryRun:                 dryRun,
 		EnableCluster:          getCmdBool(cmd, "enable-cluster"),
+		EnableDisk:             getCmdBool(cmd, "enable-orphan-disk-cleanup"),
 		EnableBucket:           getCmdBool(cmd, "enable-object-storage"),
 		EnableNetwork:          getCmdBool(cmd, "enable-network"),
 		EnableRouter:           getCmdBool(cmd, "enable-router"),
