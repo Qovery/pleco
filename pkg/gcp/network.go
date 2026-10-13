@@ -4,13 +4,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
+	"sync"
 	"time"
 
 	"cloud.google.com/go/compute/apiv1/computepb"
 	"github.com/Qovery/pleco/pkg/common"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
+	"google.golang.org/api/iterator"
 )
+
+const maxNetworkDeletionWorkers = 20
 
 func DeleteExpiredVPCs(sessions GCPSessions, options GCPOptions) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
@@ -20,97 +25,185 @@ func DeleteExpiredVPCs(sessions GCPSessions, options GCPOptions) {
 		Project: options.ProjectID,
 	})
 
+	// Finish listing before deletion waits can exhaust the listing timeout.
+	var networks []*computepb.Network
 	for {
 		network, err := networksIterator.Next()
-		if err != nil {
+		if err == iterator.Done {
 			break
 		}
+		if err != nil {
+			log.Errorf("Error listing networks: %s", err)
+			return
+		}
+		networks = append(networks, network)
+	}
+	cancel()
 
-		networkName := ""
+	var wg sync.WaitGroup
+	workers := make(chan struct{}, maxNetworkDeletionWorkers)
+	for _, network := range networks {
+		var networkName string
 		if network.Name != nil {
 			networkName = *network.Name
 		}
-		networkDescription := ""
+		var networkDescription string
 		if network.Description != nil {
 			networkDescription = *network.Description
 		}
 
 		resourceTags := common.ResourceTags{}
-		if err = json.Unmarshal([]byte(networkDescription), &resourceTags); err != nil {
+		if err := json.Unmarshal([]byte(networkDescription), &resourceTags); err != nil {
 			log.Info(fmt.Sprintf("No resource tags found in description field, ignoring this network (`%s`)", networkName))
 			continue
 		}
-		ttlStr := ""
-		if resourceTags.TTL != nil {
-			ttlStr = resourceTags.TTL.String()
-		} else {
-			log.Info(fmt.Sprintf("No ttl value found, ignoring this network (`%s`)", networkName))
-			continue
-		}
-		ttl, err := strconv.ParseInt(ttlStr, 10, 64)
-		if err != nil {
-			log.Warn(fmt.Sprintf("ttl label value `%s` is not parsable to int64, ignoring this network (`%s`)", ttlStr, networkName))
-			continue
-		}
-		creationTimeStr := ""
-		if resourceTags.CreationUnixTimestamp != nil {
-			creationTimeStr = resourceTags.CreationUnixTimestamp.String()
-		} else {
-			log.Info(fmt.Sprintf("No creation time value found, ignoring this network (`%s`)", networkName))
-			continue
-		}
-		creationTimeInt64, err := strconv.ParseInt(creationTimeStr, 10, 64)
-		if err != nil {
-			log.Warn(fmt.Sprintf("creation_date label value `%s` is not parsable to int64, ignoring this network (`%s`)", creationTimeStr, networkName))
-			continue
-		}
-		creationTime := time.Unix(creationTimeInt64, 0).UTC()
 
-		// Network is not expired (or is protected TTL = 0)
-		if ttl == 0 || creationTimeInt64 == 0 || time.Now().UTC().Before(creationTime.Add(time.Second*time.Duration(ttl))) {
+		if resourceTags.TTL == nil {
+			log.Infof("No ttl value found, ignoring this network (`%s`)", networkName)
 			continue
 		}
+		ttl, err := strconv.ParseInt(resourceTags.TTL.String(), 10, 64)
+		if err != nil {
+			log.Warnf("ttl label value `%s` is not parsable to int64, ignoring this network (`%s`)", resourceTags.TTL.String(), networkName)
+			continue
+		}
+		if resourceTags.CreationUnixTimestamp == nil {
+			log.Infof("No creation time value found, ignoring this network (`%s`)", networkName)
+			continue
+		}
+		creationTimeUnix, err := strconv.ParseInt(resourceTags.CreationUnixTimestamp.String(), 10, 64)
+		if err != nil {
+			log.Warnf("creation_date label value `%s` is not parsable to int64, ignoring this network (`%s`)", resourceTags.CreationUnixTimestamp.String(), networkName)
+			continue
+		}
+		creationTime := time.Unix(creationTimeUnix, 0).UTC()
 
+		// A zero TTL protects the network; only expired networks are eligible.
+		if ttl == 0 || creationTimeUnix == 0 || time.Now().UTC().Before(creationTime.Add(time.Second*time.Duration(ttl))) {
+			continue
+		}
 		if options.DryRun {
-			log.Info(fmt.Sprintf("Network `%s will be deleted`", networkName))
+			log.Infof("Network `%s` will be deleted", networkName)
 			continue
 		}
 
-		log.Info(fmt.Sprintf("Getting network `%s`", networkName))
-		ctxGetNetwork, cancelGetNetwork := context.WithTimeout(context.Background(), time.Second*30)
-		vpcToDelete, err := sessions.Network.Get(ctxGetNetwork, &computepb.GetNetworkRequest{
-			Project: options.ProjectID,
-			Network: networkName,
-		})
+		// Acquire before spawning so at most 20 network goroutines exist at once.
+		workers <- struct{}{}
+		wg.Add(1)
+		go func(network *computepb.Network) {
+			defer wg.Done()
+			defer func() { <-workers }()
+			deleteVPC(sessions, options, network)
+		}(network)
+	}
+	wg.Wait()
+}
+
+func deleteVPC(sessions GCPSessions, options GCPOptions, network *computepb.Network) {
+	networkName := network.GetName()
+	// Cloud Routers (including their NAT configuration) pin the VPC and subnets.
+	if err := deleteNetworkRouters(sessions, options, network); err != nil {
+		log.Errorf("Skipping network `%s`: %s", networkName, err)
+		return
+	}
+
+	networkFilter := fmt.Sprintf("network = \"%s\"", network.GetSelfLink())
+
+	// Delete routes
+	log.Info(fmt.Sprintf("Get routes for `%s`", network.GetName()))
+	ctxListRoutes, cancelListRoutes := context.WithTimeout(context.Background(), 5*time.Minute)
+	routesIterator := sessions.Route.List(ctxListRoutes, &computepb.ListRoutesRequest{
+		Project: options.ProjectID,
+		Filter:  &networkFilter,
+	})
+	for {
+		route, err := routesIterator.Next()
 		if err != nil {
-			log.Error(fmt.Sprintf("Error getting network `%s`, error: %s", networkName, err))
+			if err != iterator.Done {
+				log.Errorf("Error listing routes for network `%s`: %s", networkName, err)
+			}
+			break
 		}
 
-		if vpcToDelete != nil && vpcToDelete.AutoCreateSubnetworks != nil && *vpcToDelete.AutoCreateSubnetworks {
-			log.Info(fmt.Sprintf("Converting network `%s` to subnet custom mode in order to be able to delete it", networkName))
-			// Patch the network to custom mode allowing to delete subnets
-			ctxSwitchToCustomMode, cancelSwitchToCustomMode := context.WithTimeout(context.Background(), time.Second*60)
-			operation, err := sessions.Network.SwitchToCustomMode(ctxSwitchToCustomMode, &computepb.SwitchToCustomModeNetworkRequest{
+		// Only custom static routes need explicit deletion.
+		if !isCustomStaticRoute(route) {
+			continue
+		}
+
+		if route.GetNetwork() == network.GetSelfLink() {
+			log.Info(fmt.Sprintf("Deleting route `%s`", route.GetName()))
+			ctxDeleteRoute, cancelDeleteRoute := context.WithTimeout(context.Background(), time.Second*60)
+			operation, err := sessions.Route.Delete(ctxDeleteRoute, &computepb.DeleteRouteRequest{
 				Project: options.ProjectID,
-				Network: networkName,
+				Route:   route.GetName(),
 			})
 			if err != nil {
-				log.Error(fmt.Errorf("failed to convert network %s to custom mode: %w", networkName, err))
-				continue
+				log.Error(fmt.Sprintf("Error deleting route `%s`, error: %s", route.GetName(), err))
 			}
 
 			// this operation can be a bit long, we wait until it's done
-			err = operation.Wait(ctxSwitchToCustomMode)
-			if err != nil {
-				log.Error(fmt.Sprintf("Error waiting for convert network %s to custom mode: %s", networkName, err))
+			if operation != nil {
+				err = operation.Wait(ctxDeleteRoute)
+				if err != nil {
+					log.Error(fmt.Sprintf("Error waiting for deleting route `%s`, error: %s", route.GetName(), err))
+				}
 			}
 
-			cancelSwitchToCustomMode()
+			// closing contexts
+			cancelDeleteRoute()
+		}
+	}
+
+	cancelListRoutes()
+
+	// Delete firewall rules
+	// GKE auto-creates firewall rules (e.g. `k8s-*-node-http-hc`, `gke-*`) that
+	// outlive the cluster when cluster deletion fails mid-way, and they pin the VPC.
+	// Listing has its own timeout because per-rule deletion waits can be long.
+	log.Info(fmt.Sprintf("Get firewall rules for `%s`", network.GetName()))
+	ctxListFirewalls, cancelListFirewalls := context.WithTimeout(context.Background(), time.Minute*5)
+	firewallsIterator := sessions.Firewall.List(ctxListFirewalls, &computepb.ListFirewallsRequest{
+		Project: options.ProjectID,
+		Filter:  &networkFilter,
+	})
+	for {
+		firewall, err := firewallsIterator.Next()
+		if err != nil {
+			if err != iterator.Done {
+				log.Errorf("Error listing firewalls for network `%s`: %s", networkName, err)
+			}
+			break
 		}
 
+		if firewall.GetNetwork() == network.GetSelfLink() {
+			log.Info(fmt.Sprintf("Deleting firewall rule `%s`", firewall.GetName()))
+			ctxDeleteFirewall, cancelDeleteFirewall := context.WithTimeout(context.Background(), time.Second*60)
+			operation, err := sessions.Firewall.Delete(ctxDeleteFirewall, &computepb.DeleteFirewallRequest{
+				Project:  options.ProjectID,
+				Firewall: firewall.GetName(),
+			})
+			if err != nil {
+				log.Error(fmt.Sprintf("Error deleting firewall rule `%s`, error: %s", firewall.GetName(), err))
+			}
+
+			if operation != nil {
+				err = operation.Wait(ctxDeleteFirewall)
+				if err != nil {
+					log.Error(fmt.Sprintf("Error waiting for deleting firewall rule `%s`, error: %s", firewall.GetName(), err))
+				}
+			}
+
+			cancelDeleteFirewall()
+		}
+	}
+	cancelListFirewalls()
+
+	// GCP deletes auto-created subnets with an auto-mode network.
+	// Custom-mode subnets must be removed explicitly.
+	if !network.GetAutoCreateSubnetworks() {
 		log.Info(fmt.Sprintf("Get subnets for `%s`", network.GetName()))
-		networkFilter := fmt.Sprintf("network = \"%s\"", network.GetSelfLink())
-		subnetworksIterator := sessions.Subnetwork.AggregatedList(ctx, &computepb.AggregatedListSubnetworksRequest{
+		ctxListSubnets, cancelListSubnets := context.WithTimeout(context.Background(), 5*time.Minute)
+		subnetworksIterator := sessions.Subnetwork.AggregatedList(ctxListSubnets, &computepb.AggregatedListSubnetworksRequest{
 			Project: options.ProjectID,
 			Filter:  &networkFilter,
 		})
@@ -118,6 +211,9 @@ func DeleteExpiredVPCs(sessions GCPSessions, options GCPOptions) {
 		for {
 			subnetworks, err := subnetworksIterator.Next()
 			if err != nil {
+				if err != iterator.Done {
+					log.Errorf("Error listing subnets for network `%s`: %s", networkName, err)
+				}
 				break
 			}
 			if subnetworks.Value == nil || subnetworks.Value.Subnetworks == nil {
@@ -129,6 +225,7 @@ func DeleteExpiredVPCs(sessions GCPSessions, options GCPOptions) {
 				region, err := extractResourceRegion(subnetwork.GetRegion())
 				if err != nil {
 					log.Error(fmt.Sprintf("Error extracting region from subnet `%s`, error: %s", subnetwork.GetName(), err))
+					continue
 				}
 
 				log.Info(fmt.Sprintf("Deleting subnet `%s` from region `%s`", subnetwork.GetName(), region))
@@ -155,104 +252,52 @@ func DeleteExpiredVPCs(sessions GCPSessions, options GCPOptions) {
 				cancelDeleteSubnetwork()
 			}
 		}
-
-		// Delete routes
-		log.Info(fmt.Sprintf("Get routes for `%s`", network.GetName()))
-		routesIterator := sessions.Route.List(ctx, &computepb.ListRoutesRequest{
-			Project: options.ProjectID,
-			Filter:  &networkFilter,
-		})
-		for {
-			route, err := routesIterator.Next()
-			if err != nil {
-				break
-			}
-
-			if route.GetNetwork() == network.GetSelfLink() {
-				log.Info(fmt.Sprintf("Deleting route `%s`", route.GetName()))
-				ctxDeleteRoute, cancelDeleteRoute := context.WithTimeout(context.Background(), time.Second*60)
-				operation, err := sessions.Route.Delete(ctxDeleteRoute, &computepb.DeleteRouteRequest{
-					Project: options.ProjectID,
-					Route:   route.GetName(),
-				})
-				if err != nil {
-					log.Error(fmt.Sprintf("Error deleting route `%s`, error: %s", route.GetName(), err))
-				}
-
-				// this operation can be a bit long, we wait until it's done
-				if operation != nil {
-					err = operation.Wait(ctxDeleteRoute)
-					if err != nil {
-						log.Error(fmt.Sprintf("Error waiting for deleting route `%s`, error: %s", route.GetName(), err))
-					}
-				}
-
-				// closing contexts
-				cancelDeleteRoute()
-			}
-		}
-
-		// Delete firewall rules
-		// GKE auto-creates firewall rules (e.g. `k8s-*-node-http-hc`, `gke-*`) that
-		// outlive the cluster when cluster deletion fails mid-way, and they pin the VPC.
-		// A separate context is used for listing because GKE-heavy VPCs may have many
-		// rules and the per-rule delete waits can exceed the outer 30s budget.
-		log.Info(fmt.Sprintf("Get firewall rules for `%s`", network.GetName()))
-		ctxListFirewalls, cancelListFirewalls := context.WithTimeout(context.Background(), time.Minute*5)
-		firewallsIterator := sessions.Firewall.List(ctxListFirewalls, &computepb.ListFirewallsRequest{
-			Project: options.ProjectID,
-			Filter:  &networkFilter,
-		})
-		for {
-			firewall, err := firewallsIterator.Next()
-			if err != nil {
-				break
-			}
-
-			if firewall.GetNetwork() == network.GetSelfLink() {
-				log.Info(fmt.Sprintf("Deleting firewall rule `%s`", firewall.GetName()))
-				ctxDeleteFirewall, cancelDeleteFirewall := context.WithTimeout(context.Background(), time.Second*60)
-				operation, err := sessions.Firewall.Delete(ctxDeleteFirewall, &computepb.DeleteFirewallRequest{
-					Project:  options.ProjectID,
-					Firewall: firewall.GetName(),
-				})
-				if err != nil {
-					log.Error(fmt.Sprintf("Error deleting firewall rule `%s`, error: %s", firewall.GetName(), err))
-				}
-
-				if operation != nil {
-					err = operation.Wait(ctxDeleteFirewall)
-					if err != nil {
-						log.Error(fmt.Sprintf("Error waiting for deleting firewall rule `%s`, error: %s", firewall.GetName(), err))
-					}
-				}
-
-				cancelDeleteFirewall()
-			}
-		}
-		cancelListFirewalls()
-
-		// closing contexts
-		cancelGetNetwork()
-
-		log.Info(fmt.Sprintf("Deleting network `%s`", networkName))
-		ctxDeleteNetwork, cancelNetwork := context.WithTimeout(context.Background(), time.Second*120)
-		operation, err := sessions.Network.Delete(ctxDeleteNetwork, &computepb.DeleteNetworkRequest{
-			Project: options.ProjectID,
-			Network: networkName,
-		})
-		if err != nil {
-			log.Error(fmt.Sprintf("Error deleting network `%s`, error: %s", networkName, err))
-		}
-
-		// this operation can be a bit long, we wait until it's done
-		if operation != nil {
-			err = operation.Wait(ctxDeleteNetwork)
-			if err != nil {
-				log.Error(fmt.Sprintf("Error waiting for deleting network `%s`, error: %s", network.GetName(), err))
-			}
-		}
-
-		cancelNetwork()
+		cancelListSubnets()
 	}
+
+	log.Info(fmt.Sprintf("Deleting network `%s`", networkName))
+	ctxDeleteNetwork, cancelNetwork := context.WithTimeout(context.Background(), time.Second*120)
+	operation, err := sessions.Network.Delete(ctxDeleteNetwork, &computepb.DeleteNetworkRequest{
+		Project: options.ProjectID,
+		Network: networkName,
+	})
+	if err != nil {
+		log.Error(fmt.Sprintf("Error deleting network `%s`, error: %s", networkName, err))
+	}
+
+	// this operation can be a bit long, we wait until it's done
+	if operation != nil {
+		err = operation.Wait(ctxDeleteNetwork)
+		if err != nil {
+			log.Error(fmt.Sprintf("Error waiting for deleting network `%s`, error: %s", network.GetName(), err))
+		}
+	}
+
+	cancelNetwork()
+}
+
+func isCustomStaticRoute(route *computepb.Route) bool {
+	// Imported and subnet routes are managed through their owning resources.
+	if route.GetNextHopNetwork() != "" || route.GetNextHopPeering() != "" || route.GetNextHopHub() != "" {
+		return false
+	}
+	switch route.GetRouteType() {
+	case computepb.Route_STATIC.String():
+	case "":
+		// Older list responses may omit routeType. Require a static next hop.
+		if route.GetNextHopGateway() == "" && route.GetNextHopInstance() == "" &&
+			route.GetNextHopIp() == "" && route.GetNextHopIlb() == "" && route.GetNextHopVpnTunnel() == "" {
+			return false
+		}
+	default:
+		return false
+	}
+
+	// The API has no system-generated flag. Match the default internet route's
+	// name and configuration; a custom default route via a VPN/VM still needs deletion.
+	isDefaultInternetRoute := strings.HasPrefix(route.GetName(), "default-route-") &&
+		(route.GetDestRange() == "0.0.0.0/0" || route.GetDestRange() == "::/0") &&
+		strings.HasSuffix(route.GetNextHopGateway(), "/global/gateways/default-internet-gateway") &&
+		route.GetPriority() == 1000 && len(route.GetTags()) == 0
+	return !isDefaultInternetRoute
 }

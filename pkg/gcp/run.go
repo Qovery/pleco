@@ -51,9 +51,12 @@ type GCPSessions struct {
 type funcDeleteExpired func(sessions GCPSessions, options GCPOptions)
 
 func RunPlecoGCP(regions []string, interval int64, wg *sync.WaitGroup, options GCPOptions) {
-	for _, region := range regions {
+	for i, region := range regions {
+		// VPCs are global, and their cleanup already scans every region.
+		regionOptions := options
+		regionOptions.EnableNetwork = options.EnableNetwork && i == 0
 		wg.Add(1)
-		go runPlecoInRegion(region, interval, wg, options)
+		go runPlecoInRegion(region, interval, wg, regionOptions)
 	}
 }
 
@@ -125,6 +128,21 @@ func runPlecoInRegion(location string, interval int64, wg *sync.WaitGroup, optio
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteOrphanedDisks)
 	}
 
+	// Routers must finish deleting before their VPC can be removed.
+	if options.EnableRouter || options.EnableNetwork {
+		routerClient, err := compute.NewRoutersRESTClient(ctx)
+		if err != nil {
+			logrus.Errorf("compute.NewRoutersRESTClient: %s", err)
+			return
+		}
+		defer routerClient.Close()
+		sessions.Router = routerClient
+
+		if options.EnableRouter {
+			listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredRouters)
+		}
+	}
+
 	if options.EnableNetwork {
 		networkClient, err := compute.NewNetworksRESTClient(ctx)
 		if err != nil {
@@ -159,18 +177,6 @@ func runPlecoInRegion(location string, interval int64, wg *sync.WaitGroup, optio
 		sessions.Firewall = firewallClient
 
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredVPCs)
-	}
-
-	if options.EnableRouter {
-		routerClient, err := compute.NewRoutersRESTClient(ctx)
-		if err != nil {
-			logrus.Errorf("compute.NewRoutersRESTClient: %s", err)
-			return
-		}
-		defer routerClient.Close()
-		sessions.Router = routerClient
-
-		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredRouters)
 	}
 
 	if options.EnableIAM {

@@ -333,6 +333,28 @@ Here are some of the resources you can check:
 --enable-iam # Enable IAM watch (service accounts)
 ```
 
+#### Network cleanup
+
+Enable `--enable-network` to delete expired VPCs. Expiration is read from the
+`ttl` and `creation_date` fields in the network's JSON description. Dry-run
+reports eligible networks without modifying them.
+
+Pleco cleans up at most 20 networks concurrently and waits for every worker to
+finish. Each worker removes the VPC's routers across all regions, custom static
+routes, and firewall rules before deleting the VPC. Auto-mode
+networks keep their mode: GCP removes their automatically created subnets when
+the network is deleted. Custom-mode subnets are explicitly deleted first, across
+all regions. Subnet, dynamic, and imported routes are left to their owning
+resources. Default internet routes matching GCP's generated name and configuration
+are left to network deletion.
+
+Attached routers are removed as network dependencies even without `--enable-router`
+or router TTL metadata; their deletion must complete before subnet/VPC deletion.
+The separate `--enable-router` watcher still uses each router's own TTL checks.
+Network cleanup runs once per project scan, regardless of the configured regions.
+Remaining dependencies can block VPC deletion; Pleco logs the failure and retries
+during a later scan.
+
 #### Orphaned disk cleanup
 
 Enable `--enable-orphan-disk-cleanup` (Helm: `gcpFeatures.disk: true`) to clean up
