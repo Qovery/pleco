@@ -68,7 +68,6 @@ func TestDeleteExpiredVPCs(t *testing.T) {
 		autoMode    bool
 		description string
 		dryRun      bool
-		excluded    bool
 		wantDelete  bool
 	}{
 		{name: "auto mode", autoMode: true, description: expired, wantDelete: true},
@@ -82,15 +81,11 @@ func TestDeleteExpiredVPCs(t *testing.T) {
 		{name: "zero creation date", description: `{"ttl":3600,"creation_date":0}`},
 		{name: "not expired", description: fmt.Sprintf(`{"ttl":86400,"creation_date":%d}`, time.Now().Unix())},
 		{name: "invalid description", description: "not JSON"},
-		{name: "local exclusion", description: expired, excluded: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			const base = "/compute/v1/projects/" + testProjectID
 			networkName := "expired-network"
-			if tt.excluded {
-				networkName = "qovery-z9d173239"
-			}
 			networkPath := base + "/global/networks/" + networkName
 			networkURL := "https://www.googleapis.com" + networkPath
 			completed := make(map[string]bool)

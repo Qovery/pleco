@@ -1,14 +1,23 @@
 package gcp
 
 import (
-	runpb "cloud.google.com/go/run/apiv2/runpb"
 	"context"
 	"fmt"
-	log "github.com/sirupsen/logrus"
-	"strconv"
-	"strings"
 	"time"
+
+	runpb "cloud.google.com/go/run/apiv2/runpb"
+	log "github.com/sirupsen/logrus"
 )
+
+// Job expires from its ttl and creation_date labels.
+type Job struct {
+	*runpb.Job
+}
+
+func (j Job) IsExpired() bool {
+	// Jobs historically accept an explicit creation_date of zero as the Unix epoch.
+	return j.Job != nil && isExpiredFromUnixCreation("job", j.Name, j.Labels["ttl"], j.Labels["creation_date"], true)
+}
 
 func DeleteExpiredJobs(sessions GCPSessions, options GCPOptions) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
@@ -25,33 +34,7 @@ func DeleteExpiredJobs(sessions GCPSessions, options GCPOptions) {
 			break
 		}
 
-		ttlStr, ok := job.Labels["ttl"]
-		if !ok || strings.TrimSpace(ttlStr) == "" {
-			log.Info(fmt.Sprintf("No ttl label value found, ignoring this job (`%s`)", job.Name))
-			continue
-		}
-		ttl, err := strconv.ParseInt(ttlStr, 10, 64)
-		if err != nil {
-			log.Warn(fmt.Sprintf("ttl label value `%s` is not parsable to int64, ignoring this job (`%s`)", ttlStr, job.Name))
-			continue
-		}
-
-		creationTimeStr := ""
-		if job.Labels["creation_date"] != "" {
-			creationTimeStr = job.Labels["creation_date"]
-		} else {
-			log.Info(fmt.Sprintf("No creation time value found, ignoring this job (`%s`)", job.Name))
-			continue
-		}
-		creationTimeInt64, err := strconv.ParseInt(creationTimeStr, 10, 64)
-		if err != nil {
-			log.Warn(fmt.Sprintf("creation_date label value `%s` is not parsable to int64, ignoring this job (`%s`)", creationTimeStr, job.Name))
-			continue
-		}
-		creationTime := time.Unix(creationTimeInt64, 0).UTC()
-
-		// job is not expired (or is protected TTL = 0)
-		if !ok || ttl == 0 || time.Now().UTC().Before(creationTime.UTC().Add(time.Second*time.Duration(ttl))) {
+		if !(Job{Job: job}).IsExpired() {
 			continue
 		}
 
@@ -61,7 +44,7 @@ func DeleteExpiredJobs(sessions GCPSessions, options GCPOptions) {
 		}
 
 		// job is eligible to deletion
-		log.Info(fmt.Sprintf("Deleting job `%s` created at `%s` UTC (TTL `{%d}` seconds)", job.Name, creationTimeStr, ttl))
+		log.Infof("Deleting job `%s` (creation_date `%s`, TTL `%s` seconds)", job.Name, job.Labels["creation_date"], job.Labels["ttl"])
 		operation, err := sessions.Job.DeleteJob(ctx, &runpb.DeleteJobRequest{
 			Name: job.Name,
 		})

@@ -13,6 +13,7 @@ import (
 	compute "cloud.google.com/go/compute/apiv1"
 	"cloud.google.com/go/compute/apiv1/computepb"
 	container "cloud.google.com/go/container/apiv1"
+	"google.golang.org/api/googleapi"
 	"google.golang.org/api/option"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -68,6 +69,7 @@ func TestDiskCleanupCandidate(t *testing.T) {
 		{name: "invalid protection", modify: func(d *computepb.Disk) { d.Labels["do_not_delete"] = "invalid" }},
 		{name: "explicitly unprotected", modify: func(d *computepb.Disk) { d.Labels["do_not_delete"] = "false" }, want: true},
 		{name: "zero TTL", modify: func(d *computepb.Disk) { d.Labels["ttl"] = "0" }},
+		{name: "negative TTL", modify: func(d *computepb.Disk) { d.Labels["ttl"] = "-1" }},
 		{name: "invalid TTL", modify: func(d *computepb.Disk) { d.Labels["ttl"] = "invalid" }},
 		{name: "positive TTL does not delay orphan cleanup", modify: func(d *computepb.Disk) { d.Labels["ttl"] = "3600" }, want: true},
 		{name: "destroy tag mismatch", opts: GCPOptions{IsDestroyingCommand: true, TagName: "owner", TagValue: "test"}},
@@ -83,6 +85,10 @@ func TestDiskCleanupCandidate(t *testing.T) {
 			}
 			if got := diskCleanupCandidate(disk, tt.opts); got != tt.want {
 				t.Fatalf("diskCleanupCandidate() = %v, want %v", got, tt.want)
+			}
+			var object VolatileObject = Disk{Disk: disk, Options: tt.opts, OwnerLookupError: &googleapi.Error{Code: http.StatusNotFound}}
+			if got := object.IsExpired(); got != tt.want {
+				t.Errorf("IsExpired() with missing owner = %v, want %v", got, tt.want)
 			}
 		})
 	}

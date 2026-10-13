@@ -3,7 +3,6 @@ package gcp
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -118,6 +117,15 @@ func emptyBucket(bucketHandle *storage.BucketHandle, bucketName string) bool {
 	return emptied
 }
 
+// Bucket expires from its ttl label and native creation timestamp.
+type Bucket struct {
+	*storage.BucketAttrs
+}
+
+func (b Bucket) IsExpired() bool {
+	return b.BucketAttrs != nil && isExpiredFromCreationTime("bucket", b.Name, b.Labels["ttl"], b.Created)
+}
+
 func DeleteExpiredBuckets(sessions GCPSessions, options GCPOptions) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
@@ -137,17 +145,7 @@ func DeleteExpiredBuckets(sessions GCPSessions, options GCPOptions) {
 			continue
 		}
 
-		ttlStr, ok := bucket.Labels["ttl"]
-		if !ok || strings.TrimSpace(ttlStr) == "" {
-			log.Info(fmt.Sprintf("No ttl label value found, ignoring this bucket (`%s`)", bucket.Name))
-			continue
-		}
-		ttl, err := strconv.ParseInt(ttlStr, 10, 64)
-		if err != nil {
-			log.Warn(fmt.Sprintf("ttl label value `%s` is not parsable to int64, ignoring this bucket (`%s`)", ttlStr, bucket.Name))
-			continue
-		}
-		if ttl == 0 || time.Now().UTC().Before(bucket.Created.UTC().Add(time.Second*time.Duration(ttl))) {
+		if !(Bucket{BucketAttrs: bucket}).IsExpired() {
 			continue
 		}
 
@@ -156,7 +154,7 @@ func DeleteExpiredBuckets(sessions GCPSessions, options GCPOptions) {
 			continue
 		}
 
-		log.Info(fmt.Sprintf("Deleting bucket `%s` created at `%s` UTC (TTL `%d` seconds)", bucket.Name, bucket.Created.UTC(), ttl))
+		log.Info(fmt.Sprintf("Deleting bucket `%s` created at `%s` UTC (TTL `%s` seconds)", bucket.Name, bucket.Created.UTC(), bucket.Labels["ttl"]))
 
 		if !emptyBucket(sessions.Bucket.Bucket(bucket.Name), bucket.Name) {
 			log.Warn(fmt.Sprintf("Skipping deletion of bucket `%s`: failed to empty it", bucket.Name))

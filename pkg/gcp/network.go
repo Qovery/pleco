@@ -1,21 +1,28 @@
 package gcp
 
 import (
-	"encoding/json"
+	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"cloud.google.com/go/compute/apiv1/computepb"
-	"github.com/Qovery/pleco/pkg/common"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"google.golang.org/api/iterator"
 )
 
 const maxNetworkDeletionWorkers = 20
+
+// Network expires from the TTL metadata in its JSON description.
+type Network struct {
+	*computepb.Network
+}
+
+func (n Network) IsExpired() bool {
+	return n.Network != nil && isExpiredFromDescription("network", n.GetName(), n.GetDescription())
+}
 
 func DeleteExpiredVPCs(sessions GCPSessions, options GCPOptions) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
@@ -26,15 +33,20 @@ func DeleteExpiredVPCs(sessions GCPSessions, options GCPOptions) {
 	})
 
 	// Finish listing before deletion waits can exhaust the listing timeout.
-	var networks []*computepb.Network
+	var networks []Network
 	for {
-		network, err := networksIterator.Next()
-		if err == iterator.Done {
+		networkI, err := networksIterator.Next()
+		if errors.Is(err, iterator.Done) {
 			break
 		}
 		if err != nil {
 			log.Errorf("Error listing networks: %s", err)
 			return
+		}
+
+		network := Network{networkI}
+		if !network.IsExpired() {
+			continue
 		}
 		networks = append(networks, network)
 	}
@@ -43,45 +55,7 @@ func DeleteExpiredVPCs(sessions GCPSessions, options GCPOptions) {
 	var wg sync.WaitGroup
 	workers := make(chan struct{}, maxNetworkDeletionWorkers)
 	for _, network := range networks {
-		var networkName string
-		if network.Name != nil {
-			networkName = *network.Name
-		}
-		var networkDescription string
-		if network.Description != nil {
-			networkDescription = *network.Description
-		}
-
-		resourceTags := common.ResourceTags{}
-		if err := json.Unmarshal([]byte(networkDescription), &resourceTags); err != nil {
-			log.Info(fmt.Sprintf("No resource tags found in description field, ignoring this network (`%s`)", networkName))
-			continue
-		}
-
-		if resourceTags.TTL == nil {
-			log.Infof("No ttl value found, ignoring this network (`%s`)", networkName)
-			continue
-		}
-		ttl, err := strconv.ParseInt(resourceTags.TTL.String(), 10, 64)
-		if err != nil {
-			log.Warnf("ttl label value `%s` is not parsable to int64, ignoring this network (`%s`)", resourceTags.TTL.String(), networkName)
-			continue
-		}
-		if resourceTags.CreationUnixTimestamp == nil {
-			log.Infof("No creation time value found, ignoring this network (`%s`)", networkName)
-			continue
-		}
-		creationTimeUnix, err := strconv.ParseInt(resourceTags.CreationUnixTimestamp.String(), 10, 64)
-		if err != nil {
-			log.Warnf("creation_date label value `%s` is not parsable to int64, ignoring this network (`%s`)", resourceTags.CreationUnixTimestamp.String(), networkName)
-			continue
-		}
-		creationTime := time.Unix(creationTimeUnix, 0).UTC()
-
-		// A zero TTL protects the network; only expired networks are eligible.
-		if ttl == 0 || creationTimeUnix == 0 || time.Now().UTC().Before(creationTime.Add(time.Second*time.Duration(ttl))) {
-			continue
-		}
+		networkName := network.GetName()
 		if options.DryRun {
 			log.Infof("Network `%s` will be deleted", networkName)
 			continue
@@ -94,7 +68,7 @@ func DeleteExpiredVPCs(sessions GCPSessions, options GCPOptions) {
 			defer wg.Done()
 			defer func() { <-workers }()
 			deleteVPC(sessions, options, network)
-		}(network)
+		}(network.Network)
 	}
 	wg.Wait()
 }

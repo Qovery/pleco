@@ -1,15 +1,23 @@
 package gcp
 
 import (
-	"cloud.google.com/go/artifactregistry/apiv1/artifactregistrypb"
 	"fmt"
+	"time"
+
+	"cloud.google.com/go/artifactregistry/apiv1/artifactregistrypb"
 	log "github.com/sirupsen/logrus"
 	"go.uber.org/ratelimit"
 	"golang.org/x/net/context"
-	"strconv"
-	"strings"
-	"time"
 )
+
+// ArtifactRegistryRepository expires from its ttl label and native creation timestamp.
+type ArtifactRegistryRepository struct {
+	*artifactregistrypb.Repository
+}
+
+func (r ArtifactRegistryRepository) IsExpired() bool {
+	return r.Repository != nil && isExpiredFromCreationTime("repository", r.Name, r.Labels["ttl"], r.CreateTime.AsTime())
+}
 
 func DeleteExpiredArtifactRegistryRepositories(sessions GCPSessions, options GCPOptions) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
@@ -26,19 +34,7 @@ func DeleteExpiredArtifactRegistryRepositories(sessions GCPSessions, options GCP
 				break
 			}
 
-			ttlStr, ok := repository.Labels["ttl"]
-			if !ok || strings.TrimSpace(ttlStr) == "" {
-				log.Info(fmt.Sprintf("No ttl label value found, ignoring this repository (`%s`)", repository.Name))
-				continue
-			}
-			ttl, err := strconv.ParseInt(ttlStr, 10, 64)
-			if err != nil {
-				log.Warn(fmt.Sprintf("ttl label value `%s` is not parsable to int64, ignoring this repository (`%s`)", ttlStr, repository.Name))
-				continue
-			}
-			creationTime := repository.CreateTime.AsTime()
-			// repository is not expired (or is protected TTL = 0)
-			if !ok || ttl == 0 || time.Now().UTC().Before(creationTime.UTC().Add(time.Second*time.Duration(ttl))) {
+			if !(ArtifactRegistryRepository{Repository: repository}).IsExpired() {
 				continue
 			}
 
@@ -48,7 +44,7 @@ func DeleteExpiredArtifactRegistryRepositories(sessions GCPSessions, options GCP
 			}
 
 			// repository is eligible to deletion
-			log.Info(fmt.Sprintf("Deleting repository `%s` created at `%s` UTC (TTL `{%d}` seconds)", repository.Name, creationTime.UTC(), ttl))
+			log.Info(fmt.Sprintf("Deleting repository `%s` created at `%s` UTC (TTL `%s` seconds)", repository.Name, repository.CreateTime.AsTime().UTC(), repository.Labels["ttl"]))
 
 			// wait for one available slot for deletion
 			ctxDelete, cancel := context.WithTimeout(context.Background(), time.Second*30)

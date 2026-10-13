@@ -30,6 +30,24 @@ type scopedDisk struct {
 	scope string
 }
 
+// Disk uses orphan status rather than an elapsed TTL to determine expiration.
+type Disk struct {
+	*computepb.Disk
+	Options GCPOptions
+	// OwnerLookupError is the result of looking up this disk's exact owning GKE
+	// cluster. Only NotFound proves it is gone; nil or other errors protect it.
+	OwnerLookupError error
+}
+
+func (d Disk) IsExpired() bool {
+	if !diskCleanupCandidate(d.Disk, d.Options) {
+		return false
+	}
+	var apiErr *googleapi.Error
+	return status.Code(d.OwnerLookupError) == codes.NotFound ||
+		(errors.As(d.OwnerLookupError, &apiErr) && apiErr.Code == http.StatusNotFound)
+}
+
 // DeleteOrphanedDisks cleans up disks left behind after GKE cluster deletion.
 // Detachment alone is insufficient: a scaled-down workload may still own a PVC.
 func DeleteOrphanedDisks(sessions GCPSessions, options GCPOptions) {
@@ -146,14 +164,12 @@ func deleteOrphanedDisk(sessions GCPSessions, options GCPOptions, candidate scop
 	clusterName := fmt.Sprintf("projects/%s/locations/%s/clusters/%s", options.ProjectID,
 		disk.Labels[diskClusterLocationLabel], disk.Labels[diskClusterNameLabel])
 	_, err = sessions.Cluster.GetCluster(ctx, &containerpb.GetClusterRequest{Name: clusterName})
-	if err == nil {
+	if !(Disk{Disk: disk, Options: options, OwnerLookupError: err}).IsExpired() {
+		if err != nil {
+			return fmt.Errorf("check owning cluster %s: %w", clusterName, err)
+		}
 		log.Debugf("Skipping disk %s: cluster %s still exists", disk.GetName(), clusterName)
 		return nil
-	}
-	var apiErr *googleapi.Error
-	notFound := status.Code(err) == codes.NotFound || (errors.As(err, &apiErr) && apiErr.Code == http.StatusNotFound)
-	if !notFound {
-		return fmt.Errorf("check owning cluster %s: %w", clusterName, err)
 	}
 
 	if options.DryRun {

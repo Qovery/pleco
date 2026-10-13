@@ -1,17 +1,50 @@
 package gcp
 
 import (
-	"encoding/json"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
-	"github.com/Qovery/pleco/pkg/common"
 	log "github.com/sirupsen/logrus"
 	cloudresourcemanager "google.golang.org/api/cloudresourcemanager/v1"
 	"google.golang.org/api/googleapi"
+	iam "google.golang.org/api/iam/v1"
 )
+
+// ServiceAccount expires from the TTL metadata in its JSON description.
+type ServiceAccount struct {
+	*iam.ServiceAccount
+}
+
+func (s ServiceAccount) IsExpired() bool {
+	return s.ServiceAccount != nil && isExpiredFromDescription("service account", s.Name, s.Description)
+}
+
+// DeletedServiceAccountBinding identifies a policy member marked deleted by GCP.
+// Eligibility is per member: the other members of its role binding are retained.
+type DeletedServiceAccountBinding struct {
+	Member string
+}
+
+func (b DeletedServiceAccountBinding) IsExpired() bool {
+	return strings.HasPrefix(b.Member, "deleted:serviceAccount:") && !isGCPManagedMember(b.Member)
+}
+
+// MissingServiceAccountBinding compares a policy member with a complete account
+// inventory. A nil inventory represents an unknown state and prevents cleanup.
+type MissingServiceAccountBinding struct {
+	Member                  string
+	ProjectID               string
+	ExistingServiceAccounts map[string]struct{}
+}
+
+func (b MissingServiceAccountBinding) IsExpired() bool {
+	if b.ExistingServiceAccounts == nil || !isProjectOwnedServiceAccount(b.Member, b.ProjectID) || isGCPManagedMember(b.Member) {
+		return false
+	}
+	_, exists := b.ExistingServiceAccounts[b.Member]
+	return !exists
+}
 
 func DeleteExpiredServiceAccounts(sessions GCPSessions, options GCPOptions) {
 	nextPageToken := ""
@@ -24,43 +57,7 @@ func DeleteExpiredServiceAccounts(sessions GCPSessions, options GCPOptions) {
 		}
 
 		for _, serviceAccount := range serviceAccountsListResponse.Accounts {
-			resourceTags := common.ResourceTags{}
-			if err = json.Unmarshal([]byte(serviceAccount.Description), &resourceTags); err != nil {
-				log.Info(fmt.Sprintf("No resource tags found in description field, ignoring this service account (`%s`)", serviceAccount.Name))
-				continue
-			}
-
-			ttlStr := ""
-			if resourceTags.TTL != nil {
-				ttlStr = resourceTags.TTL.String()
-			} else {
-				log.Info(fmt.Sprintf("No ttl value found, ignoring this service account (`%s`)", serviceAccount.Name))
-				continue
-			}
-
-			ttl, err := strconv.ParseInt(ttlStr, 10, 64)
-			if err != nil {
-				log.Warn(fmt.Sprintf("ttl label value `%s` is not parsable to int64, ignoring this service account (`%s`)", ttlStr, serviceAccount.Name))
-				continue
-			}
-
-			creationTimeStr := ""
-			if resourceTags.CreationUnixTimestamp != nil {
-				creationTimeStr = resourceTags.CreationUnixTimestamp.String()
-			} else {
-				log.Info(fmt.Sprintf("No creation time value found, ignoring this service account (`%s`)", serviceAccount.Name))
-				continue
-			}
-
-			creationTimeInt64, err := strconv.ParseInt(creationTimeStr, 10, 64)
-			if err != nil {
-				log.Warn(fmt.Sprintf("creation_date label value `%s` is not parsable to int64, ignoring this service account (`%s`)", creationTimeStr, serviceAccount.Name))
-				continue
-			}
-
-			creationTime := time.Unix(creationTimeInt64, 0).UTC()
-
-			if ttl == 0 || creationTimeInt64 == 0 || time.Now().UTC().Before(creationTime.Add(time.Second*time.Duration(ttl))) {
+			if !(ServiceAccount{ServiceAccount: serviceAccount}).IsExpired() {
 				continue
 			}
 
@@ -188,10 +185,7 @@ func findNonExistentProjectServiceAccounts(
 	nonExistent := make(map[string]struct{})
 	for _, binding := range policy.Bindings {
 		for _, member := range binding.Members {
-			if !isProjectOwnedServiceAccount(member, projectID) {
-				continue
-			}
-			if _, exists := existingSAs[member]; !exists {
+			if (MissingServiceAccountBinding{Member: member, ProjectID: projectID, ExistingServiceAccounts: existingSAs}).IsExpired() {
 				nonExistent[member] = struct{}{}
 			}
 		}
@@ -357,7 +351,7 @@ func DeleteOrphanedIAMPolicyBindings(sessions GCPSessions, options GCPOptions) {
 
 	for _, binding := range policy.Bindings {
 		for _, member := range binding.Members {
-			if strings.HasPrefix(member, "deleted:serviceAccount:") {
+			if (DeletedServiceAccountBinding{Member: member}).IsExpired() {
 				orphaned = append(orphaned, orphanedBinding{role: binding.Role, member: member})
 				if options.DryRun {
 					log.Info(fmt.Sprintf("Orphaned IAM policy binding will be removed: role=%s member=%s", binding.Role, member))
