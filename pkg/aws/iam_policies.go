@@ -158,7 +158,7 @@ func detachUserPolicies(iamSession *iam.IAM, userName string, policies []Policy)
 				})
 
 			if err != nil {
-				log.Errorf("Can not detach policiy %s for user %s : %s", policy.Name, userName, err.Error())
+				log.Errorf("Can not detach policy %s for user %s : %s", policy.Name, userName, err.Error())
 			}
 
 			log.Debugf("IAM policy %s in %s detached.", policy.Name, *iamSession.Config.Region)
@@ -242,7 +242,7 @@ func detachRolePolicies(iamSession *iam.IAM, roleName string, policies []Policy)
 					PolicyArn: aws.String(policy.Arn),
 				})
 			if err != nil {
-				log.Errorf("Can not delete policiy %s for role %s", policy.Name, roleName)
+				log.Errorf("Can not delete policy %s for role %s", policy.Name, roleName)
 			}
 		}
 	}
@@ -257,7 +257,7 @@ func deleteRolePolicies(iamSession *iam.IAM, roleName string, policies []Policy)
 					PolicyName: aws.String(policy.Name),
 				})
 			if err != nil {
-				log.Errorf("Can not delete policiy %s for role %s", policy.Name, roleName)
+				log.Errorf("Can not delete policy %s for role %s", policy.Name, roleName)
 			}
 		}
 	}
