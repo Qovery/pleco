@@ -54,13 +54,16 @@ func AuthenticateToEks(clusterName string, clusterUrl string, roleArn string, se
 }
 
 func ListClusters(svc eks.EKS) ([]*string, error) {
-	input := &eks.ListClustersInput{}
-	result, err := svc.ListClusters(input)
+	var clusters []*string
+	err := svc.ListClustersPages(&eks.ListClustersInput{}, func(page *eks.ListClustersOutput, _ bool) bool {
+		clusters = append(clusters, page.Clusters...)
+		return true
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	return result.Clusters, nil
+	return clusters, nil
 }
 
 func GetClusterDetails(svc eks.EKS, cluster *string, region string, tagName string) eksCluster {

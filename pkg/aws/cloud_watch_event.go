@@ -9,6 +9,7 @@ import (
 
 type cloudWatchEvent struct {
 	common.CloudProviderResource
+	ClusterId string
 }
 
 func listTaggedCloudWatchEvents(svc eventbridge.EventBridge, tagName string) ([]cloudWatchEvent, error) {
@@ -51,6 +52,7 @@ func listTaggedCloudWatchEvents(svc eventbridge.EventBridge, tagName string) ([]
 					Tag:          essentialTags.Tag,
 					IsProtected:  essentialTags.IsProtected,
 				},
+				ClusterId: essentialTags.ClusterId,
 			})
 		}
 		if result.NextToken != nil {

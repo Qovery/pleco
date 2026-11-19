@@ -102,13 +102,18 @@ func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options
 	// RDS
 	if options.EnableRDS {
 		sessions.RDS = RdsSession(*currentSession, region)
-		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredRDSDatabases, DeleteExpiredRDSSubnetGroups, DeleteExpiredCompleteRDSParameterGroups, DeleteExpiredSnapshots)
+		sessions.EKS = eks.New(currentSession)
+		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredRDSDatabases, DeleteExpiredRDSSubnetGroups, DeleteOrphanedRDSSubnetGroups, DeleteExpiredCompleteRDSParameterGroups, DeleteExpiredSnapshots)
 	}
 
 	// DocumentDB connection
 	if options.EnableDocumentDB {
 		sessions.RDS = RdsSession(*currentSession, region)
 		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredDocumentDBClusters, DeleteExpiredClusterSnapshots)
+		if !options.EnableRDS {
+			sessions.EKS = eks.New(currentSession)
+			listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteOrphanedRDSSubnetGroups)
+		}
 	}
 
 	// Elasticache connection
@@ -180,13 +185,15 @@ func runPlecoInRegion(region string, interval int64, wg *sync.WaitGroup, options
 	// SQS
 	if options.EnableSQS {
 		sessions.SQS = sqs.New(currentSession)
-		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredSQSQueues)
+		sessions.EKS = eks.New(currentSession)
+		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredSQSQueues, DeleteOrphanedSQSQueues)
 	}
 
 	// Cloudwatch events
 	if options.EnableCloudWatchEvents {
 		sessions.EventBridge = eventbridge.New(currentSession)
-		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredCloudWatchEvents)
+		sessions.EKS = eks.New(currentSession)
+		listServiceToCheckStatus = append(listServiceToCheckStatus, DeleteExpiredCloudWatchEvents, DeleteOrphanedCloudWatchEvents)
 	}
 
 	// Lambda Function

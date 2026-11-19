@@ -14,6 +14,7 @@ import (
 
 type sqsQueue struct {
 	common.CloudProviderResource
+	ClusterId string
 }
 
 func SqsSession(sess session.Session, region string) *sqs.SQS {
@@ -53,7 +54,11 @@ func listTaggedSqsQueues(svc sqs.SQS, tagName string) ([]sqsQueue, error) {
 				QueueUrl:       queue,
 				AttributeNames: aws.StringSlice([]string{"CreatedTimestamp"}),
 			}
-			attributes, _ := svc.GetQueueAttributes(params)
+			attributes, err := svc.GetQueueAttributes(params)
+			if err != nil || attributes.Attributes["CreatedTimestamp"] == nil {
+				log.Errorf("Failed to get queue attributes: %s", *queue)
+				continue
+			}
 			createdTimestamp, err := strconv.ParseInt(*attributes.Attributes["CreatedTimestamp"], 10, 64)
 
 			if err != nil {
@@ -71,6 +76,7 @@ func listTaggedSqsQueues(svc sqs.SQS, tagName string) ([]sqsQueue, error) {
 					Tag:          essentialTags.Tag,
 					IsProtected:  essentialTags.IsProtected,
 				},
+				ClusterId: essentialTags.ClusterId,
 			})
 			log.Debug(*queue)
 		}
