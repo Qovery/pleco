@@ -400,3 +400,10 @@ pleco start
   europe-west9
   --disable-dry-run
 ```
+
+## Release
+
+1. `task release:bump` pushes a `chore/bump-<version>` branch that sets the version in `cmd/version.go` and the Helm chart. The default version is a patch bump of the latest `vX.Y.Z` tag; pass another with `task release:bump -- 0.32.0`. Open and merge its MR.
+2. `git switch main && git pull && task release` tags `v<version>` and pushes the tag. The tag pipeline builds the image and deploys Pleco to the test clusters.
+
+Add `-- --dry-run` to either task to run its checks and print the summary without changing anything.

@@ -38,6 +38,18 @@ tasks:
       - go.sum
       - .golangci.yml
 
+  release:bump:
+    desc: "Push a branch setting the next version (default: patch bump of the latest tag), to merge through an MR. Args: -- [X.Y.Z] [--yes] [--dry-run]"
+    interactive: true
+    cmds:
+      - bash scripts/release.sh bump {{.CLI_ARGS}}
+
+  release:
+    desc: "Tag main with its merged version and push the tag: builds the image, deploys the test clusters. Args: -- [--yes] [--dry-run]"
+    interactive: true
+    cmds:
+      - bash scripts/release.sh tag {{.CLI_ARGS}}
+
   install-golangci-lint:
     desc: Install the golangci-lint tool
     cmds:
