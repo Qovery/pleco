@@ -209,7 +209,7 @@ func deleteS3Buckets(s3session s3.S3, bucket string) error {
 	// delete bucket policy
 	err := deleteS3BucketPolicy(s3session, bucket)
 	if err != nil {
-		log.Errorf("Error while deleting kucket policy: %v", err)
+		log.Errorf("Error while deleting bucket policy: %v", err)
 		return err
 	}
 
